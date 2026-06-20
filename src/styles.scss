@@ -1,0 +1,67 @@
+// ── Design tokens (synced from @devary/ui-common) ────────────────────────────
+:root,
+[data-theme="light"] {
+  color-scheme: light;
+  --rz-primary:        #1565C0;
+  --rz-accent:         #42A5F5;
+  --rz-bg-from:        #1565C0;
+  --rz-bg-to:          #0d47a1;
+  --rz-ink:            #0d2b6e;
+  --rz-ink-muted:      rgba(13, 71, 161, 0.55);
+  --rz-ink-faint:      rgba(13, 71, 161, 0.35);
+  --rz-glass-bg:       rgba(255, 255, 255, 0.88);
+  --rz-glass-border:   rgba(255, 255, 255, 0.22);
+  --rz-glass-shadow:   0 20px 50px rgba(13, 71, 161, 0.14);
+  --rz-glass-blur:     18px;
+  --rz-surface:        rgba(255, 255, 255, 0.97);
+  --rz-surface-hover:  rgba(21, 101, 192, 0.07);
+  --rz-surface-active: rgba(21, 101, 192, 0.10);
+  --rz-border:         rgba(21, 101, 192, 0.14);
+  --rz-border-faint:   rgba(21, 101, 192, 0.09);
+  --rz-danger:         #b71c1c;
+  --rz-danger-bg:      rgba(183, 28, 28, 0.06);
+  --rz-gradient:       linear-gradient(135deg, #1976D2, #42A5F5);
+  --rz-radius-sm:      0.65rem;
+  --rz-radius-md:      0.9rem;
+  --rz-radius-lg:      1.5rem;
+  --rz-radius-full:    999px;
+}
+
+[data-theme="dark"] {
+  color-scheme: dark;
+  --rz-primary:        #42A5F5;
+  --rz-accent:         #90CAF9;
+  --rz-bg-from:        #0d1117;
+  --rz-bg-to:          #0a0f1e;
+  --rz-ink:            #e0eaff;
+  --rz-ink-muted:      rgba(180, 210, 255, 0.60);
+  --rz-ink-faint:      rgba(180, 210, 255, 0.30);
+  --rz-glass-bg:       rgba(15, 25, 50, 0.80);
+  --rz-glass-border:   rgba(255, 255, 255, 0.08);
+  --rz-glass-shadow:   0 20px 50px rgba(0, 0, 0, 0.40);
+  --rz-glass-blur:     18px;
+  --rz-surface:        rgba(20, 30, 55, 0.97);
+  --rz-surface-hover:  rgba(66, 165, 245, 0.10);
+  --rz-surface-active: rgba(66, 165, 245, 0.15);
+  --rz-border:         rgba(255, 255, 255, 0.10);
+  --rz-border-faint:   rgba(255, 255, 255, 0.06);
+  --rz-danger:         #ef9a9a;
+  --rz-danger-bg:      rgba(239, 154, 154, 0.10);
+  --rz-gradient:       linear-gradient(135deg, #1976D2, #42A5F5);
+}
+
+// ── Base ──────────────────────────────────────────────────────────────────────
+*,
+*::before,
+*::after { box-sizing: border-box; }
+
+html { font-size: 80%; }
+
+html, body {
+  margin: 0;
+  min-height: 100%;
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
+  color: var(--rz-ink);
+  background: linear-gradient(160deg, var(--rz-bg-from) 0%, var(--rz-bg-to) 100%);
+  transition: background 0.25s ease, color 0.25s ease;
+}

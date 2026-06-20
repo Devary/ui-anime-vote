@@ -1,0 +1,241 @@
+.poll-card {
+  background:      var(--rz-glass-bg);
+  border:          1px solid var(--rz-glass-border);
+  border-radius:   var(--rz-radius-lg);
+  box-shadow:      var(--rz-glass-shadow);
+  backdrop-filter: blur(var(--rz-glass-blur));
+  padding:         2rem;
+  display:         flex;
+  flex-direction:  column;
+  gap:             1.75rem;
+}
+
+// ── Header ────────────────────────────────────────────────────────────────────
+.poll-header {
+  display:        flex;
+  flex-direction: column;
+  align-items:    center;
+  gap:            0.5rem;
+}
+
+.poll-anime-tag {
+  font-size:      0.75rem;
+  font-weight:    700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color:          var(--rz-primary);
+  background:     var(--rz-surface-hover);
+  border-radius:  var(--rz-radius-full);
+  padding:        0.25rem 0.85rem;
+}
+
+.poll-title {
+  margin:      0;
+  font-size:   1.15rem;
+  font-weight: 700;
+  color:       var(--rz-ink);
+  text-align:  center;
+}
+
+// ── Fighters row ──────────────────────────────────────────────────────────────
+.fighters-row {
+  display:         flex;
+  align-items:     center;
+  justify-content: center;
+  gap:             2rem;
+
+  @media (max-width: 560px) {
+    flex-direction: column;
+    gap: 1rem;
+  }
+}
+
+.fighter {
+  display:        flex;
+  flex-direction: column;
+  align-items:    center;
+  gap:            0.75rem;
+  flex:           1;
+  max-width:      180px;
+  transition:     transform 0.2s ease;
+
+  &.leader .fighter-photo {
+    border-color: var(--rz-primary);
+    box-shadow:   0 0 0 3px var(--rz-primary), 0 8px 30px rgba(0,0,0,0.25);
+  }
+}
+
+.fighter-photo-btn {
+  position:         relative;
+  background:       none;
+  border:           none;
+  padding:          0;
+  cursor:           pointer;
+  border-radius:    var(--rz-radius-full);
+  outline:          none;
+
+  &:focus-visible .fighter-photo {
+    outline: 2px solid var(--rz-primary);
+    outline-offset: 3px;
+  }
+
+  &:hover .vote-overlay {
+    opacity: 1;
+    transform: scale(1.1);
+  }
+
+  &:active .vote-overlay {
+    transform: scale(0.95);
+  }
+}
+
+.fighter-photo {
+  width:         140px;
+  height:        140px;
+  border-radius: var(--rz-radius-full);
+  object-fit:    cover;
+  object-position: top;
+  border:        3px solid var(--rz-glass-border);
+  display:       block;
+  transition:    border-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+.vote-overlay {
+  position:         absolute;
+  inset:            0;
+  border-radius:    var(--rz-radius-full);
+  background:       rgba(21, 101, 192, 0.75);
+  color:            #fff;
+  font-size:        2rem;
+  font-weight:      800;
+  display:          flex;
+  align-items:      center;
+  justify-content:  center;
+  opacity:          0;
+  transition:       opacity 0.2s ease, transform 0.15s ease;
+  pointer-events:   none;
+}
+
+.fighter-info {
+  display:        flex;
+  flex-direction: column;
+  align-items:    center;
+  gap:            0.2rem;
+  text-align:     center;
+}
+
+.fighter-name {
+  font-size:   1rem;
+  font-weight: 700;
+  color:       var(--rz-ink);
+}
+
+.fighter-title {
+  font-size:  0.78rem;
+  color:      var(--rz-ink-muted);
+  font-style: italic;
+}
+
+.fighter-votes {
+  display:     flex;
+  align-items: baseline;
+  gap:         0.3rem;
+}
+
+.vote-count {
+  font-size:   1.5rem;
+  font-weight: 800;
+  color:       var(--rz-primary);
+  line-height: 1;
+}
+
+.vote-label {
+  font-size: 0.75rem;
+  color:     var(--rz-ink-muted);
+}
+
+// ── VS badge ─────────────────────────────────────────────────────────────────
+.vs-badge {
+  flex-shrink:   0;
+  width:         3rem;
+  height:        3rem;
+  border-radius: var(--rz-radius-full);
+  background:    var(--rz-gradient);
+  color:         #fff;
+  font-size:     0.9rem;
+  font-weight:   900;
+  display:       flex;
+  align-items:   center;
+  justify-content: center;
+  box-shadow:    0 4px 16px rgba(21, 101, 192, 0.35);
+  letter-spacing: 0.05em;
+}
+
+// ── Results bar ───────────────────────────────────────────────────────────────
+.results-section {
+  display:        flex;
+  flex-direction: column;
+  gap:            0.5rem;
+}
+
+.result-labels {
+  display:         flex;
+  justify-content: space-between;
+  align-items:     center;
+}
+
+.result-name {
+  font-size:   0.8rem;
+  font-weight: 600;
+  color:       var(--rz-ink-muted);
+  max-width:   40%;
+  overflow:    hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+
+  &.right { text-align: right; }
+}
+
+.total-votes {
+  font-size: 0.72rem;
+  color:     var(--rz-ink-faint);
+}
+
+.results-bar {
+  display:       flex;
+  height:        2rem;
+  border-radius: var(--rz-radius-sm);
+  overflow:      hidden;
+  background:    var(--rz-border-faint);
+}
+
+.bar-fill {
+  display:         flex;
+  align-items:     center;
+  justify-content: center;
+  transition:      width 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+  overflow:        hidden;
+  min-width:       0;
+
+  &.bar-left {
+    background:    var(--rz-gradient);
+    border-radius: var(--rz-radius-sm) 0 0 var(--rz-radius-sm);
+  }
+
+  &.bar-right {
+    background:    linear-gradient(135deg, #e53935, #ff7043);
+    border-radius: 0 var(--rz-radius-sm) var(--rz-radius-sm) 0;
+  }
+
+  &.zero {
+    background: var(--rz-border);
+  }
+}
+
+.bar-pct {
+  font-size:   0.75rem;
+  font-weight: 700;
+  color:       #fff;
+  padding:     0 0.35rem;
+  white-space: nowrap;
+}

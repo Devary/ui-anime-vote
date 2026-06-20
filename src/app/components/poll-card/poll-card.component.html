@@ -1,0 +1,66 @@
+<div class="poll-card">
+  <div class="poll-header">
+    <span class="poll-anime-tag">{{ poll().anime }}</span>
+    <h2 class="poll-title">{{ poll().title }}</h2>
+  </div>
+
+  <div class="fighters-row">
+    <!-- Fighter 1 -->
+    <div class="fighter" [class.leader]="getPercent(poll().fighter1.id) >= getPercent(poll().fighter2.id)">
+      <button class="fighter-photo-btn" (click)="vote(poll().fighter1.id)" title="Vote for {{ poll().fighter1.name }}">
+        <img class="fighter-photo" [src]="poll().fighter1.image" [alt]="poll().fighter1.name"
+             onerror="this.src='https://placehold.co/160x160/1565C0/white?text=?'" />
+        <span class="vote-overlay">+1</span>
+      </button>
+      <div class="fighter-info">
+        <span class="fighter-name">{{ poll().fighter1.name }}</span>
+        <span class="fighter-title">{{ poll().fighter1.title }}</span>
+      </div>
+      <div class="fighter-votes">
+        <span class="vote-count">{{ getCount(poll().fighter1.id) }}</span>
+        <span class="vote-label">votes</span>
+      </div>
+    </div>
+
+    <!-- VS divider -->
+    <div class="vs-badge">VS</div>
+
+    <!-- Fighter 2 -->
+    <div class="fighter" [class.leader]="getPercent(poll().fighter2.id) > getPercent(poll().fighter1.id)">
+      <button class="fighter-photo-btn" (click)="vote(poll().fighter2.id)" title="Vote for {{ poll().fighter2.name }}">
+        <img class="fighter-photo" [src]="poll().fighter2.image" [alt]="poll().fighter2.name"
+             onerror="this.src='https://placehold.co/160x160/1565C0/white?text=?'" />
+        <span class="vote-overlay">+1</span>
+      </button>
+      <div class="fighter-info">
+        <span class="fighter-name">{{ poll().fighter2.name }}</span>
+        <span class="fighter-title">{{ poll().fighter2.title }}</span>
+      </div>
+      <div class="fighter-votes">
+        <span class="vote-count">{{ getCount(poll().fighter2.id) }}</span>
+        <span class="vote-label">votes</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Results bar -->
+  <div class="results-section">
+    <div class="result-labels">
+      <span class="result-name left">{{ poll().fighter1.name }}</span>
+      <span class="total-votes">{{ getTotal() }} total votes</span>
+      <span class="result-name right">{{ poll().fighter2.name }}</span>
+    </div>
+    <div class="results-bar">
+      <div class="bar-fill bar-left"
+           [style.width.%]="getPercent(poll().fighter1.id)"
+           [class.zero]="getCount(poll().fighter1.id) === 0">
+        <span class="bar-pct">{{ getPercent(poll().fighter1.id) }}%</span>
+      </div>
+      <div class="bar-fill bar-right"
+           [style.width.%]="getPercent(poll().fighter2.id)"
+           [class.zero]="getCount(poll().fighter2.id) === 0">
+        <span class="bar-pct">{{ getPercent(poll().fighter2.id) }}%</span>
+      </div>
+    </div>
+  </div>
+</div>
