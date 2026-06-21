@@ -1,0 +1,89 @@
+<!-- Backdrop -->
+<div class="modal-backdrop" (click)="close.emit()"></div>
+
+<!-- Panel -->
+<div class="modal-panel" role="dialog" aria-modal="true">
+
+  <!-- Header -->
+  <div class="modal-header">
+    <div class="modal-title">
+      <span class="anime-tag">{{ poll().anime }}</span>
+      <span class="vs-label">{{ poll().fighter1.name }} vs {{ poll().fighter2.name }}</span>
+    </div>
+    <button class="modal-close" (click)="close.emit()" aria-label="Close">✕</button>
+  </div>
+
+  <!-- Body -->
+  <div class="modal-body">
+
+    <!-- Org chart -->
+    <div class="org-wrap">
+      <p-organization-chart [value]="orgNodes()" [collapsible]="false">
+
+        <ng-template let-node pTemplate="winner">
+          <div class="node-winner">
+            <div class="winner-photo-wrap">
+              <img class="winner-img"
+                   [src]="node.data.image" [alt]="node.data.name"
+                   onerror="this.onerror=null;this.src='https://placehold.co/140x140/fbbf24/000?text=W'" />
+              <span class="winner-crown">👑</span>
+            </div>
+            <div class="winner-label">{{ node.data.name }}</div>
+          </div>
+        </ng-template>
+
+        <ng-template pTemplate="tie">
+          <div class="node-tie">TIE 🤝</div>
+        </ng-template>
+
+        <ng-template let-node pTemplate="fighter">
+          <div class="node-fighter"
+               [class.is-winner]="node.data.isWinner"
+               [class.is-my-vote]="node.data.isMyVote">
+
+            <div class="fighter-photo-wrap">
+              <img class="fighter-img"
+                   [src]="node.data.image" [alt]="node.data.name"
+                   onerror="this.onerror=null;this.src='https://placehold.co/90x90/1565C0/fff?text=?'" />
+              @if (node.data.isMyVote) {
+                <span class="my-vote-badge" title="Your vote">✓</span>
+              }
+            </div>
+
+            <div class="fn-name">{{ node.data.name }}</div>
+            <div class="fn-pct">{{ node.data.pct }}%</div>
+            <div class="fn-votes">{{ node.data.votes | number }} votes</div>
+
+            @if (!node.data.isMyVote) {
+              <button class="switch-btn" (click)="changeVote(node.data.charId)">
+                Switch vote
+              </button>
+            } @else {
+              <div class="your-vote-label">← your vote</div>
+            }
+
+          </div>
+        </ng-template>
+
+      </p-organization-chart>
+    </div>
+
+    <!-- % bar -->
+    <div class="bar-wrap">
+      <div class="results-bar">
+        <div class="bar-left" [style.width]="barPcts().pct1 + '%'">
+          <span class="bar-pct">{{ barPcts().pct1 }}%</span>
+        </div>
+        <div class="bar-right" [style.width]="barPcts().pct2 + '%'">
+          <span class="bar-pct">{{ barPcts().pct2 }}%</span>
+        </div>
+      </div>
+      <div class="bar-labels">
+        <span>{{ barPcts().pct1 }}%</span>
+        <span class="total-votes">{{ barPcts().total | number }} votes</span>
+        <span>{{ barPcts().pct2 }}%</span>
+      </div>
+    </div>
+
+  </div>
+</div>

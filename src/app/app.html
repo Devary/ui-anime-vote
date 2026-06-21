@@ -20,12 +20,14 @@
     <!-- Poll -->
     <app-poll-card [poll]="currentPoll()" (castVote)="onVote($event)" />
 
-    <!-- Counter -->
-    <div class="poll-counter">
-      <span class="counter-cur">{{ currentIndex() + 1 }}</span>
-      <span class="counter-sep">&thinsp;/&thinsp;</span>
-      <span class="counter-tot">{{ totalPolls }}</span>
-    </div>
+    <!-- History button -->
+    <button class="history-btn" (click)="openHistory()" aria-label="Vote history">
+      <span class="history-icon">🗳</span>
+      <span class="history-label">History</span>
+      @if (votedCount() > 0) {
+        <span class="history-badge">{{ votedCount() }}</span>
+      }
+    </button>
 
     <!-- Auto-advance progress -->
     <div class="progress-track">
@@ -35,3 +37,8 @@
   </main>
 
 </div>
+
+<!-- Vote history drawer (outside main so it overlays everything) -->
+@if (showHistory()) {
+  <app-vote-history (closeHistory)="closeHistory()" />
+}

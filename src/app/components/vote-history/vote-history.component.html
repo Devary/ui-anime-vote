@@ -1,0 +1,77 @@
+<!-- Backdrop -->
+<div class="history-backdrop" (click)="closeHistory.emit()"></div>
+
+<!-- Drawer -->
+<div class="history-drawer" role="dialog" aria-label="Vote History">
+
+  <div class="drawer-header">
+    <h2 class="drawer-title">Vote History</h2>
+    <span class="vote-count">{{ votedPolls().length }} voted</span>
+    <button class="drawer-close" (click)="closeHistory.emit()" aria-label="Close">✕</button>
+  </div>
+
+  <div class="drawer-body">
+    @if (votedPolls().length === 0) {
+      <div class="empty-state">
+        <span class="empty-icon">🗳️</span>
+        <p>No votes yet. Cast your first vote!</p>
+      </div>
+    } @else {
+      <ul class="history-list">
+        @for (poll of votedPolls(); track poll.id) {
+          <li class="history-row" (click)="openDetail(poll)" role="button" tabindex="0"
+              (keydown.enter)="openDetail(poll)">
+
+            <!-- Voted character -->
+            <div class="voted-char">
+              <img class="char-avatar voted"
+                   [src]="myVotedChar(poll).image"
+                   [alt]="myVotedChar(poll).name"
+                   onerror="this.onerror=null;this.src='https://placehold.co/48x48/1565C0/fff?text=?'" />
+              <span class="voted-badge">✓</span>
+            </div>
+
+            <!-- Info -->
+            <div class="row-info">
+              <div class="row-names">
+                <span class="voted-name" [class.winner]="isWinner(poll)">
+                  {{ myVotedChar(poll).name }}
+                </span>
+                <span class="vs-sep">vs</span>
+                <span class="other-name">
+                  {{ myVotedChar(poll).id === poll.fighter1.id ? poll.fighter2.name : poll.fighter1.name }}
+                </span>
+              </div>
+              <div class="row-meta">
+                <span class="anime-pill">{{ poll.anime }}</span>
+                <span class="row-pct" [class.winning]="isWinner(poll)">{{ pct(poll) }}%</span>
+                @if (isWinner(poll)) {
+                  <span class="crown-small">👑</span>
+                }
+              </div>
+            </div>
+
+            <!-- Opponent avatar -->
+            <div class="opp-char">
+              <img class="char-avatar"
+                   [src]="myVotedChar(poll).id === poll.fighter1.id ? poll.fighter2.image : poll.fighter1.image"
+                   [alt]="myVotedChar(poll).id === poll.fighter1.id ? poll.fighter2.name : poll.fighter1.name"
+                   onerror="this.onerror=null;this.src='https://placehold.co/40x40/c62828/fff?text=?'" />
+            </div>
+
+            <span class="row-arrow">›</span>
+
+          </li>
+        }
+      </ul>
+    }
+  </div>
+
+</div>
+
+<!-- Detail modal -->
+@if (selectedPoll()) {
+  <app-vote-detail-modal
+    [poll]="selectedPoll()!"
+    (close)="closeDetail()" />
+}

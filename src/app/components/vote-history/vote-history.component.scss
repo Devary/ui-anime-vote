@@ -1,0 +1,236 @@
+:host {
+  position: fixed;
+  inset:    0;
+  z-index:  100;
+}
+
+.history-backdrop {
+  position:   absolute;
+  inset:      0;
+  background: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(3px);
+}
+
+// ── Drawer ───────────────────────────────────────────────────────────────────
+.history-drawer {
+  position:       absolute;
+  bottom:         0;
+  left:           0;
+  right:          0;
+  max-height:     75vh;
+  display:        flex;
+  flex-direction: column;
+  background:     var(--rz-surface);
+  border-top:     1px solid var(--rz-glass-border);
+  border-radius:  var(--rz-radius-lg) var(--rz-radius-lg) 0 0;
+  box-shadow:     0 -8px 40px rgba(0, 0, 0, 0.45);
+  animation:      drawer-up 0.3s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+  overflow:       hidden;
+}
+
+@keyframes drawer-up {
+  from { transform: translateY(100%); }
+  to   { transform: translateY(0); }
+}
+
+// ── Header ───────────────────────────────────────────────────────────────────
+.drawer-header {
+  display:         flex;
+  align-items:     center;
+  padding:         0.9rem 1.25rem 0.75rem;
+  border-bottom:   1px solid var(--rz-border-faint);
+  flex-shrink:     0;
+  gap:             0.6rem;
+}
+
+.drawer-title {
+  font-size:   1rem;
+  font-weight: 800;
+  color:       var(--rz-ink);
+  margin:      0;
+  flex:        1;
+}
+
+.vote-count {
+  font-size:      0.68rem;
+  font-weight:    700;
+  color:          var(--rz-primary);
+  background:     var(--rz-surface-hover);
+  padding:        0.2rem 0.6rem;
+  border-radius:  var(--rz-radius-full);
+}
+
+.drawer-close {
+  background:    none;
+  border:        none;
+  color:         var(--rz-ink-muted);
+  font-size:     1.1rem;
+  cursor:        pointer;
+  padding:       0.25rem 0.5rem;
+  border-radius: var(--rz-radius-sm);
+  line-height:   1;
+  transition:    color 0.15s, background 0.15s;
+
+  &:hover { color: var(--rz-ink); background: var(--rz-surface-hover); }
+}
+
+// ── Body ─────────────────────────────────────────────────────────────────────
+.drawer-body {
+  overflow-y: auto;
+  flex:       1;
+  min-height: 0;
+}
+
+// ── Empty state ───────────────────────────────────────────────────────────────
+.empty-state {
+  display:         flex;
+  flex-direction:  column;
+  align-items:     center;
+  justify-content: center;
+  gap:             0.5rem;
+  padding:         3rem 1rem;
+  color:           var(--rz-ink-muted);
+
+  .empty-icon { font-size: 2.5rem; }
+  p           { font-size: 0.85rem; margin: 0; }
+}
+
+// ── List ──────────────────────────────────────────────────────────────────────
+.history-list {
+  list-style: none;
+  margin:     0;
+  padding:    0;
+}
+
+.history-row {
+  display:     flex;
+  align-items: center;
+  gap:         0.75rem;
+  padding:     0.7rem 1.25rem;
+  cursor:      pointer;
+  transition:  background 0.15s;
+  border-bottom: 1px solid var(--rz-border-faint);
+
+  &:last-child { border-bottom: none; }
+  &:hover      { background: var(--rz-surface-hover); }
+  &:focus-visible { outline: 2px solid var(--rz-primary); outline-offset: -2px; }
+}
+
+// ── Avatars ───────────────────────────────────────────────────────────────────
+.voted-char {
+  position:    relative;
+  flex-shrink: 0;
+}
+
+.char-avatar {
+  width:           48px;
+  height:          48px;
+  border-radius:   50%;
+  object-fit:      cover;
+  object-position: top center;
+  border:          2px solid var(--rz-glass-border);
+  background:      var(--rz-surface-hover);
+  display:         block;
+
+  &.voted {
+    border-color: var(--rz-primary);
+    box-shadow:   0 0 0 3px rgba(21, 101, 192, 0.3);
+  }
+}
+
+.opp-char {
+  flex-shrink: 0;
+
+  .char-avatar {
+    width:  40px;
+    height: 40px;
+    opacity: 0.65;
+  }
+}
+
+.voted-badge {
+  position:        absolute;
+  bottom:          -2px;
+  right:           -2px;
+  width:           1.1rem;
+  height:          1.1rem;
+  border-radius:   50%;
+  background:      var(--rz-primary);
+  color:           #fff;
+  font-size:       0.6rem;
+  font-weight:     900;
+  display:         flex;
+  align-items:     center;
+  justify-content: center;
+  border:          2px solid var(--rz-surface);
+}
+
+// ── Row info ──────────────────────────────────────────────────────────────────
+.row-info {
+  flex: 1;
+  min-width: 0;
+  display:   flex;
+  flex-direction: column;
+  gap:       0.25rem;
+}
+
+.row-names {
+  display:     flex;
+  align-items: center;
+  gap:         0.35rem;
+  flex-wrap:   wrap;
+}
+
+.voted-name {
+  font-size:   0.82rem;
+  font-weight: 700;
+  color:       var(--rz-ink);
+
+  &.winner { color: #fbbf24; }
+}
+
+.vs-sep {
+  font-size:   0.65rem;
+  color:       var(--rz-ink-faint);
+  font-weight: 500;
+}
+
+.other-name {
+  font-size:  0.75rem;
+  color:      var(--rz-ink-muted);
+  font-weight: 500;
+}
+
+.row-meta {
+  display:     flex;
+  align-items: center;
+  gap:         0.4rem;
+}
+
+.anime-pill {
+  font-size:      0.6rem;
+  font-weight:    700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color:          var(--rz-primary);
+  background:     var(--rz-surface-hover);
+  border-radius:  var(--rz-radius-full);
+  padding:        0.1rem 0.45rem;
+}
+
+.row-pct {
+  font-size:            0.72rem;
+  font-weight:          700;
+  color:                var(--rz-ink-muted);
+  font-variant-numeric: tabular-nums;
+
+  &.winning { color: var(--rz-primary); }
+}
+
+.crown-small { font-size: 0.8rem; }
+
+.row-arrow {
+  color:     var(--rz-ink-faint);
+  font-size: 1.2rem;
+  flex-shrink: 0;
+}
