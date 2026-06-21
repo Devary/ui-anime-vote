@@ -1,0 +1,406 @@
+:host {
+  position: fixed;
+  inset:    0;
+  z-index:  200;
+  display:  flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.modal-backdrop {
+  position:        absolute;
+  inset:           0;
+  background:      rgba(0, 0, 0, 0.65);
+  backdrop-filter: blur(4px);
+}
+
+.modal-panel {
+  position:       relative;
+  z-index:        1;
+  display:        flex;
+  flex-direction: column;
+  max-width:      680px;
+  width:          calc(100% - 2rem);
+  max-height:     90vh;
+  overflow-y:     auto;
+  background:     var(--rz-surface);
+  border:         1px solid var(--rz-glass-border);
+  border-radius:  var(--rz-radius-lg);
+  box-shadow:     0 24px 80px rgba(0, 0, 0, 0.55);
+  animation:      modal-in 0.28s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+@keyframes modal-in {
+  from { opacity: 0; transform: scale(0.88) translateY(20px); }
+  to   { opacity: 1; transform: scale(1)    translateY(0); }
+}
+
+// ── Header ───────────────────────────────────────────────────────────────────
+.modal-header {
+  display:         flex;
+  align-items:     flex-start;
+  justify-content: space-between;
+  padding:         1rem 1.25rem 0.75rem;
+  border-bottom:   1px solid var(--rz-border-faint);
+  flex-shrink:     0;
+  gap:             0.75rem;
+}
+
+.modal-title {
+  display:     flex;
+  flex-wrap:   wrap;
+  align-items: center;
+  gap:         0.4rem;
+  min-width:   0;
+}
+
+.anime-tag {
+  font-size:      0.62rem;
+  font-weight:    700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color:          var(--rz-primary);
+  background:     var(--rz-surface-hover);
+  border-radius:  var(--rz-radius-full);
+  padding:        0.2rem 0.6rem;
+}
+
+.multi-badge {
+  font-size:      0.55rem;
+  font-weight:    900;
+  letter-spacing: 0.1em;
+  color:          #fff;
+  background:     linear-gradient(135deg, #7b1fa2, #e040fb);
+  border-radius:  var(--rz-radius-full);
+  padding:        0.18rem 0.45rem;
+}
+
+.question-text {
+  font-size:   0.78rem;
+  font-weight: 600;
+  color:       var(--rz-ink-muted);
+  width:       100%;
+}
+
+.modal-close {
+  background:    none;
+  border:        none;
+  color:         var(--rz-ink-muted);
+  font-size:     1.1rem;
+  cursor:        pointer;
+  padding:       0.25rem 0.5rem;
+  border-radius: var(--rz-radius-sm);
+  line-height:   1;
+  flex-shrink:   0;
+  transition:    color 0.15s, background 0.15s;
+
+  &:hover { color: var(--rz-ink); background: var(--rz-surface-hover); }
+}
+
+// ── Body ─────────────────────────────────────────────────────────────────────
+.modal-body {
+  display:        flex;
+  flex-direction: column;
+  align-items:    center;
+  gap:            1.25rem;
+  padding:        1.25rem 1rem 1.5rem;
+}
+
+// ── OrgChart ─────────────────────────────────────────────────────────────────
+.org-wrap {
+  width:            100%;
+  overflow-x:       auto;
+  display:          flex;
+  justify-content:  center;
+}
+
+:host ::ng-deep {
+  .p-organizationchart { background: transparent; padding: 0; }
+
+  .p-organizationchart-connector-left.p-organizationchart-connector-top {
+    border-top:   2px solid rgba(255,255,255,0.35) !important;
+    border-right: 2px solid rgba(255,255,255,0.35) !important;
+  }
+  .p-organizationchart-connector-right.p-organizationchart-connector-top {
+    border-top:  2px solid rgba(255,255,255,0.35) !important;
+    border-left: 2px solid rgba(255,255,255,0.35) !important;
+  }
+  .p-organizationchart-connector-down {
+    background: rgba(255,255,255,0.35) !important;
+    width:      2px  !important;
+    height:     16px !important;
+    margin:     0 auto;
+  }
+  .p-organizationchart-node-content {
+    border: none !important; background: transparent !important;
+    padding: 0 !important; box-shadow: none !important; border-radius: 0 !important;
+  }
+  .p-organizationchart-node-toggle-button { display: none !important; }
+}
+
+// ── Overall winner ────────────────────────────────────────────────────────────
+.node-overall {
+  display:        flex;
+  flex-direction: column;
+  align-items:    center;
+  gap:            0.3rem;
+  padding-bottom: 0.2rem;
+}
+
+.overall-wrap { position: relative; }
+
+.overall-img {
+  width:           clamp(70px, 14vw, 108px);
+  height:          clamp(70px, 14vw, 108px);
+  border-radius:   50%;
+  object-fit:      cover;
+  object-position: top center;
+  border:          4px solid #fbbf24;
+  box-shadow:      0 0 0 4px rgba(251,191,36,0.22), 0 4px 20px rgba(251,191,36,0.4);
+  display:         block;
+  background:      var(--rz-surface-hover);
+}
+
+.overall-crown {
+  position:  absolute;
+  top:       -17px;
+  left:      50%;
+  transform: translateX(-50%);
+  font-size: 1.5rem;
+  filter:    drop-shadow(0 2px 4px rgba(0,0,0,0.7));
+  animation: crown-pop 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+@keyframes crown-pop {
+  from { transform: translateX(-50%) scale(0) rotate(-20deg); opacity: 0; }
+  to   { transform: translateX(-50%) scale(1) rotate(0deg);   opacity: 1; }
+}
+
+.overall-label {
+  font-size:   0.82rem;
+  font-weight: 800;
+  color:       #fbbf24;
+  text-align:  center;
+}
+
+// ── Group winner ──────────────────────────────────────────────────────────────
+.node-group-winner {
+  display:        flex;
+  flex-direction: column;
+  align-items:    center;
+  gap:            0.18rem;
+  padding:        0.2rem 0.5rem 0.2rem;
+
+  &.is-my-vote .gw-img {
+    border-color: var(--rz-primary);
+    box-shadow:   0 0 0 4px rgba(21,101,192,0.35), 0 0 14px rgba(21,101,192,0.4);
+  }
+}
+
+.gw-wrap { position: relative; }
+
+.gw-img {
+  width:           clamp(48px, 10vw, 72px);
+  height:          clamp(48px, 10vw, 72px);
+  border-radius:   50%;
+  object-fit:      cover;
+  object-position: top center;
+  border:          3px solid #f59e0b;
+  box-shadow:      0 0 0 3px rgba(245,158,11,0.25);
+  display:         block;
+  background:      var(--rz-surface-hover);
+}
+
+.gw-crown {
+  position:  absolute;
+  top:       -13px;
+  left:      50%;
+  transform: translateX(-50%);
+  font-size: 1rem;
+  filter:    drop-shadow(0 1px 3px rgba(0,0,0,0.6));
+  animation: crown-pop 0.4s 0.1s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+
+.gw-name {
+  font-size:   clamp(0.58rem, 1.2vw, 0.68rem);
+  font-weight: 700;
+  color:       #f59e0b;
+  text-align:  center;
+  line-height: 1.2;
+}
+
+.gw-group-label {
+  font-size:      0.52rem;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color:          var(--rz-ink-faint);
+  font-weight:    700;
+}
+
+// ── Candidate leaf ────────────────────────────────────────────────────────────
+.node-candidate {
+  display:        flex;
+  flex-direction: column;
+  align-items:    center;
+  gap:            0.15rem;
+  padding:        0.15rem 0.35rem 0.4rem;
+
+  &.is-winner .cn-img  { border-color: #f59e0b; box-shadow: 0 0 0 2px rgba(245,158,11,0.3); }
+  &.is-my-vote .cn-img { border-color: var(--rz-primary); box-shadow: 0 0 0 3px rgba(21,101,192,0.4), 0 0 10px rgba(21,101,192,0.4); }
+}
+
+.cn-wrap { position: relative; }
+
+.cn-img {
+  width:           clamp(42px, 8vw, 62px);
+  height:          clamp(42px, 8vw, 62px);
+  border-radius:   50%;
+  object-fit:      cover;
+  object-position: top center;
+  border:          2px solid var(--rz-glass-border);
+  display:         block;
+  background:      var(--rz-surface-hover);
+  transition:      border-color 0.3s, box-shadow 0.3s;
+}
+
+.my-vote-dot {
+  position:        absolute;
+  bottom:          -1px;
+  right:           -1px;
+  width:           0.95rem;
+  height:          0.95rem;
+  border-radius:   50%;
+  background:      var(--rz-primary);
+  color:           #fff;
+  font-size:       0.52rem;
+  font-weight:     900;
+  display:         flex;
+  align-items:     center;
+  justify-content: center;
+  border:          1.5px solid var(--rz-surface);
+}
+
+.cn-name {
+  font-size:   clamp(0.52rem, 1vw, 0.6rem);
+  font-weight: 700;
+  color:       var(--rz-ink);
+  text-align:  center;
+  line-height: 1.2;
+  max-width:   clamp(42px, 8vw, 62px);
+}
+
+.cn-pct {
+  font-size:            clamp(0.65rem, 1.3vw, 0.75rem);
+  font-weight:          900;
+  font-variant-numeric: tabular-nums;
+}
+
+.cn-votes {
+  font-size:   0.5rem;
+  color:       var(--rz-ink-faint);
+  text-align:  center;
+  white-space: nowrap;
+}
+
+.your-vote-label {
+  font-size:   0.58rem;
+  font-weight: 700;
+  color:       var(--rz-primary);
+  margin-top:  0.15rem;
+}
+
+.switch-btn {
+  margin-top:    0.25rem;
+  padding:       0.2rem 0.5rem;
+  font-size:     0.58rem;
+  font-weight:   700;
+  border:        1.5px solid var(--rz-primary);
+  border-radius: var(--rz-radius-full);
+  background:    transparent;
+  color:         var(--rz-primary);
+  cursor:        pointer;
+  transition:    background 0.15s, color 0.15s;
+  white-space:   nowrap;
+
+  &:hover { background: var(--rz-primary); color: #fff; }
+}
+
+// ── Group bars ────────────────────────────────────────────────────────────────
+.bars-row {
+  display:         flex;
+  flex-wrap:       wrap;
+  gap:             0.75rem;
+  justify-content: center;
+  width:           100%;
+}
+
+.group-bar-wrap {
+  flex:           1;
+  min-width:      130px;
+  max-width:      240px;
+  display:        flex;
+  flex-direction: column;
+  gap:            0.22rem;
+}
+
+.gbar-label {
+  font-size:      0.58rem;
+  font-weight:    800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color:          var(--rz-ink-muted);
+  text-align:     center;
+}
+
+.gbar {
+  display:       flex;
+  height:        1.4rem;
+  border-radius: var(--rz-radius-sm);
+  overflow:      hidden;
+  background:    var(--rz-border-faint);
+}
+
+.bar-seg {
+  display:         flex;
+  align-items:     center;
+  justify-content: center;
+  transition:      width 0.55s cubic-bezier(0.4, 0, 0.2, 1);
+  min-width:       0;
+  overflow:        hidden;
+
+  &:first-child { border-radius: var(--rz-radius-sm) 0 0 var(--rz-radius-sm); }
+  &:last-child  { border-radius: 0 var(--rz-radius-sm) var(--rz-radius-sm) 0; }
+  &:only-child  { border-radius: var(--rz-radius-sm); }
+}
+
+.seg-pct {
+  font-size:            0.58rem;
+  font-weight:          700;
+  color:                #fff;
+  padding:              0 0.2rem;
+  white-space:          nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+.gbar-legend {
+  display:         flex;
+  flex-wrap:       wrap;
+  gap:             0.25rem 0.5rem;
+  justify-content: center;
+}
+
+.legend-item {
+  display:     flex;
+  align-items: center;
+  gap:         0.2rem;
+  font-size:   0.52rem;
+  color:       var(--rz-ink-muted);
+  white-space: nowrap;
+}
+
+.legend-dot {
+  width:         0.45rem;
+  height:        0.45rem;
+  border-radius: 50%;
+  flex-shrink:   0;
+}

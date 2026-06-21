@@ -1,0 +1,106 @@
+<!-- Backdrop -->
+<div class="modal-backdrop" (click)="close.emit()"></div>
+
+<!-- Panel -->
+<div class="modal-panel" role="dialog" aria-modal="true">
+
+  <!-- Header -->
+  <div class="modal-header">
+    <div class="modal-title">
+      <span class="anime-tag">{{ poll().anime }}</span>
+      <span class="multi-badge">MULTI</span>
+      <span class="question-text">{{ poll().question }}</span>
+    </div>
+    <button class="modal-close" (click)="close.emit()" aria-label="Close">✕</button>
+  </div>
+
+  <!-- Body -->
+  <div class="modal-body">
+
+    <!-- OrgChart -->
+    <div class="org-wrap">
+      <p-organization-chart [value]="orgNodes()" [collapsible]="false">
+
+        <!-- Overall winner -->
+        <ng-template let-node pTemplate="overall-winner">
+          <div class="node-overall">
+            <div class="overall-wrap">
+              <img class="overall-img"
+                   [src]="node.data.image" [alt]="node.data.name"
+                   onerror="this.onerror=null;this.src='https://placehold.co/110x110/fbbf24/000?text=W'" />
+              <span class="overall-crown">👑</span>
+            </div>
+            <div class="overall-label">{{ node.data.name }}</div>
+          </div>
+        </ng-template>
+
+        <!-- Group winner -->
+        <ng-template let-node pTemplate="group-winner">
+          <div class="node-group-winner" [class.is-my-vote]="node.data.isMyVote">
+            <div class="gw-wrap">
+              <img class="gw-img"
+                   [src]="node.data.image" [alt]="node.data.name"
+                   onerror="this.onerror=null;this.src='https://placehold.co/80x80/f59e0b/000?text=W'" />
+              <span class="gw-crown">🏆</span>
+            </div>
+            <div class="gw-name">{{ node.data.name }}</div>
+            <div class="gw-group-label">{{ node.data.label }}</div>
+          </div>
+        </ng-template>
+
+        <!-- Candidate leaf -->
+        <ng-template let-node pTemplate="candidate">
+          <div class="node-candidate"
+               [class.is-my-vote]="node.data.isMyVote"
+               [class.is-winner]="node.data.isWinner">
+            <div class="cn-wrap">
+              <img class="cn-img"
+                   [src]="node.data.image" [alt]="node.data.name"
+                   onerror="this.onerror=null;this.src='https://placehold.co/72x72/1565C0/fff?text=?'" />
+              @if (node.data.isMyVote) {
+                <span class="my-vote-dot">✓</span>
+              }
+            </div>
+            <div class="cn-name">{{ node.data.name }}</div>
+            <div class="cn-pct" [style.color]="node.data.color">{{ node.data.pct }}%</div>
+            <div class="cn-votes">{{ node.data.votes | number }} votes</div>
+
+            @if (!node.data.isMyVote) {
+              <button class="switch-btn" (click)="switchVote(node.data.charId)">Switch</button>
+            } @else {
+              <div class="your-vote-label">your vote</div>
+            }
+          </div>
+        </ng-template>
+
+      </p-organization-chart>
+    </div>
+
+    <!-- Per-group bars -->
+    <div class="bars-row">
+      @for (bar of groupBars(); track bar.label) {
+        <div class="group-bar-wrap">
+          <div class="gbar-label">{{ bar.label }}</div>
+          <div class="gbar">
+            @for (seg of bar.segments; track seg.name) {
+              <div class="bar-seg"
+                   [style.background]="seg.color"
+                   [style.width]="seg.pct + '%'">
+                <span class="seg-pct">{{ seg.pct }}%</span>
+              </div>
+            }
+          </div>
+          <div class="gbar-legend">
+            @for (seg of bar.segments; track seg.name) {
+              <span class="legend-item">
+                <span class="legend-dot" [style.background]="seg.color"></span>
+                {{ seg.name }}
+              </span>
+            }
+          </div>
+        </div>
+      }
+    </div>
+
+  </div>
+</div>

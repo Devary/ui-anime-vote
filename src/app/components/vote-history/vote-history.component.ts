@@ -4,11 +4,12 @@ import { FormsModule } from '@angular/forms';
 import { VoteStore } from '../../vote.store';
 import { ALL_POLLS, AnyPoll, Poll, MultiPoll, Character } from '../../anime-data';
 import { VoteDetailModalComponent } from '../vote-detail-modal/vote-detail-modal.component';
+import { MultiPollDetailModalComponent } from '../multi-poll-detail-modal/multi-poll-detail-modal.component';
 
 @Component({
   selector: 'app-vote-history',
   standalone: true,
-  imports: [CommonModule, FormsModule, VoteDetailModalComponent],
+  imports: [CommonModule, FormsModule, VoteDetailModalComponent, MultiPollDetailModalComponent],
   templateUrl: './vote-history.component.html',
   styleUrl:    './vote-history.component.scss'
 })
@@ -57,13 +58,16 @@ export class VoteHistoryComponent {
     !!this.char1Filter().trim() || !!this.char2Filter().trim()
   );
 
-  // Only single-poll detail is supported
-  readonly selectedPoll = signal<Poll | null>(null);
+  readonly selectedSinglePoll = signal<Poll | null>(null);
+  readonly selectedMultiPoll  = signal<MultiPoll | null>(null);
 
   openDetail(p: AnyPoll): void {
-    if (this.isSingle(p)) this.selectedPoll.set(p);
+    if (this.isSingle(p)) this.selectedSinglePoll.set(p);
+    else                  this.selectedMultiPoll.set(p);
   }
-  closeDetail(): void { this.selectedPoll.set(null); }
+
+  closeSingleDetail(): void { this.selectedSinglePoll.set(null); }
+  closeMultiDetail():  void { this.selectedMultiPoll.set(null); }
 
   clearFilters(): void {
     this.char1Filter.set('');

@@ -61,11 +61,10 @@
     } @else {
       <ul class="history-list">
         @for (poll of filteredPolls(); track poll.id) {
-          <li class="history-row"
-              [class.is-clickable]="isSingle(poll)"
+          <li class="history-row is-clickable"
               (click)="openDetail(poll)"
-              [attr.role]="isSingle(poll) ? 'button' : null"
-              [attr.tabindex]="isSingle(poll) ? 0 : null"
+              role="button"
+              tabindex="0"
               (keydown.enter)="openDetail(poll)">
 
             <!-- Voted character -->
@@ -98,9 +97,7 @@
               </div>
             </div>
 
-            @if (isSingle(poll)) {
-              <span class="row-arrow">›</span>
-            }
+            <span class="row-arrow">›</span>
 
           </li>
         }
@@ -110,9 +107,16 @@
 
 </div>
 
-<!-- Detail modal (single polls only) -->
-@if (selectedPoll()) {
+<!-- Detail modal — single poll -->
+@if (selectedSinglePoll()) {
   <app-vote-detail-modal
-    [poll]="selectedPoll()!"
-    (close)="closeDetail()" />
+    [poll]="selectedSinglePoll()!"
+    (close)="closeSingleDetail()" />
+}
+
+<!-- Detail modal — multi poll -->
+@if (selectedMultiPoll()) {
+  <app-multi-poll-detail-modal
+    [poll]="selectedMultiPoll()!"
+    (close)="closeMultiDetail()" />
 }

@@ -212,9 +212,8 @@
   padding:     0.7rem 1.25rem;
   transition:  background 0.15s;
   border-bottom: 1px solid var(--rz-border-faint);
-  cursor:      default;
+  cursor: pointer;
 
-  &.is-clickable { cursor: pointer; }
   &.is-clickable:hover { background: var(--rz-surface-hover); }
   &:last-child { border-bottom: none; }
   &:focus-visible { outline: 2px solid var(--rz-primary); outline-offset: -2px; }
