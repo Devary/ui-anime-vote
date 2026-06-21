@@ -41,72 +41,63 @@
     </div>
 
   } @else {
-    <!-- ═══ After vote: org-chart layout ═══ -->
-    <div class="org-tree">
+    <!-- ═══ After vote: PrimeNG OrganizationChart ═══ -->
+    <div class="org-wrap">
 
-      <!-- Winner at top center -->
-      <div class="winner-node">
-        @if (winnerChar(); as w) {
-          <div class="winner-photo-wrap">
-            <img class="winner-photo"
-                 [src]="w.image"
-                 [alt]="w.name"
-                 onerror="this.onerror=null;this.src='https://placehold.co/180x180/fbbf24/000?text=W'" />
-            <div class="winner-crown">👑</div>
+      <p-organization-chart [value]="orgNodes()" [collapsible]="false">
+
+        <!-- Winner node -->
+        <ng-template let-node pTemplate="winner">
+          <div class="node-winner">
+            <div class="winner-photo-wrap">
+              <img class="winner-img"
+                   [src]="node.data.image"
+                   [alt]="node.data.name"
+                   onerror="this.onerror=null;this.src='https://placehold.co/160x160/fbbf24/000?text=W'" />
+              <span class="winner-crown">👑</span>
+            </div>
+            <div class="winner-label">{{ node.data.name }}</div>
           </div>
-          <div class="winner-name">{{ w.name }}</div>
-        } @else {
-          <div class="tie-badge">TIE 🤝</div>
-        }
-      </div>
+        </ng-template>
 
-      <!-- Fork connector lines -->
-      <div class="org-fork" aria-hidden="true">
-        <div class="fork-half fork-left"></div>
-        <div class="fork-half fork-right"></div>
-      </div>
+        <!-- Tie node -->
+        <ng-template pTemplate="tie">
+          <div class="node-tie">TIE 🤝</div>
+        </ng-template>
 
-      <!-- Both fighters at bottom -->
-      <div class="org-fighters">
-
-        <div class="org-fighter" [class.is-winner]="isWinner(poll().fighter1.id, poll().fighter2.id)">
-          <img class="org-photo"
-               [src]="poll().fighter1.image"
-               [alt]="poll().fighter1.name"
-               onerror="this.onerror=null;this.src='https://placehold.co/100x100/1565C0/fff?text=?'" />
-          <div class="org-name">{{ poll().fighter1.name }}</div>
-          <div class="org-votes">{{ getCount(poll().fighter1.id) | number }} votes</div>
-        </div>
-
-        <div class="org-fighter" [class.is-winner]="isWinner(poll().fighter2.id, poll().fighter1.id)">
-          <img class="org-photo"
-               [src]="poll().fighter2.image"
-               [alt]="poll().fighter2.name"
-               onerror="this.onerror=null;this.src='https://placehold.co/100x100/c62828/fff?text=?'" />
-          <div class="org-name">{{ poll().fighter2.name }}</div>
-          <div class="org-votes">{{ getCount(poll().fighter2.id) | number }} votes</div>
-        </div>
-
-      </div>
-
-      <!-- Global % bar directly under fighters -->
-      <div class="org-bar-wrap">
-        <div class="results-bar">
-          <div class="bar-left"
-               [style.width]="getPercent(poll().fighter1.id, poll().fighter2.id) + '%'">
-            <span class="bar-pct">{{ getPercent(poll().fighter1.id, poll().fighter2.id) }}%</span>
+        <!-- Fighter node -->
+        <ng-template let-node pTemplate="fighter">
+          <div class="node-fighter" [class.is-winner]="node.data.isWinner">
+            <img class="fighter-img"
+                 [src]="node.data.image"
+                 [alt]="node.data.name"
+                 onerror="this.onerror=null;this.src='https://placehold.co/100x100/1565C0/fff?text=?'" />
+            <div class="fn-name">{{ node.data.name }}</div>
+            <div class="fn-pct">{{ node.data.pct }}%</div>
+            <div class="fn-votes">{{ node.data.votes | number }} votes</div>
           </div>
-          <div class="bar-right"
-               [style.width]="getPercent(poll().fighter2.id, poll().fighter1.id) + '%'">
-            <span class="bar-pct">{{ getPercent(poll().fighter2.id, poll().fighter1.id) }}%</span>
+        </ng-template>
+
+      </p-organization-chart>
+
+      <!-- % bar directly below the chart -->
+      @if (barPcts(); as b) {
+        <div class="org-bar-wrap">
+          <div class="results-bar">
+            <div class="bar-left" [style.width]="b.pct1 + '%'">
+              <span class="bar-pct">{{ b.pct1 }}%</span>
+            </div>
+            <div class="bar-right" [style.width]="b.pct2 + '%'">
+              <span class="bar-pct">{{ b.pct2 }}%</span>
+            </div>
+          </div>
+          <div class="bar-labels">
+            <span>{{ b.pct1 }}%</span>
+            <span class="total-votes">{{ b.total | number }} votes</span>
+            <span>{{ b.pct2 }}%</span>
           </div>
         </div>
-        <div class="bar-labels">
-          <span>{{ getPercent(poll().fighter1.id, poll().fighter2.id) }}%</span>
-          <span class="total-votes">{{ getTotal() | number }} votes</span>
-          <span>{{ getPercent(poll().fighter2.id, poll().fighter1.id) }}%</span>
-        </div>
-      </div>
+      }
 
     </div>
   }
