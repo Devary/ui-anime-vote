@@ -1,0 +1,68 @@
+<div class="backdrop" (click)="close.emit()"></div>
+
+<div class="card" role="dialog" aria-modal="true" aria-label="Sign in or register">
+
+  <button class="card-close" (click)="close.emit()" aria-label="Close">✕</button>
+
+  <div class="brand">⚔ Anime Vote</div>
+
+  <!-- Tabs -->
+  <div class="tabs">
+    <button class="tab" [class.active]="activeTab() === 'login'"    (click)="switchTab('login')">Login</button>
+    <button class="tab" [class.active]="activeTab() === 'register'" (click)="switchTab('register')">Register</button>
+  </div>
+
+  <!-- Error -->
+  @if (error()) {
+    <div class="form-error">{{ error() }}</div>
+  }
+
+  <!-- Login form -->
+  @if (activeTab() === 'login') {
+    <form class="form" (ngSubmit)="submitLogin()">
+      <label class="field">
+        <span class="label">Username</span>
+        <input class="input" type="text" [(ngModel)]="loginUsername" name="lu" autocomplete="username" />
+      </label>
+      <label class="field">
+        <span class="label">Password</span>
+        <input class="input" type="password" [(ngModel)]="loginPassword" name="lp" autocomplete="current-password" />
+      </label>
+      <button class="submit-btn" type="submit" [disabled]="loading()">
+        {{ loading() ? 'Signing in…' : 'Sign in' }}
+      </button>
+    </form>
+    <p class="switch-prompt">
+      No account? <button class="link-btn" (click)="switchTab('register')">Register</button>
+    </p>
+  }
+
+  <!-- Register form -->
+  @if (activeTab() === 'register') {
+    <form class="form" (ngSubmit)="submitRegister()">
+      <label class="field">
+        <span class="label">Username</span>
+        <input class="input" type="text" [(ngModel)]="regUsername" name="ru" autocomplete="username" />
+      </label>
+      <label class="field">
+        <span class="label">Email</span>
+        <input class="input" type="email" [(ngModel)]="regEmail" name="re" autocomplete="email" />
+      </label>
+      <label class="field">
+        <span class="label">Password</span>
+        <input class="input" type="password" [(ngModel)]="regPassword" name="rp" autocomplete="new-password" />
+      </label>
+      <label class="field">
+        <span class="label">Confirm password</span>
+        <input class="input" type="password" [(ngModel)]="regConfirm" name="rc" autocomplete="new-password" />
+      </label>
+      <button class="submit-btn" type="submit" [disabled]="loading()">
+        {{ loading() ? 'Creating account…' : 'Create account' }}
+      </button>
+    </form>
+    <p class="switch-prompt">
+      Have an account? <button class="link-btn" (click)="switchTab('login')">Sign in</button>
+    </p>
+  }
+
+</div>

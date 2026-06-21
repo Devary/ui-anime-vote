@@ -3,28 +3,37 @@
   @if (isStandalone) {
     <header class="standalone-header">
       <span class="app-brand">⚔ Anime Vote</span>
-      <button class="theme-toggle"
-              (click)="toggleTheme()"
-              [attr.aria-label]="isDark() ? 'Switch to light mode' : 'Switch to dark mode'">
-        {{ isDark() ? '☀' : '🌙' }}
-      </button>
+
+      <div class="header-actions">
+        @if (isAdmin()) {
+          <button class="admin-btn" (click)="openAdmin()" aria-label="Admin panel">⚙ Admin</button>
+        }
+        @if (isLoggedIn()) {
+          <span class="username-chip">{{ currentUser()?.username }}</span>
+          <button class="login-btn" (click)="logout()">Logout</button>
+        } @else {
+          <button class="login-btn" (click)="openAuth()">Login</button>
+        }
+        <button class="theme-toggle"
+                (click)="toggleTheme()"
+                [attr.aria-label]="isDark() ? 'Switch to light mode' : 'Switch to dark mode'">
+          {{ isDark() ? '☀' : '🌙' }}
+        </button>
+      </div>
     </header>
   }
 
   <main class="poll-stage">
 
-    <!-- Invisible side nav buttons -->
     <button class="side-nav side-prev" (click)="prev()" aria-label="Previous poll">&#8592;</button>
     <button class="side-nav side-next" (click)="next()" aria-label="Next poll">&#8594;</button>
 
-    <!-- Poll card — single or multi -->
     @if (currentAsSingle(); as poll) {
       <app-poll-card [poll]="poll" (castVote)="onVote($event)" />
     } @else if (currentAsMulti(); as poll) {
       <app-multi-poll-card [poll]="poll" (castVote)="onVote($event)" />
     }
 
-    <!-- History button -->
     <button class="history-btn" (click)="openHistory()" aria-label="Vote history">
       <span class="history-icon">🗳</span>
       <span class="history-label">History</span>
@@ -33,7 +42,6 @@
       }
     </button>
 
-    <!-- Auto-advance progress -->
     <div class="progress-track">
       <div class="progress-fill" [style.width.%]="progressPct()"></div>
     </div>
@@ -45,4 +53,14 @@
 <!-- Vote history drawer -->
 @if (showHistory()) {
   <app-vote-history (closeHistory)="closeHistory()" />
+}
+
+<!-- Auth modal -->
+@if (showAuth()) {
+  <app-auth-modal (close)="closeAuth()" />
+}
+
+<!-- Admin panel -->
+@if (showAdmin()) {
+  <app-admin-panel (close)="closeAdmin()" />
 }

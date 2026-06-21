@@ -1,0 +1,160 @@
+:host {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.55);
+  backdrop-filter: blur(4px);
+}
+
+.card {
+  position: relative;
+  z-index: 1;
+  width: min(420px, 94vw);
+  background: var(--rz-surface);
+  border: 1px solid var(--rz-glass-border);
+  border-radius: var(--rz-radius-lg);
+  box-shadow: var(--rz-glass-shadow);
+  padding: 2rem 1.75rem 1.75rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.card-close {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  width: 2rem;
+  height: 2rem;
+  border-radius: 50%;
+  border: 1px solid var(--rz-border);
+  background: transparent;
+  color: var(--rz-ink-muted);
+  cursor: pointer;
+  font-size: 0.85rem;
+  display: grid;
+  place-items: center;
+  &:hover { background: var(--rz-surface-hover); color: var(--rz-ink); }
+}
+
+.brand {
+  font-size: 1.25rem;
+  font-weight: 800;
+  color: var(--rz-primary);
+  text-align: center;
+  letter-spacing: -0.01em;
+}
+
+.tabs {
+  display: flex;
+  border-radius: var(--rz-radius-sm);
+  background: var(--rz-surface-hover);
+  padding: 3px;
+  gap: 3px;
+}
+
+.tab {
+  flex: 1;
+  height: 2.1rem;
+  border: none;
+  border-radius: calc(var(--rz-radius-sm) - 2px);
+  background: transparent;
+  color: var(--rz-ink-muted);
+  font-size: 0.82rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+
+  &.active {
+    background: var(--rz-primary);
+    color: #fff;
+  }
+  &:not(.active):hover { background: var(--rz-surface-active); color: var(--rz-ink); }
+}
+
+.form-error {
+  background: var(--rz-danger-bg);
+  border: 1px solid var(--rz-danger);
+  border-radius: var(--rz-radius-sm);
+  color: var(--rz-danger);
+  font-size: 0.8rem;
+  font-weight: 600;
+  padding: 0.5rem 0.75rem;
+  text-align: center;
+}
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.label {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--rz-ink-muted);
+  letter-spacing: 0.03em;
+}
+
+.input {
+  height: 2.4rem;
+  border: 1px solid var(--rz-border);
+  border-radius: var(--rz-radius-sm);
+  background: var(--rz-glass-bg);
+  color: var(--rz-ink);
+  padding: 0 0.75rem;
+  font-size: 0.88rem;
+  outline: none;
+  transition: border-color 0.15s;
+  width: 100%;
+
+  &:focus { border-color: var(--rz-primary); }
+}
+
+.submit-btn {
+  height: 2.6rem;
+  border: none;
+  border-radius: var(--rz-radius-sm);
+  background: var(--rz-gradient);
+  color: #fff;
+  font-size: 0.9rem;
+  font-weight: 800;
+  cursor: pointer;
+  margin-top: 0.25rem;
+  transition: opacity 0.15s;
+
+  &:disabled { opacity: 0.6; cursor: not-allowed; }
+  &:not(:disabled):hover { opacity: 0.9; }
+}
+
+.switch-prompt {
+  font-size: 0.78rem;
+  color: var(--rz-ink-muted);
+  text-align: center;
+  margin: 0;
+}
+
+.link-btn {
+  background: none;
+  border: none;
+  color: var(--rz-primary);
+  font-size: inherit;
+  font-weight: 700;
+  cursor: pointer;
+  padding: 0;
+  text-decoration: underline;
+}

@@ -2,24 +2,42 @@ import { Component, OnInit, computed, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ThemeStore } from './theme.store';
 import { VoteStore } from './vote.store';
+import { AuthService } from './services/auth.service';
 import { PollCardComponent } from './components/poll-card/poll-card.component';
 import { MultiPollCardComponent } from './components/multi-poll-card/multi-poll-card.component';
 import { VoteHistoryComponent } from './components/vote-history/vote-history.component';
+import { AuthModalComponent } from './components/auth-modal/auth-modal.component';
+import { AdminPanelComponent } from './components/admin-panel/admin-panel.component';
 import { ALL_POLLS, Poll, MultiPoll } from './anime-data';
 
 @Component({
   selector: 'app-root',
   standalone: true,
-  imports: [CommonModule, PollCardComponent, MultiPollCardComponent, VoteHistoryComponent],
+  imports: [
+    CommonModule,
+    PollCardComponent,
+    MultiPollCardComponent,
+    VoteHistoryComponent,
+    AuthModalComponent,
+    AdminPanelComponent,
+  ],
   templateUrl: './app.html',
   styleUrl: './app.scss'
 })
 export class App implements OnInit {
   private readonly themeStore = inject(ThemeStore);
   private readonly voteStore  = inject(VoteStore);
+  readonly authService        = inject(AuthService);
 
   readonly isStandalone = window.self === window.top;
   readonly isDark       = this.themeStore.isDark;
+
+  // Auth
+  readonly isLoggedIn  = this.authService.isLoggedIn;
+  readonly isAdmin     = this.authService.isAdmin;
+  readonly currentUser = this.authService.currentUser;
+  readonly showAuth    = signal(false);
+  readonly showAdmin   = signal(false);
 
   readonly totalPolls  = ALL_POLLS.length;
   private readonly _index = signal(0);
@@ -30,7 +48,6 @@ export class App implements OnInit {
 
   readonly votedCount = computed(() => Object.keys(this.voteStore.myVotes()).length);
 
-  // Type-narrowed accessors for the template
   readonly currentAsSingle = computed(() =>
     this.currentPoll().type === 'single' ? this.currentPoll() as Poll : null
   );
@@ -43,6 +60,12 @@ export class App implements OnInit {
   toggleTheme(): void  { this.themeStore.toggle(); }
   openHistory(): void  { this.showHistory.set(true); }
   closeHistory(): void { this.showHistory.set(false); }
+  openAuth(): void     { this.showAuth.set(true); }
+  closeAuth(): void    { this.showAuth.set(false); }
+  openAdmin(): void    { this.showAdmin.set(true); }
+  closeAdmin(): void   { this.showAdmin.set(false); }
+
+  logout(): void { this.authService.logout(); }
 
   onVote(characterId: string): void {
     if (this.advancing) return;
@@ -62,13 +85,8 @@ export class App implements OnInit {
     }, 600);
   }
 
-  next(): void {
-    this._index.update(i => (i + 1) % ALL_POLLS.length);
-  }
-
-  prev(): void {
-    this._index.update(i => (i - 1 + ALL_POLLS.length) % ALL_POLLS.length);
-  }
+  next(): void { this._index.update(i => (i + 1) % ALL_POLLS.length); }
+  prev(): void { this._index.update(i => (i - 1 + ALL_POLLS.length) % ALL_POLLS.length); }
 
   ngOnInit(): void {
     this.voteStore.loadTodayVotes();

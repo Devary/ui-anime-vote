@@ -1,0 +1,160 @@
+<div class="backdrop" (click)="close.emit()"></div>
+
+<div class="panel" role="dialog" aria-modal="true">
+
+  <div class="panel-header">
+    <span class="panel-title">⚙ Admin Panel</span>
+    <div class="tab-row">
+      <button class="tab" [class.active]="activeTab() === 'polls'"  (click)="switchTab('polls')">Polls</button>
+      <button class="tab" [class.active]="activeTab() === 'multi'"  (click)="switchTab('multi')">Multi-Polls</button>
+    </div>
+    <button class="close-btn" (click)="close.emit()" aria-label="Close">✕</button>
+  </div>
+
+  @if (error()) {
+    <div class="error-bar">{{ error() }}</div>
+  }
+
+  <div class="panel-body">
+
+    <!-- ── POLLS TAB ────────────────────────────────────────────────────── -->
+    @if (activeTab() === 'polls') {
+      <div class="section-header">
+        <span class="section-count">{{ polls().length }} polls</span>
+        <button class="add-btn" (click)="showPollForm.set(!showPollForm())">
+          {{ showPollForm() ? 'Cancel' : '+ New poll' }}
+        </button>
+      </div>
+
+      @if (showPollForm()) {
+        <form class="create-form" (ngSubmit)="submitPoll()">
+          <div class="form-row">
+            <label class="field">
+              <span>Anime</span>
+              <input class="input" [(ngModel)]="newPoll.anime" name="pa" placeholder="e.g. Naruto" />
+            </label>
+            <label class="field">
+              <span>Question</span>
+              <input class="input" [(ngModel)]="newPoll.question" name="pq" placeholder="Who wins?" />
+            </label>
+          </div>
+          <div class="form-row">
+            <label class="field">
+              <span>Fighter 1</span>
+              <select class="input" [(ngModel)]="newPoll.fighter1Id" name="pf1">
+                <option value="">— select —</option>
+                @for (c of allChars; track c.id) {
+                  <option [value]="c.id">{{ c.name }} ({{ c.anime }})</option>
+                }
+              </select>
+            </label>
+            <label class="field">
+              <span>Fighter 2</span>
+              <select class="input" [(ngModel)]="newPoll.fighter2Id" name="pf2">
+                <option value="">— select —</option>
+                @for (c of allChars; track c.id) {
+                  <option [value]="c.id">{{ c.name }} ({{ c.anime }})</option>
+                }
+              </select>
+            </label>
+          </div>
+          <button class="submit-btn" type="submit" [disabled]="loading()">
+            {{ loading() ? 'Creating…' : 'Create poll' }}
+          </button>
+        </form>
+      }
+
+      <table class="data-table">
+        <thead>
+          <tr><th>Question</th><th>Fighter 1</th><th>Fighter 2</th><th></th></tr>
+        </thead>
+        <tbody>
+          @for (p of polls(); track p.id) {
+            <tr>
+              <td class="question-cell">{{ p.question }}</td>
+              <td>{{ p.fighter1.name }}</td>
+              <td>{{ p.fighter2.name }}</td>
+              <td>
+                <button class="del-btn" (click)="deletePoll(p.id)" title="Delete">✕</button>
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    }
+
+    <!-- ── MULTI-POLLS TAB ───────────────────────────────────────────────── -->
+    @if (activeTab() === 'multi') {
+      <div class="section-header">
+        <span class="section-count">{{ multiPolls().length }} multi-polls</span>
+        <button class="add-btn" (click)="showMultiForm.set(!showMultiForm())">
+          {{ showMultiForm() ? 'Cancel' : '+ New multi-poll' }}
+        </button>
+      </div>
+
+      @if (showMultiForm()) {
+        <form class="create-form" (ngSubmit)="submitMulti()">
+          <div class="form-row">
+            <label class="field">
+              <span>Anime</span>
+              <input class="input" [(ngModel)]="newMulti.anime" name="ma" placeholder="e.g. One Piece" />
+            </label>
+            <label class="field">
+              <span>Question</span>
+              <input class="input" [(ngModel)]="newMulti.question" name="mq" placeholder="Best character?" />
+            </label>
+          </div>
+
+          <div class="groups-wrap">
+            @for (group of newMulti.groups; track $index; let i = $index) {
+              <div class="group-card">
+                <div class="group-header">
+                  <label class="field" style="flex:1">
+                    <span>Group {{ i + 1 }} label</span>
+                    <input class="input" [(ngModel)]="group.label" [name]="'gl' + i" placeholder="e.g. Straw Hat Crew" />
+                  </label>
+                  @if (newMulti.groups.length > 2) {
+                    <button type="button" class="del-btn" (click)="removeGroup(i)" style="margin-top:1.3rem">✕</button>
+                  }
+                </div>
+                <div class="candidates-grid">
+                  @for (c of allChars; track c.id) {
+                    <label class="cand-check" [class.selected]="isSelected(group, c.id)">
+                      <input type="checkbox" [checked]="isSelected(group, c.id)"
+                             (change)="toggleCandidate(group, c.id)" />
+                      {{ c.name }}
+                    </label>
+                  }
+                </div>
+              </div>
+            }
+            <button type="button" class="add-group-btn" (click)="addGroup()">+ Add group</button>
+          </div>
+
+          <button class="submit-btn" type="submit" [disabled]="loading()">
+            {{ loading() ? 'Creating…' : 'Create multi-poll' }}
+          </button>
+        </form>
+      }
+
+      <table class="data-table">
+        <thead>
+          <tr><th>Question</th><th>Groups</th><th>Candidates</th><th></th></tr>
+        </thead>
+        <tbody>
+          @for (mp of multiPolls(); track mp.id) {
+            <tr>
+              <td class="question-cell">{{ mp.question }}</td>
+              <td>{{ mp.groups?.length ?? '—' }}</td>
+              <td>{{ countCandidates(mp) }}</td>
+              <td>
+                <button class="del-btn" (click)="deleteMulti(mp.id)" title="Delete">✕</button>
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    }
+
+  </div>
+</div>

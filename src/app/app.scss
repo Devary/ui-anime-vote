@@ -33,6 +33,52 @@
   letter-spacing: -0.01em;
 }
 
+.header-actions {
+  display:     flex;
+  align-items: center;
+  gap:         0.5rem;
+}
+
+.login-btn {
+  height:          1.9rem;
+  padding:         0 1rem;
+  border-radius:   var(--rz-radius-full);
+  border:          1px solid var(--rz-glass-border);
+  background:      transparent;
+  color:           var(--rz-ink);
+  font-size:       0.78rem;
+  font-weight:     700;
+  cursor:          pointer;
+  transition:      background 0.15s, border-color 0.15s;
+  backdrop-filter: blur(var(--rz-glass-blur));
+  white-space:     nowrap;
+
+  &:hover { background: var(--rz-glass-bg); border-color: var(--rz-primary); color: var(--rz-primary); }
+}
+
+.admin-btn {
+  height:          1.9rem;
+  padding:         0 0.85rem;
+  border-radius:   var(--rz-radius-full);
+  border:          1px solid rgba(255,165,0,0.35);
+  background:      rgba(255,165,0,0.08);
+  color:           #f59e0b;
+  font-size:       0.75rem;
+  font-weight:     700;
+  cursor:          pointer;
+  transition:      background 0.15s;
+  white-space:     nowrap;
+
+  &:hover { background: rgba(255,165,0,0.18); }
+}
+
+.username-chip {
+  font-size:   0.75rem;
+  font-weight: 700;
+  color:       var(--rz-ink-muted);
+  padding:     0 0.25rem;
+}
+
 .theme-toggle {
   width:           2.1rem;
   height:          2.1rem;

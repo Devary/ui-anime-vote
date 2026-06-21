@@ -63,3 +63,47 @@ export interface HistoryItemDto {
   myVoteCharName: string;
   votedAt: string;
 }
+
+// ── Auth ──────────────────────────────────────────────────────────────────────
+export interface RegisterRequest { username: string; email: string; password: string; }
+export interface LoginRequest { username: string; password: string; }
+export interface AuthResponse {
+  token: string;
+  userId: number;
+  username: string;
+  role: 'USER' | 'ADMIN';
+}
+
+// ── Admin CRUD ────────────────────────────────────────────────────────────────
+export interface PollCreateDto {
+  anime: string;
+  question: string;
+  fighter1Id: string;
+  fighter2Id: string;
+}
+
+export interface PollDto {
+  id: string;
+  anime: string;
+  question: string;
+  fighter1: CharacterDto;
+  fighter2: CharacterDto;
+}
+
+export interface MultiPollCreateDto {
+  anime: string;
+  question: string;
+  groups: GroupCreateDto[];
+}
+
+export interface GroupCreateDto {
+  label: string;
+  characterIds: string[];
+}
+
+export interface MultiPollAdminDto {
+  id: string;
+  anime: string;
+  question: string;
+  groups: MultiPollGroupDto[];
+}

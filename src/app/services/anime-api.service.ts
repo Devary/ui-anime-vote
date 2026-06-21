@@ -1,59 +1,93 @@
 import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
-import { PollResultDto, MultiPollResultDto, HistoryItemDto } from './api.types';
+import {
+  PollResultDto, MultiPollResultDto, HistoryItemDto,
+  RegisterRequest, LoginRequest, AuthResponse,
+  PollCreateDto, PollDto, MultiPollCreateDto, MultiPollAdminDto, CharacterDto
+} from './api.types';
 
-const API_BASE = 'http://localhost:5556';
+const API = 'http://localhost:5556';
 
 @Injectable({ providedIn: 'root' })
 export class AnimeApiService {
   private readonly http = inject(HttpClient);
 
-  castVote(pollId: string, characterId: string, sessionId: string): Observable<PollResultDto> {
-    return this.http.post<PollResultDto>(
-      `${API_BASE}/polls/${pollId}/vote`,
-      { characterId, sessionId }
-    );
+  // ── Voting (identity from JWT or IP on backend) ───────────────────────────
+
+  castVote(pollId: string, characterId: string): Observable<PollResultDto> {
+    return this.http.post<PollResultDto>(`${API}/polls/${pollId}/vote`, { characterId });
   }
 
-  changeVote(pollId: string, newCharacterId: string, sessionId: string): Observable<PollResultDto> {
-    return this.http.put<PollResultDto>(
-      `${API_BASE}/polls/${pollId}/vote`,
-      { newCharacterId, sessionId }
-    );
+  changeVote(pollId: string, newCharacterId: string): Observable<PollResultDto> {
+    return this.http.put<PollResultDto>(`${API}/polls/${pollId}/vote`, { newCharacterId });
   }
 
-  getPollResult(pollId: string, sessionId: string): Observable<PollResultDto> {
-    return this.http.get<PollResultDto>(
-      `${API_BASE}/polls/${pollId}`,
-      { params: { sessionId } }
-    );
+  getPollResult(pollId: string): Observable<PollResultDto> {
+    return this.http.get<PollResultDto>(`${API}/polls/${pollId}`);
   }
 
-  castMultiVote(pollId: string, characterId: string, sessionId: string): Observable<MultiPollResultDto> {
-    return this.http.post<MultiPollResultDto>(
-      `${API_BASE}/multi-polls/${pollId}/vote`,
-      { characterId, sessionId }
-    );
+  castMultiVote(pollId: string, characterId: string): Observable<MultiPollResultDto> {
+    return this.http.post<MultiPollResultDto>(`${API}/multi-polls/${pollId}/vote`, { characterId });
   }
 
-  changeMultiVote(pollId: string, newCharacterId: string, sessionId: string): Observable<MultiPollResultDto> {
-    return this.http.put<MultiPollResultDto>(
-      `${API_BASE}/multi-polls/${pollId}/vote`,
-      { newCharacterId, sessionId }
-    );
+  changeMultiVote(pollId: string, newCharacterId: string): Observable<MultiPollResultDto> {
+    return this.http.put<MultiPollResultDto>(`${API}/multi-polls/${pollId}/vote`, { newCharacterId });
   }
 
-  getMultiPollResult(pollId: string, sessionId: string): Observable<MultiPollResultDto> {
-    return this.http.get<MultiPollResultDto>(
-      `${API_BASE}/multi-polls/${pollId}`,
-      { params: { sessionId } }
-    );
+  getMultiPollResult(pollId: string): Observable<MultiPollResultDto> {
+    return this.http.get<MultiPollResultDto>(`${API}/multi-polls/${pollId}`);
   }
 
-  getHistory(sessionId: string, date?: string): Observable<HistoryItemDto[]> {
-    const params: Record<string, string> = { sessionId };
+  getHistory(date?: string): Observable<HistoryItemDto[]> {
+    const params: Record<string, string> = {};
     if (date) params['date'] = date;
-    return this.http.get<HistoryItemDto[]>(`${API_BASE}/history`, { params });
+    return this.http.get<HistoryItemDto[]>(`${API}/history`, { params });
+  }
+
+  // ── Auth ──────────────────────────────────────────────────────────────────
+
+  register(req: RegisterRequest): Observable<AuthResponse> {
+    return this.http.post<AuthResponse>(`${API}/auth/register`, req);
+  }
+
+  login(req: LoginRequest): Observable<AuthResponse> {
+    return this.http.post<AuthResponse>(`${API}/auth/login`, req);
+  }
+
+  // ── Admin CRUD — Polls ────────────────────────────────────────────────────
+
+  adminGetPolls(): Observable<PollDto[]> {
+    return this.http.get<PollDto[]>(`${API}/admin/polls`);
+  }
+
+  adminGetCharacters(): Observable<CharacterDto[]> {
+    return this.http.get<CharacterDto[]>(`${API}/admin/polls/characters`);
+  }
+
+  adminCreatePoll(req: PollCreateDto): Observable<PollDto> {
+    return this.http.post<PollDto>(`${API}/admin/polls`, req);
+  }
+
+  adminUpdatePoll(id: string, req: PollCreateDto): Observable<PollDto> {
+    return this.http.put<PollDto>(`${API}/admin/polls/${id}`, req);
+  }
+
+  adminDeletePoll(id: string): Observable<void> {
+    return this.http.delete<void>(`${API}/admin/polls/${id}`);
+  }
+
+  // ── Admin CRUD — Multi-Polls ──────────────────────────────────────────────
+
+  adminGetMultiPolls(): Observable<MultiPollAdminDto[]> {
+    return this.http.get<MultiPollAdminDto[]>(`${API}/admin/multi-polls`);
+  }
+
+  adminCreateMultiPoll(req: MultiPollCreateDto): Observable<MultiPollAdminDto> {
+    return this.http.post<MultiPollAdminDto>(`${API}/admin/multi-polls`, req);
+  }
+
+  adminDeleteMultiPoll(id: string): Observable<void> {
+    return this.http.delete<void>(`${API}/admin/multi-polls/${id}`);
   }
 }
