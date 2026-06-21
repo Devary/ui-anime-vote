@@ -1,19 +1,23 @@
 import { Injectable, signal } from '@angular/core';
 
-type VoteMap   = Record<string, number>;   // charId → total count
-type MyVoteMap = Record<string, string>;   // pollId → charId the user chose
+type VoteMap      = Record<string, number>;   // charId → total count
+type MyVoteMap    = Record<string, string>;   // pollId → charId the user chose
+type TimestampMap = Record<string, number>;   // pollId → Date.now() when voted
 
 @Injectable({ providedIn: 'root' })
 export class VoteStore {
-  private readonly _votes   = signal<VoteMap>({});
-  private readonly _myVotes = signal<MyVoteMap>({});
+  private readonly _votes      = signal<VoteMap>({});
+  private readonly _myVotes    = signal<MyVoteMap>({});
+  private readonly _timestamps = signal<TimestampMap>({});
 
-  readonly votes   = this._votes.asReadonly();
-  readonly myVotes = this._myVotes.asReadonly();
+  readonly votes      = this._votes.asReadonly();
+  readonly myVotes    = this._myVotes.asReadonly();
+  readonly timestamps = this._timestamps.asReadonly();
 
   vote(characterId: string, pollId: string): void {
     this._votes.set({ ...this._votes(),   [characterId]: (this._votes()[characterId] ?? 0) + 1 });
     this._myVotes.set({ ...this._myVotes(), [pollId]: characterId });
+    this._timestamps.set({ ...this._timestamps(), [pollId]: Date.now() });
   }
 
   changeVote(pollId: string, oldCharId: string, newCharId: string): void {
@@ -22,6 +26,7 @@ export class VoteStore {
     v[newCharId] = (v[newCharId] ?? 0) + 1;
     this._votes.set(v);
     this._myVotes.set({ ...this._myVotes(), [pollId]: newCharId });
+    // keep original vote timestamp — the day of first vote stays
   }
 
   getCount(characterId: string): number {

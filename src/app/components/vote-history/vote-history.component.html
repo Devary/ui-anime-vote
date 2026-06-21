@@ -5,20 +5,63 @@
 <div class="history-drawer" role="dialog" aria-label="Vote History">
 
   <div class="drawer-header">
-    <h2 class="drawer-title">Vote History</h2>
-    <span class="vote-count">{{ votedPolls().length }} voted</span>
+    <h2 class="drawer-title">Today's Votes</h2>
+    <span class="vote-count">{{ todayPolls().length }} voted</span>
     <button class="drawer-close" (click)="closeHistory.emit()" aria-label="Close">✕</button>
   </div>
 
+  <!-- Filters -->
+  <div class="filter-row">
+    <div class="filter-field">
+      <label class="filter-label" for="char1-input">Character</label>
+      <input id="char1-input"
+             class="filter-input"
+             type="text"
+             placeholder="e.g. Luffy"
+             [ngModel]="char1Filter()"
+             (ngModelChange)="onChar1Change($event)" />
+    </div>
+
+    <span class="filter-and">and</span>
+
+    <div class="filter-field" [class.disabled]="char2Disabled()">
+      <label class="filter-label" for="char2-input">vs Character</label>
+      <input id="char2-input"
+             class="filter-input"
+             type="text"
+             placeholder="e.g. Naruto"
+             [disabled]="char2Disabled()"
+             [ngModel]="char2Filter()"
+             (ngModelChange)="char2Filter.set($event)" />
+    </div>
+
+    @if (isFiltered()) {
+      <button class="clear-btn" (click)="clearFilters()" aria-label="Clear filters">✕</button>
+    }
+  </div>
+
+  <!-- Result count when filtering -->
+  @if (isFiltered()) {
+    <div class="filter-result">
+      <span>{{ filteredPolls().length }} match{{ filteredPolls().length !== 1 ? 'es' : '' }}</span>
+    </div>
+  }
+
   <div class="drawer-body">
-    @if (votedPolls().length === 0) {
+    @if (todayPolls().length === 0) {
       <div class="empty-state">
         <span class="empty-icon">🗳️</span>
-        <p>No votes yet. Cast your first vote!</p>
+        <p>No votes today. Cast your first vote!</p>
+      </div>
+    } @else if (filteredPolls().length === 0) {
+      <div class="empty-state">
+        <span class="empty-icon">🔍</span>
+        <p>No votes match this filter.</p>
+        <button class="clear-link" (click)="clearFilters()">Clear filters</button>
       </div>
     } @else {
       <ul class="history-list">
-        @for (poll of votedPolls(); track poll.id) {
+        @for (poll of filteredPolls(); track poll.id) {
           <li class="history-row" (click)="openDetail(poll)" role="button" tabindex="0"
               (keydown.enter)="openDetail(poll)">
 
