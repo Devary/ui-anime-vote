@@ -1,8 +1,8 @@
 :host {
-  display: block;
-  height:  100dvh;
+  display:  block;
+  height:   100dvh;
   overflow: hidden;
-  color:   var(--rz-ink);
+  color:    var(--rz-ink);
 }
 
 .page-wrapper {
@@ -50,7 +50,7 @@
   &:hover { background: var(--rz-surface-active); }
 }
 
-// ── Poll stage (fills remaining height) ───────────────────────────────────────
+// ── Poll stage ────────────────────────────────────────────────────────────────
 .poll-stage {
   flex:      1;
   min-height: 0;
@@ -60,66 +60,84 @@
   overflow:  hidden;
 }
 
-// ── Bottom navigation ─────────────────────────────────────────────────────────
-.poll-nav {
+// ── Invisible side nav buttons ────────────────────────────────────────────────
+.side-nav {
+  position:    absolute;
+  top:         0;
+  bottom:      40px; // leave space for counter
+  width:       15%;
+  max-width:   90px;
+  z-index:     20;
+  border:      none;
+  background:  transparent;
+  color:       transparent;
+  font-size:   2rem;
+  font-weight: 700;
+  cursor:      pointer;
+  display:     flex;
+  align-items: center;
+  justify-content: center;
+  transition:  color 0.25s, background 0.25s;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+
+  &.side-prev { left:  0; }
+  &.side-next { right: 0; }
+
+  &:hover {
+    color:      rgba(255, 255, 255, 0.35);
+    background: linear-gradient(
+      to var(--_dir, right),
+      rgba(255,255,255,0.06),
+      transparent
+    );
+  }
+  &.side-prev:hover { --_dir: right; }
+  &.side-next:hover { --_dir: left; }
+
+  &:active { color: rgba(255,255,255,0.65); }
+}
+
+// ── Poll counter ──────────────────────────────────────────────────────────────
+.poll-counter {
   flex-shrink:     0;
+  height:          36px;
   display:         flex;
   align-items:     center;
   justify-content: center;
-  gap:             2.5rem;
-  padding:         0.65rem 1rem 0.55rem;
+  gap:             0;
   background:      var(--rz-glass-bg);
   border-top:      1px solid var(--rz-glass-border);
   backdrop-filter: blur(var(--rz-glass-blur));
 }
 
-.nav-btn {
-  width:           2.75rem;
-  height:          2.75rem;
-  border-radius:   50%;
-  border:          1px solid var(--rz-glass-border);
-  background:      var(--rz-glass-bg);
-  color:           var(--rz-ink);
-  font-size:       1.3rem;
-  font-weight:     600;
-  cursor:          pointer;
-  display:         grid;
-  place-items:     center;
-  transition:      background 0.2s, transform 0.15s;
-  line-height:     1;
-
-  &:hover  { background: var(--rz-surface-active); }
-  &:active { transform: scale(0.9); }
-}
-
-.nav-counter {
-  display:     flex;
-  align-items: baseline;
+.counter-cur {
   font-size:   1rem;
-  font-weight: 700;
-  color:       var(--rz-ink);
-  min-width:   5.5rem;
-  text-align:  center;
-  justify-content: center;
+  font-weight: 800;
+  color:       var(--rz-primary);
 }
 
-.nav-cur  { font-size: 1.1rem; color: var(--rz-primary); }
-.nav-sep  { color: var(--rz-ink-muted); }
-.nav-tot  { color: var(--rz-ink-muted); font-weight: 600; }
+.counter-sep,
+.counter-tot {
+  font-size:  0.85rem;
+  font-weight: 600;
+  color:      var(--rz-ink-muted);
+}
 
 // ── Auto-advance progress bar ─────────────────────────────────────────────────
 .progress-track {
   position:   absolute;
-  bottom:     0;
+  bottom:     36px; // sits just above the counter
   left:       0;
   right:      0;
   height:     3px;
   background: transparent;
   z-index:    5;
+  pointer-events: none;
 }
 
 .progress-fill {
   height:     100%;
   background: var(--rz-gradient);
-  transition: width 1.5s linear;
+  transition: width 0.55s linear;
 }

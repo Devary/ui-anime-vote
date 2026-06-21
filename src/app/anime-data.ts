@@ -120,7 +120,6 @@ const QUESTIONS = [
   'Who is the fan favorite?',
   'Who is the better fighter?',
   'Who would you want on your team?',
-  'Who would rule the world?',
   'Who is the bigger threat?',
   'Who has the better power set?',
   'Who is the most feared?',

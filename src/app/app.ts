@@ -34,12 +34,12 @@ export class App implements OnInit {
     this.voteStore.vote(characterId);
     this.advancing = true;
     this.progressPct.set(0);
-    requestAnimationFrame(() => this.progressPct.set(100));
+    setTimeout(() => this.progressPct.set(100), 10);
     setTimeout(() => {
       this.progressPct.set(0);
       this.advancing = false;
       this.next();
-    }, 1600);
+    }, 600);
   }
 
   next(): void {

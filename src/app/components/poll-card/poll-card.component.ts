@@ -22,12 +22,18 @@ export class PollCardComponent {
     return this.voteStore.hasVoted(p.fighter1.id, p.fighter2.id);
   });
 
+  readonly hasOrgLayout = computed(() => {
+    if (!this.voted()) return false;
+    const p = this.poll();
+    return this.getCount(p.fighter1.id) !== this.getCount(p.fighter2.id);
+  });
+
   onClickFighter(characterId: string): void {
     if (!this.voted()) this.castVote.emit(characterId);
   }
 
-  getPercent(id: string, otherId: string): number {
-    return this.voteStore.getPercent(id, otherId);
+  getPercent(id: string, otherId: string): string {
+    return this.voteStore.getPercent(id, otherId).toFixed(2);
   }
 
   getCount(id: string): number {

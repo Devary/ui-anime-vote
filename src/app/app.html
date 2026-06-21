@@ -13,18 +13,21 @@
 
   <main class="poll-stage">
 
+    <!-- Invisible side nav buttons -->
+    <button class="side-nav side-prev" (click)="prev()" aria-label="Previous poll">&#8592;</button>
+    <button class="side-nav side-next" (click)="next()" aria-label="Next poll">&#8594;</button>
+
+    <!-- Poll -->
     <app-poll-card [poll]="currentPoll()" (castVote)="onVote($event)" />
 
-    <nav class="poll-nav">
-      <button class="nav-btn" (click)="prev()" aria-label="Previous poll">&#8592;</button>
-      <div class="nav-counter">
-        <span class="nav-cur">{{ currentIndex() + 1 }}</span>
-        <span class="nav-sep">&nbsp;/&nbsp;</span>
-        <span class="nav-tot">{{ totalPolls }}</span>
-      </div>
-      <button class="nav-btn" (click)="next()" aria-label="Next poll">&#8594;</button>
-    </nav>
+    <!-- Counter -->
+    <div class="poll-counter">
+      <span class="counter-cur">{{ currentIndex() + 1 }}</span>
+      <span class="counter-sep">&thinsp;/&thinsp;</span>
+      <span class="counter-tot">{{ totalPolls }}</span>
+    </div>
 
+    <!-- Auto-advance progress -->
     <div class="progress-track">
       <div class="progress-fill" [style.width.%]="progressPct()"></div>
     </div>

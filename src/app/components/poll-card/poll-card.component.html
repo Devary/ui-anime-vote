@@ -3,11 +3,10 @@
   <!-- Header -->
   <div class="poll-meta">
     <span class="anime-tag">{{ poll().anime }}</span>
-    <p class="question">{{ poll().question }}</p>
   </div>
 
   <!-- Fighters -->
-  <div class="fighters">
+  <div class="fighters" [class.org-layout]="hasOrgLayout()">
 
     <!-- Fighter 1 -->
     <div class="fighter"
@@ -76,14 +75,14 @@
 
   </div>
 
-  <!-- Results bar (shown after vote) -->
+  <!-- Global % bar — always directly under fighters -->
   @if (voted()) {
     <div class="results-wrap">
       <div class="results-bar">
-        <div class="bar-left" [style.width.%]="getPercent(poll().fighter1.id, poll().fighter2.id)">
+        <div class="bar-left" [style.width]="getPercent(poll().fighter1.id, poll().fighter2.id) + '%'">
           <span class="bar-pct">{{ getPercent(poll().fighter1.id, poll().fighter2.id) }}%</span>
         </div>
-        <div class="bar-right" [style.width.%]="getPercent(poll().fighter2.id, poll().fighter1.id)">
+        <div class="bar-right" [style.width]="getPercent(poll().fighter2.id, poll().fighter1.id) + '%'">
           <span class="bar-pct">{{ getPercent(poll().fighter2.id, poll().fighter1.id) }}%</span>
         </div>
       </div>
