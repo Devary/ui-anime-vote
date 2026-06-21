@@ -1,4 +1,4 @@
-import { Component, input, inject } from '@angular/core';
+import { Component, computed, inject, input, output } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Poll } from '../../anime-data';
 import { VoteStore } from '../../vote.store';
@@ -12,18 +12,22 @@ import { VoteStore } from '../../vote.store';
 })
 export class PollCardComponent {
   readonly poll = input.required<Poll>();
+  readonly castVote = output<string>();
 
   private readonly voteStore = inject(VoteStore);
-
   readonly votes = this.voteStore.votes;
 
-  vote(characterId: string): void {
-    this.voteStore.vote(characterId);
+  readonly voted = computed(() => {
+    const p = this.poll();
+    return this.voteStore.hasVoted(p.fighter1.id, p.fighter2.id);
+  });
+
+  onClickFighter(characterId: string): void {
+    if (!this.voted()) this.castVote.emit(characterId);
   }
 
-  getPercent(id: string): number {
-    const p = this.poll();
-    return this.voteStore.getPercent(id, p.fighter1.id, p.fighter2.id);
+  getPercent(id: string, otherId: string): number {
+    return this.voteStore.getPercent(id, otherId);
   }
 
   getCount(id: string): number {
@@ -33,5 +37,13 @@ export class PollCardComponent {
   getTotal(): number {
     const p = this.poll();
     return this.voteStore.getPollTotal(p.fighter1.id, p.fighter2.id);
+  }
+
+  isWinner(id: string, otherId: string): boolean {
+    return this.voted() && this.getCount(id) > this.getCount(otherId);
+  }
+
+  isLoser(id: string, otherId: string): boolean {
+    return this.voted() && this.getCount(id) < this.getCount(otherId);
   }
 }

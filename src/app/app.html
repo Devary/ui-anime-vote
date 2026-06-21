@@ -1,31 +1,34 @@
 <div class="page-wrapper">
+
   @if (isStandalone) {
     <header class="standalone-header">
-      <span class="app-brand">Anime Vote</span>
-      <button class="theme-toggle" (click)="toggleTheme()" [attr.aria-label]="isDark() ? 'Switch to light mode' : 'Switch to dark mode'">
+      <span class="app-brand">⚔ Anime Vote</span>
+      <button class="theme-toggle"
+              (click)="toggleTheme()"
+              [attr.aria-label]="isDark() ? 'Switch to light mode' : 'Switch to dark mode'">
         {{ isDark() ? '☀' : '🌙' }}
       </button>
     </header>
   }
 
-  <main class="content">
-    <section class="hero-section">
-      <h1 class="hero-title">Anime Character Votes</h1>
-      <p class="hero-sub">Click a photo to vote. Results update in real time.</p>
-    </section>
+  <main class="poll-stage">
 
-    <section class="featured-section">
-      <div class="section-label">Featured Poll</div>
-      <app-poll-card [poll]="featuredPoll" />
-    </section>
+    <app-poll-card [poll]="currentPoll()" (castVote)="onVote($event)" />
 
-    <section class="more-polls-section">
-      <div class="section-label">More Battles</div>
-      <div class="polls-grid">
-        @for (poll of polls.slice(1); track poll.id) {
-          <app-poll-card [poll]="poll" />
-        }
+    <nav class="poll-nav">
+      <button class="nav-btn" (click)="prev()" aria-label="Previous poll">&#8592;</button>
+      <div class="nav-counter">
+        <span class="nav-cur">{{ currentIndex() + 1 }}</span>
+        <span class="nav-sep">&nbsp;/&nbsp;</span>
+        <span class="nav-tot">{{ totalPolls }}</span>
       </div>
-    </section>
+      <button class="nav-btn" (click)="next()" aria-label="Next poll">&#8594;</button>
+    </nav>
+
+    <div class="progress-track">
+      <div class="progress-fill" [style.width.%]="progressPct()"></div>
+    </div>
+
   </main>
+
 </div>

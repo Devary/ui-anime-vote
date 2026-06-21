@@ -1,109 +1,125 @@
 :host {
   display: block;
-  color: var(--rz-ink);
+  height:  100dvh;
+  overflow: hidden;
+  color:   var(--rz-ink);
 }
 
 .page-wrapper {
-  min-height: 100dvh;
-  background: linear-gradient(160deg, var(--rz-bg-from) 0%, var(--rz-bg-to) 100%);
-  transition: background 0.25s ease;
+  height:           100%;
+  display:          flex;
+  flex-direction:   column;
+  background:       linear-gradient(160deg, var(--rz-bg-from) 0%, var(--rz-bg-to) 100%);
+  transition:       background 0.25s ease;
 }
 
 // ── Standalone header ─────────────────────────────────────────────────────────
 .standalone-header {
+  flex-shrink:     0;
   display:         flex;
   align-items:     center;
   justify-content: space-between;
-  padding:         1rem 2rem;
+  padding:         0 1.5rem;
+  height:          52px;
   background:      var(--rz-glass-bg);
   border-bottom:   1px solid var(--rz-glass-border);
   backdrop-filter: blur(var(--rz-glass-blur));
-  position:        sticky;
-  top:             0;
-  z-index:         10;
 }
 
 .app-brand {
-  font-size:   1.1rem;
-  font-weight: 800;
-  color:       var(--rz-ink);
+  font-size:      1rem;
+  font-weight:    800;
+  color:          var(--rz-ink);
   letter-spacing: -0.01em;
 }
 
 .theme-toggle {
-  width:         2.25rem;
-  height:        2.25rem;
-  border-radius: var(--rz-radius-full);
-  border:        1px solid var(--rz-glass-border);
-  background:    var(--rz-glass-bg);
+  width:           2.1rem;
+  height:          2.1rem;
+  border-radius:   50%;
+  border:          1px solid var(--rz-glass-border);
+  background:      var(--rz-glass-bg);
   backdrop-filter: blur(var(--rz-glass-blur));
-  cursor:        pointer;
-  font-size:     1rem;
-  display:       grid;
-  place-items:   center;
-  transition:    background 0.2s;
+  cursor:          pointer;
+  font-size:       1rem;
+  display:         grid;
+  place-items:     center;
+  transition:      background 0.2s;
+  line-height:     1;
 
   &:hover { background: var(--rz-surface-active); }
 }
 
-// ── Main content ──────────────────────────────────────────────────────────────
-.content {
-  max-width: 900px;
-  margin:    0 auto;
-  padding:   2rem 1.5rem 4rem;
+// ── Poll stage (fills remaining height) ───────────────────────────────────────
+.poll-stage {
+  flex:      1;
+  min-height: 0;
   display:   flex;
   flex-direction: column;
-  gap:       2.5rem;
+  position:  relative;
+  overflow:  hidden;
 }
 
-// ── Hero ──────────────────────────────────────────────────────────────────────
-.hero-section {
-  text-align: center;
-  padding:    1rem 0 0;
+// ── Bottom navigation ─────────────────────────────────────────────────────────
+.poll-nav {
+  flex-shrink:     0;
+  display:         flex;
+  align-items:     center;
+  justify-content: center;
+  gap:             2.5rem;
+  padding:         0.65rem 1rem 0.55rem;
+  background:      var(--rz-glass-bg);
+  border-top:      1px solid var(--rz-glass-border);
+  backdrop-filter: blur(var(--rz-glass-blur));
 }
 
-.hero-title {
-  margin:      0 0 0.5rem;
-  font-size:   clamp(1.8rem, 4vw, 2.8rem);
-  font-weight: 900;
-  color:       #fff;
-  letter-spacing: -0.02em;
+.nav-btn {
+  width:           2.75rem;
+  height:          2.75rem;
+  border-radius:   50%;
+  border:          1px solid var(--rz-glass-border);
+  background:      var(--rz-glass-bg);
+  color:           var(--rz-ink);
+  font-size:       1.3rem;
+  font-weight:     600;
+  cursor:          pointer;
+  display:         grid;
+  place-items:     center;
+  transition:      background 0.2s, transform 0.15s;
+  line-height:     1;
+
+  &:hover  { background: var(--rz-surface-active); }
+  &:active { transform: scale(0.9); }
 }
 
-.hero-sub {
-  margin:    0;
-  color:     rgba(255,255,255,0.7);
-  font-size: 1rem;
+.nav-counter {
+  display:     flex;
+  align-items: baseline;
+  font-size:   1rem;
+  font-weight: 700;
+  color:       var(--rz-ink);
+  min-width:   5.5rem;
+  text-align:  center;
+  justify-content: center;
 }
 
-// ── Section label ─────────────────────────────────────────────────────────────
-.section-label {
-  font-size:      0.75rem;
-  font-weight:    700;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  color:          rgba(255,255,255,0.55);
-  margin-bottom:  0.85rem;
+.nav-cur  { font-size: 1.1rem; color: var(--rz-primary); }
+.nav-sep  { color: var(--rz-ink-muted); }
+.nav-tot  { color: var(--rz-ink-muted); font-weight: 600; }
+
+// ── Auto-advance progress bar ─────────────────────────────────────────────────
+.progress-track {
+  position:   absolute;
+  bottom:     0;
+  left:       0;
+  right:      0;
+  height:     3px;
+  background: transparent;
+  z-index:    5;
 }
 
-// ── Featured ──────────────────────────────────────────────────────────────────
-.featured-section {
-  display: flex;
-  flex-direction: column;
-}
-
-// ── More polls grid ───────────────────────────────────────────────────────────
-.more-polls-section {
-  display: flex;
-  flex-direction: column;
-}
-
-.polls-grid {
-  display:               grid;
-  grid-template-columns: repeat(auto-fill, minmax(380px, 1fr));
-  gap:                   1.5rem;
-
-  @media (max-width: 480px) {
-    grid-template-columns: 1fr;
-  }
+.progress-fill {
+  height:     100%;
+  background: var(--rz-gradient);
+  transition: width 1.5s linear;
 }
