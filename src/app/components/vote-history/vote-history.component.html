@@ -40,7 +40,6 @@
     }
   </div>
 
-  <!-- Result count when filtering -->
   @if (isFiltered()) {
     <div class="filter-result">
       <span>{{ filteredPolls().length }} match{{ filteredPolls().length !== 1 ? 'es' : '' }}</span>
@@ -62,7 +61,11 @@
     } @else {
       <ul class="history-list">
         @for (poll of filteredPolls(); track poll.id) {
-          <li class="history-row" (click)="openDetail(poll)" role="button" tabindex="0"
+          <li class="history-row"
+              [class.is-clickable]="isSingle(poll)"
+              (click)="openDetail(poll)"
+              [attr.role]="isSingle(poll) ? 'button' : null"
+              [attr.tabindex]="isSingle(poll) ? 0 : null"
               (keydown.enter)="openDetail(poll)">
 
             <!-- Voted character -->
@@ -81,12 +84,13 @@
                   {{ myVotedChar(poll).name }}
                 </span>
                 <span class="vs-sep">vs</span>
-                <span class="other-name">
-                  {{ myVotedChar(poll).id === poll.fighter1.id ? poll.fighter2.name : poll.fighter1.name }}
-                </span>
+                <span class="other-name">{{ opponentName(poll) }}</span>
               </div>
               <div class="row-meta">
                 <span class="anime-pill">{{ poll.anime }}</span>
+                @if (isMulti(poll)) {
+                  <span class="multi-pill">MULTI</span>
+                }
                 <span class="row-pct" [class.winning]="isWinner(poll)">{{ pct(poll) }}%</span>
                 @if (isWinner(poll)) {
                   <span class="crown-small">👑</span>
@@ -94,15 +98,9 @@
               </div>
             </div>
 
-            <!-- Opponent avatar -->
-            <div class="opp-char">
-              <img class="char-avatar"
-                   [src]="myVotedChar(poll).id === poll.fighter1.id ? poll.fighter2.image : poll.fighter1.image"
-                   [alt]="myVotedChar(poll).id === poll.fighter1.id ? poll.fighter2.name : poll.fighter1.name"
-                   onerror="this.onerror=null;this.src='https://placehold.co/40x40/c62828/fff?text=?'" />
-            </div>
-
-            <span class="row-arrow">›</span>
+            @if (isSingle(poll)) {
+              <span class="row-arrow">›</span>
+            }
 
           </li>
         }
@@ -112,7 +110,7 @@
 
 </div>
 
-<!-- Detail modal -->
+<!-- Detail modal (single polls only) -->
 @if (selectedPoll()) {
   <app-vote-detail-modal
     [poll]="selectedPoll()!"

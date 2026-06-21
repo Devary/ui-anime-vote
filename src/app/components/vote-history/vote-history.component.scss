@@ -210,12 +210,13 @@
   align-items: center;
   gap:         0.75rem;
   padding:     0.7rem 1.25rem;
-  cursor:      pointer;
   transition:  background 0.15s;
   border-bottom: 1px solid var(--rz-border-faint);
+  cursor:      default;
 
+  &.is-clickable { cursor: pointer; }
+  &.is-clickable:hover { background: var(--rz-surface-hover); }
   &:last-child { border-bottom: none; }
-  &:hover      { background: var(--rz-surface-hover); }
   &:focus-visible { outline: 2px solid var(--rz-primary); outline-offset: -2px; }
 }
 
@@ -328,6 +329,16 @@
   font-variant-numeric: tabular-nums;
 
   &.winning { color: var(--rz-primary); }
+}
+
+.multi-pill {
+  font-size:      0.55rem;
+  font-weight:    900;
+  letter-spacing: 0.08em;
+  color:          #fff;
+  background:     linear-gradient(135deg, #7b1fa2, #e040fb);
+  border-radius:  var(--rz-radius-full);
+  padding:        0.1rem 0.4rem;
 }
 
 .crown-small { font-size: 0.8rem; }

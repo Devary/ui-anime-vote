@@ -3,13 +3,14 @@ import { CommonModule } from '@angular/common';
 import { ThemeStore } from './theme.store';
 import { VoteStore } from './vote.store';
 import { PollCardComponent } from './components/poll-card/poll-card.component';
+import { MultiPollCardComponent } from './components/multi-poll-card/multi-poll-card.component';
 import { VoteHistoryComponent } from './components/vote-history/vote-history.component';
-import { POLLS } from './anime-data';
+import { ALL_POLLS, Poll, MultiPoll } from './anime-data';
 
 @Component({
   selector: 'app-root',
   standalone: true,
-  imports: [CommonModule, PollCardComponent, VoteHistoryComponent],
+  imports: [CommonModule, PollCardComponent, MultiPollCardComponent, VoteHistoryComponent],
   templateUrl: './app.html',
   styleUrl: './app.scss'
 })
@@ -20,20 +21,28 @@ export class App implements OnInit {
   readonly isStandalone = window.self === window.top;
   readonly isDark       = this.themeStore.isDark;
 
-  readonly totalPolls  = POLLS.length;
+  readonly totalPolls  = ALL_POLLS.length;
   private readonly _index = signal(0);
   readonly currentIndex   = this._index.asReadonly();
-  readonly currentPoll    = computed(() => POLLS[this._index()]);
+  readonly currentPoll    = computed(() => ALL_POLLS[this._index()]);
   readonly progressPct    = signal(0);
   readonly showHistory    = signal(false);
 
   readonly votedCount = computed(() => Object.keys(this.voteStore.myVotes()).length);
 
+  // Type-narrowed accessors for the template
+  readonly currentAsSingle = computed(() =>
+    this.currentPoll().type === 'single' ? this.currentPoll() as Poll : null
+  );
+  readonly currentAsMulti = computed(() =>
+    this.currentPoll().type === 'multi' ? this.currentPoll() as MultiPoll : null
+  );
+
   private advancing = false;
 
-  toggleTheme(): void   { this.themeStore.toggle(); }
-  openHistory(): void   { this.showHistory.set(true); }
-  closeHistory(): void  { this.showHistory.set(false); }
+  toggleTheme(): void  { this.themeStore.toggle(); }
+  openHistory(): void  { this.showHistory.set(true); }
+  closeHistory(): void { this.showHistory.set(false); }
 
   onVote(characterId: string): void {
     if (this.advancing) return;
@@ -49,11 +58,11 @@ export class App implements OnInit {
   }
 
   next(): void {
-    this._index.update(i => (i + 1) % POLLS.length);
+    this._index.update(i => (i + 1) % ALL_POLLS.length);
   }
 
   prev(): void {
-    this._index.update(i => (i - 1 + POLLS.length) % POLLS.length);
+    this._index.update(i => (i - 1 + ALL_POLLS.length) % ALL_POLLS.length);
   }
 
   ngOnInit(): void {

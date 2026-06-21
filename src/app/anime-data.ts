@@ -8,12 +8,30 @@ export interface Character {
 
 export interface Poll {
   id: string;
+  type: 'single';
   anime: string;
   question: string;
   fighter1: Character;
   fighter2: Character;
 }
 
+export interface MultiPollGroup {
+  id: string;
+  label: string;
+  candidates: Character[];
+}
+
+export interface MultiPoll {
+  id: string;
+  type: 'multi';
+  anime: string;
+  question: string;
+  groups: MultiPollGroup[];
+}
+
+export type AnyPoll = Poll | MultiPoll;
+
+// ── Image helpers ─────────────────────────────────────────────────────────────
 const W = (wiki: string, path: string) =>
   `https://static.wikia.nocookie.net/${wiki}/images/${path}`;
 
@@ -22,6 +40,7 @@ const PH = (name: string, hex: string) => {
   return `https://placehold.co/300x300/${hex}/ffffff?text=${encodeURIComponent(initials)}&font=montserrat`;
 };
 
+// ── Characters ────────────────────────────────────────────────────────────────
 export const CHARACTERS: Character[] = [
   // ── One Piece ─────────────────────────────────────────────────────────────
   { id: 'imu',        name: 'Imu',                   title: 'Sovereign of the World',      anime: 'One Piece',            image: W('onepiece', '2/2e/Im_Anime_Infobox.png') },
@@ -108,6 +127,10 @@ export const CHARACTERS: Character[] = [
   { id: 'scar',       name: 'Scar',                  title: 'Ishvalan Warrior',            anime: 'Fullmetal Alchemist',  image: PH('Scar',     'd97706') },
 ];
 
+// Fast lookup by id
+const C = Object.fromEntries(CHARACTERS.map(c => [c.id, c]));
+
+// ── Questions ─────────────────────────────────────────────────────────────────
 const QUESTIONS = [
   'Who would win in a fight?',
   'Who is the strongest?',
@@ -125,6 +148,7 @@ const QUESTIONS = [
   'Who is the most feared?',
 ];
 
+// ── Seeded shuffle ────────────────────────────────────────────────────────────
 function seededShuffle<T>(arr: T[], seed = 42): T[] {
   const a = [...arr];
   let s = seed >>> 0;
@@ -137,6 +161,7 @@ function seededShuffle<T>(arr: T[], seed = 42): T[] {
   return a;
 }
 
+// ── 1v1 Polls ─────────────────────────────────────────────────────────────────
 function generatePolls(): Poll[] {
   const chars = CHARACTERS;
   const pairs: Array<[Character, Character]> = [];
@@ -146,7 +171,6 @@ function generatePolls(): Poll[] {
     }
   }
 
-  // Always put Imu vs Kaido first
   const featuredIdx = pairs.findIndex(
     ([a, b]) => (a.id === 'imu' && b.id === 'kaido') || (a.id === 'kaido' && b.id === 'imu')
   );
@@ -156,8 +180,9 @@ function generatePolls(): Poll[] {
   const selection: Array<[Character, Character]> = [featured, ...shuffled.slice(0, 149)];
 
   return selection.map(([f1, f2], i) => ({
-    id: [f1.id, f2.id].sort().join('-vs-'),
-    anime: f1.anime === f2.anime ? f1.anime : `${f1.anime} × ${f2.anime}`,
+    id:       [f1.id, f2.id].sort().join('-vs-'),
+    type:     'single' as const,
+    anime:    f1.anime === f2.anime ? f1.anime : `${f1.anime} × ${f2.anime}`,
     question: QUESTIONS[i % QUESTIONS.length],
     fighter1: f1,
     fighter2: f2,
@@ -165,3 +190,120 @@ function generatePolls(): Poll[] {
 }
 
 export const POLLS: Poll[] = generatePolls();
+
+// ── Multi-polls ───────────────────────────────────────────────────────────────
+export const MULTI_POLLS: MultiPoll[] = [
+  {
+    id:       'mp-op-emperor',
+    type:     'multi',
+    anime:    'One Piece',
+    question: 'Who is the strongest Pirate Emperor?',
+    groups: [
+      { id: 'g1', label: 'Alliance',  candidates: [C['luffy'],  C['shanks'],     C['whitebeard']] },
+      { id: 'g2', label: 'Villains',  candidates: [C['kaido'],  C['blackbeard'], C['bigmom']]     },
+    ],
+  },
+  {
+    id:       'mp-naruto-greatest',
+    type:     'multi',
+    anime:    'Naruto',
+    question: 'Who is the greatest shinobi of all time?',
+    groups: [
+      { id: 'g1', label: 'Uchiha Clan',      candidates: [C['madara'], C['itachi'], C['sasuke'], C['obito']]   },
+      { id: 'g2', label: 'Senju & Uzumaki',  candidates: [C['naruto'], C['minato'], C['pain'],   C['hashirama']] },
+    ],
+  },
+  {
+    id:       'mp-dbz-tournament',
+    type:     'multi',
+    anime:    'Dragon Ball Z',
+    question: 'Who would win the Tournament of Power?',
+    groups: [
+      { id: 'g1', label: 'Universe 7', candidates: [C['goku'],  C['vegeta'], C['gohan']] },
+      { id: 'g2', label: 'Rivals',     candidates: [C['jiren'], C['broly'],  C['beerus']] },
+    ],
+  },
+  {
+    id:       'mp-anime-goat',
+    type:     'multi',
+    anime:    'All Anime',
+    question: 'Who is the GOAT anime protagonist?',
+    groups: [
+      { id: 'g1', label: 'Big Three', candidates: [C['luffy'],  C['naruto'], C['ichigo']] },
+      { id: 'g2', label: 'New Gen',   candidates: [C['deku'],   C['eren'],   C['tanjiro']] },
+    ],
+  },
+  {
+    id:       'mp-best-villain',
+    type:     'multi',
+    anime:    'All Anime',
+    question: 'Who is the greatest anime villain ever?',
+    groups: [
+      { id: 'g1', label: 'Classic Era', candidates: [C['madara'], C['aizen'],  C['frieza']] },
+      { id: 'g2', label: 'Modern Era',  candidates: [C['muzan'],  C['kaido'],  C['sukuna']] },
+    ],
+  },
+  {
+    id:       'mp-hxh-best',
+    type:     'multi',
+    anime:    'Hunter x Hunter',
+    question: 'Best Hunter x Hunter fighter?',
+    groups: [
+      { id: 'g1', label: 'Heroes',   candidates: [C['gon'],    C['killua'],  C['netero']] },
+      { id: 'g2', label: 'Villains', candidates: [C['hisoka'], C['meruem'],  C['chrollo']] },
+    ],
+  },
+  {
+    id:       'mp-bleach-clash',
+    type:     'multi',
+    anime:    'Bleach',
+    question: 'Who reigns supreme in the Soul Society?',
+    groups: [
+      { id: 'g1', label: 'Soul Reapers', candidates: [C['ichigo'],  C['byakuya'], C['zaraki']] },
+      { id: 'g2', label: 'Enemies',      candidates: [C['aizen'],   C['yhwach']] },
+    ],
+  },
+  {
+    id:       'mp-aot-war',
+    type:     'multi',
+    anime:    'Attack on Titan',
+    question: 'Who decides the fate of humanity?',
+    groups: [
+      { id: 'g1', label: 'Survey Corps', candidates: [C['eren'],  C['levi'],   C['mikasa'], C['armin']] },
+      { id: 'g2', label: 'Warriors',     candidates: [C['zeke'],  C['reiner']] },
+    ],
+  },
+  {
+    id:       'mp-jjk-sorcerers',
+    type:     'multi',
+    anime:    'Jujutsu Kaisen',
+    question: 'Who is the ultimate cursed energy user?',
+    groups: [
+      { id: 'g1', label: 'Special Grade',  candidates: [C['gojo'],   C['yuta']] },
+      { id: 'g2', label: 'Cursed Spirits', candidates: [C['sukuna'], C['megumi'], C['yuji']] },
+    ],
+  },
+  {
+    id:       'mp-ultimate-champion',
+    type:     'multi',
+    anime:    'All Anime',
+    question: 'Who is the ultimate anime champion?',
+    groups: [
+      { id: 'g1', label: 'Manga Kings', candidates: [C['goku'],   C['luffy'],   C['naruto']] },
+      { id: 'g2', label: 'Dark Lords',  candidates: [C['madara'], C['aizen'],   C['muzan']]  },
+      { id: 'g3', label: 'Wild Cards',  candidates: [C['gojo'],   C['meruem'],  C['eren']]   },
+    ],
+  },
+];
+
+// ── Combined carousel (1 multi-poll every 15 regular polls) ───────────────────
+export const ALL_POLLS: AnyPoll[] = (() => {
+  const result: AnyPoll[] = [];
+  const chunk = 15;
+  for (let i = 0; i < MULTI_POLLS.length; i++) {
+    result.push(...POLLS.slice(i * chunk, (i + 1) * chunk));
+    result.push(MULTI_POLLS[i]);
+  }
+  result.push(...POLLS.slice(MULTI_POLLS.length * chunk));
+  return result;
+})();
