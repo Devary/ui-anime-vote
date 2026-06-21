@@ -1,6 +1,6 @@
 import { Component, computed, inject, input, output } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { Poll } from '../../anime-data';
+import { Character, Poll } from '../../anime-data';
 import { VoteStore } from '../../vote.store';
 
 @Component({
@@ -22,10 +22,14 @@ export class PollCardComponent {
     return this.voteStore.hasVoted(p.fighter1.id, p.fighter2.id);
   });
 
-  readonly hasOrgLayout = computed(() => {
-    if (!this.voted()) return false;
+  readonly winnerChar = computed<Character | null>(() => {
+    if (!this.voted()) return null;
     const p = this.poll();
-    return this.getCount(p.fighter1.id) !== this.getCount(p.fighter2.id);
+    const c1 = this.voteStore.getCount(p.fighter1.id);
+    const c2 = this.voteStore.getCount(p.fighter2.id);
+    if (c1 > c2) return p.fighter1;
+    if (c2 > c1) return p.fighter2;
+    return null; // tie
   });
 
   onClickFighter(characterId: string): void {
@@ -46,10 +50,6 @@ export class PollCardComponent {
   }
 
   isWinner(id: string, otherId: string): boolean {
-    return this.voted() && this.getCount(id) > this.getCount(otherId);
-  }
-
-  isLoser(id: string, otherId: string): boolean {
-    return this.voted() && this.getCount(id) < this.getCount(otherId);
+    return this.voted() && this.voteStore.getCount(id) > this.voteStore.getCount(otherId);
   }
 }

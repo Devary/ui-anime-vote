@@ -1,92 +1,113 @@
 <div class="poll-page" [class.has-voted]="voted()">
 
-  <!-- Header -->
   <div class="poll-meta">
     <span class="anime-tag">{{ poll().anime }}</span>
   </div>
 
-  <!-- Fighters -->
-  <div class="fighters" [class.org-layout]="hasOrgLayout()">
+  @if (!voted()) {
+    <!-- ═══ Before vote: two fighters side-by-side ═══ -->
+    <div class="fighters">
 
-    <!-- Fighter 1 -->
-    <div class="fighter"
-         [class.winner]="isWinner(poll().fighter1.id, poll().fighter2.id)"
-         [class.loser]="isLoser(poll().fighter1.id, poll().fighter2.id)">
-      <button class="photo-btn"
-              (click)="onClickFighter(poll().fighter1.id)"
-              [disabled]="voted()"
-              [title]="voted() ? poll().fighter1.name : 'Vote for ' + poll().fighter1.name">
-        <img class="fighter-photo"
-             [src]="poll().fighter1.image"
-             [alt]="poll().fighter1.name"
-             onerror="this.onerror=null;this.src='https://placehold.co/220x220/1565C0/ffffff?text=?'" />
-        @if (!voted()) {
+      <div class="fighter">
+        <button class="photo-btn"
+                (click)="onClickFighter(poll().fighter1.id)"
+                [title]="'Vote for ' + poll().fighter1.name">
+          <img class="fighter-photo"
+               [src]="poll().fighter1.image"
+               [alt]="poll().fighter1.name"
+               onerror="this.onerror=null;this.src='https://placehold.co/220x220/1565C0/ffffff?text=?'" />
           <div class="vote-ring">VOTE</div>
-        }
-        @if (isWinner(poll().fighter1.id, poll().fighter2.id)) {
-          <div class="crown">👑</div>
-        }
-      </button>
+        </button>
+        <div class="fighter-name">{{ poll().fighter1.name }}</div>
+        <div class="fighter-title">{{ poll().fighter1.title }}</div>
+      </div>
 
-      <div class="fighter-name">{{ poll().fighter1.name }}</div>
-      <div class="fighter-title">{{ poll().fighter1.title }}</div>
+      <div class="vs-badge">VS</div>
 
-      @if (voted()) {
-        <div class="vote-result">
-          <span class="pct">{{ getPercent(poll().fighter1.id, poll().fighter2.id) }}%</span>
-          <span class="cnt">{{ getCount(poll().fighter1.id) | number }} votes</span>
-        </div>
-      }
+      <div class="fighter">
+        <button class="photo-btn"
+                (click)="onClickFighter(poll().fighter2.id)"
+                [title]="'Vote for ' + poll().fighter2.name">
+          <img class="fighter-photo"
+               [src]="poll().fighter2.image"
+               [alt]="poll().fighter2.name"
+               onerror="this.onerror=null;this.src='https://placehold.co/220x220/c62828/ffffff?text=?'" />
+          <div class="vote-ring">VOTE</div>
+        </button>
+        <div class="fighter-name">{{ poll().fighter2.name }}</div>
+        <div class="fighter-title">{{ poll().fighter2.title }}</div>
+      </div>
+
     </div>
 
-    <!-- VS badge -->
-    <div class="vs-badge">VS</div>
+  } @else {
+    <!-- ═══ After vote: org-chart layout ═══ -->
+    <div class="org-tree">
 
-    <!-- Fighter 2 -->
-    <div class="fighter"
-         [class.winner]="isWinner(poll().fighter2.id, poll().fighter1.id)"
-         [class.loser]="isLoser(poll().fighter2.id, poll().fighter1.id)">
-      <button class="photo-btn"
-              (click)="onClickFighter(poll().fighter2.id)"
-              [disabled]="voted()"
-              [title]="voted() ? poll().fighter2.name : 'Vote for ' + poll().fighter2.name">
-        <img class="fighter-photo"
-             [src]="poll().fighter2.image"
-             [alt]="poll().fighter2.name"
-             onerror="this.onerror=null;this.src='https://placehold.co/220x220/c62828/ffffff?text=?'" />
-        @if (!voted()) {
-          <div class="vote-ring">VOTE</div>
+      <!-- Winner at top center -->
+      <div class="winner-node">
+        @if (winnerChar(); as w) {
+          <div class="winner-photo-wrap">
+            <img class="winner-photo"
+                 [src]="w.image"
+                 [alt]="w.name"
+                 onerror="this.onerror=null;this.src='https://placehold.co/180x180/fbbf24/000?text=W'" />
+            <div class="winner-crown">👑</div>
+          </div>
+          <div class="winner-name">{{ w.name }}</div>
+        } @else {
+          <div class="tie-badge">TIE 🤝</div>
         }
-        @if (isWinner(poll().fighter2.id, poll().fighter1.id)) {
-          <div class="crown">👑</div>
-        }
-      </button>
+      </div>
 
-      <div class="fighter-name">{{ poll().fighter2.name }}</div>
-      <div class="fighter-title">{{ poll().fighter2.title }}</div>
+      <!-- Fork connector lines -->
+      <div class="org-fork" aria-hidden="true">
+        <div class="fork-half fork-left"></div>
+        <div class="fork-half fork-right"></div>
+      </div>
 
-      @if (voted()) {
-        <div class="vote-result">
-          <span class="pct">{{ getPercent(poll().fighter2.id, poll().fighter1.id) }}%</span>
-          <span class="cnt">{{ getCount(poll().fighter2.id) | number }} votes</span>
+      <!-- Both fighters at bottom -->
+      <div class="org-fighters">
+
+        <div class="org-fighter" [class.is-winner]="isWinner(poll().fighter1.id, poll().fighter2.id)">
+          <img class="org-photo"
+               [src]="poll().fighter1.image"
+               [alt]="poll().fighter1.name"
+               onerror="this.onerror=null;this.src='https://placehold.co/100x100/1565C0/fff?text=?'" />
+          <div class="org-name">{{ poll().fighter1.name }}</div>
+          <div class="org-votes">{{ getCount(poll().fighter1.id) | number }} votes</div>
         </div>
-      }
-    </div>
 
-  </div>
-
-  <!-- Global % bar — always directly under fighters -->
-  @if (voted()) {
-    <div class="results-wrap">
-      <div class="results-bar">
-        <div class="bar-left" [style.width]="getPercent(poll().fighter1.id, poll().fighter2.id) + '%'">
-          <span class="bar-pct">{{ getPercent(poll().fighter1.id, poll().fighter2.id) }}%</span>
+        <div class="org-fighter" [class.is-winner]="isWinner(poll().fighter2.id, poll().fighter1.id)">
+          <img class="org-photo"
+               [src]="poll().fighter2.image"
+               [alt]="poll().fighter2.name"
+               onerror="this.onerror=null;this.src='https://placehold.co/100x100/c62828/fff?text=?'" />
+          <div class="org-name">{{ poll().fighter2.name }}</div>
+          <div class="org-votes">{{ getCount(poll().fighter2.id) | number }} votes</div>
         </div>
-        <div class="bar-right" [style.width]="getPercent(poll().fighter2.id, poll().fighter1.id) + '%'">
-          <span class="bar-pct">{{ getPercent(poll().fighter2.id, poll().fighter1.id) }}%</span>
+
+      </div>
+
+      <!-- Global % bar directly under fighters -->
+      <div class="org-bar-wrap">
+        <div class="results-bar">
+          <div class="bar-left"
+               [style.width]="getPercent(poll().fighter1.id, poll().fighter2.id) + '%'">
+            <span class="bar-pct">{{ getPercent(poll().fighter1.id, poll().fighter2.id) }}%</span>
+          </div>
+          <div class="bar-right"
+               [style.width]="getPercent(poll().fighter2.id, poll().fighter1.id) + '%'">
+            <span class="bar-pct">{{ getPercent(poll().fighter2.id, poll().fighter1.id) }}%</span>
+          </div>
+        </div>
+        <div class="bar-labels">
+          <span>{{ getPercent(poll().fighter1.id, poll().fighter2.id) }}%</span>
+          <span class="total-votes">{{ getTotal() | number }} votes</span>
+          <span>{{ getPercent(poll().fighter2.id, poll().fighter1.id) }}%</span>
         </div>
       </div>
-      <div class="total-label">{{ getTotal() | number }} total votes</div>
+
     </div>
   }
 

@@ -7,21 +7,18 @@
 }
 
 .poll-page {
-  flex:           1;
-  display:        flex;
-  flex-direction: column;
-  align-items:    center;
+  flex:            1;
+  display:         flex;
+  flex-direction:  column;
+  align-items:     center;
   justify-content: center;
-  padding:        1rem 4rem 0.75rem; // leave room for side nav buttons
-  gap:            0.9rem;
-  min-height:     0;
+  padding:         1rem 4.5rem 0.75rem; // inset from invisible side-nav buttons
+  gap:             1rem;
+  min-height:      0;
 }
 
-// ── Header ────────────────────────────────────────────────────────────────────
-.poll-meta {
-  text-align:  center;
-  flex-shrink: 0;
-}
+// ── Anime tag ─────────────────────────────────────────────────────────────────
+.poll-meta { text-align: center; flex-shrink: 0; }
 
 .anime-tag {
   display:        inline-block;
@@ -35,55 +32,25 @@
   padding:        0.25rem 0.9rem;
 }
 
-// ── Fighters row ──────────────────────────────────────────────────────────────
+// ══════════════════════════════════════════════════════════════════════════════
+// BEFORE VOTE — two fighters side by side
+// ══════════════════════════════════════════════════════════════════════════════
 .fighters {
   display:         flex;
   align-items:     center;
   justify-content: center;
   gap:             1.5rem;
-  transition:      flex-direction 0.3s;
 
   @media (max-width: 480px) { gap: 0.75rem; }
 }
 
-// ── Org-chart layout (winner on top after vote) ───────────────────────────────
-.fighters.org-layout {
-  flex-direction: column;
-  gap:            1.25rem;
-
-  .vs-badge { display: none; }
-
-  .fighter.winner {
-    order: -1;
-
-    .fighter-photo {
-      width:  clamp(130px, 26vw, 230px);
-      height: clamp(130px, 26vw, 230px);
-    }
-  }
-
-  .fighter.loser {
-    order:     1;
-    opacity:   0.45;
-    transform: scale(0.88);
-
-    .fighter-photo {
-      width:  clamp(80px, 15vw, 140px);
-      height: clamp(80px, 15vw, 140px);
-    }
-  }
-}
-
-// ── Fighter card ──────────────────────────────────────────────────────────────
 .fighter {
   display:        flex;
   flex-direction: column;
   align-items:    center;
-  gap:            0.5rem;
-  transition:     opacity 0.4s ease, transform 0.4s ease;
+  gap:            0.55rem;
 }
 
-// ── Photo button ──────────────────────────────────────────────────────────────
 .photo-btn {
   position:      relative;
   background:    none;
@@ -94,11 +61,8 @@
   outline:       none;
   display:       block;
 
-  &:disabled { cursor: default; }
-
-  &:not(:disabled):hover  .vote-ring  { opacity: 1; }
-  &:not(:disabled):active .fighter-photo { transform: scale(0.96); }
-
+  &:hover  .vote-ring  { opacity: 1; }
+  &:active .fighter-photo { transform: scale(0.96); }
   &:focus-visible .fighter-photo {
     outline:        2px solid var(--rz-primary);
     outline-offset: 4px;
@@ -113,14 +77,8 @@
   object-position: top center;
   border:          3px solid var(--rz-glass-border);
   display:         block;
-  transition:      border-color 0.35s, box-shadow 0.35s, transform 0.15s,
-                   width 0.4s ease, height 0.4s ease;
+  transition:      transform 0.15s;
   background:      var(--rz-surface-hover);
-}
-
-.fighter.winner .fighter-photo {
-  border-color: #fbbf24;
-  box-shadow:   0 0 0 4px #fbbf24, 0 8px 36px rgba(251,191,36,0.4);
 }
 
 .vote-ring {
@@ -140,29 +98,11 @@
   pointer-events:  none;
 }
 
-.crown {
-  position:    absolute;
-  top:         -14px;
-  left:        50%;
-  transform:   translateX(-50%);
-  font-size:   1.6rem;
-  line-height: 1;
-  filter:      drop-shadow(0 2px 4px rgba(0,0,0,0.5));
-  animation:   pop-in 0.35s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
-}
-
-@keyframes pop-in {
-  from { transform: translateX(-50%) scale(0); opacity: 0; }
-  to   { transform: translateX(-50%) scale(1); opacity: 1; }
-}
-
-// ── Fighter info ──────────────────────────────────────────────────────────────
 .fighter-name {
-  font-size:   clamp(0.85rem, 2vw, 1rem);
+  font-size:   clamp(0.82rem, 1.9vw, 0.98rem);
   font-weight: 700;
   color:       var(--rz-ink);
   text-align:  center;
-  line-height: 1.2;
 }
 
 .fighter-title {
@@ -172,33 +112,7 @@
   text-align: center;
 }
 
-.vote-result {
-  display:        flex;
-  flex-direction: column;
-  align-items:    center;
-  gap:            0.1rem;
-  animation:      fade-up 0.3s ease forwards;
-}
-
-@keyframes fade-up {
-  from { opacity: 0; transform: translateY(6px); }
-  to   { opacity: 1; transform: translateY(0); }
-}
-
-.pct {
-  font-size:   clamp(1.1rem, 2.8vw, 1.5rem);
-  font-weight: 900;
-  color:       var(--rz-primary);
-  line-height: 1;
-  font-variant-numeric: tabular-nums;
-}
-
-.cnt {
-  font-size: 0.68rem;
-  color:     var(--rz-ink-muted);
-}
-
-// ── VS badge — half the photo, blue + black outline ───────────────────────────
+// VS badge — half the photo size, blue + black text outline
 .vs-badge {
   flex-shrink:     0;
   width:           clamp(55px, 11vw, 105px);
@@ -214,70 +128,254 @@
   align-items:     center;
   justify-content: center;
   text-shadow:
-    -2px -2px 0 #000,
-     2px -2px 0 #000,
-    -2px  2px 0 #000,
-     2px  2px 0 #000,
-    -2px  0   0 #000,
-     2px  0   0 #000,
-     0   -2px 0 #000,
-     0    2px 0 #000;
+    -2px -2px 0 #000, 2px -2px 0 #000,
+    -2px  2px 0 #000, 2px  2px 0 #000,
+    -2px  0   0 #000, 2px  0   0 #000,
+     0   -2px 0 #000, 0    2px 0 #000;
 }
 
-// ── Results bar (directly under fighters) ────────────────────────────────────
-.results-wrap {
+// ══════════════════════════════════════════════════════════════════════════════
+// AFTER VOTE — org-chart layout
+// ══════════════════════════════════════════════════════════════════════════════
+.org-tree {
   display:        flex;
   flex-direction: column;
-  gap:            0.35rem;
+  align-items:    center;
   width:          100%;
-  max-width:      540px;
-  animation:      slide-up 0.35s ease forwards;
+  max-width:      380px;
+  animation:      fade-in 0.35s ease forwards;
 }
 
-@keyframes slide-up {
-  from { opacity: 0; transform: translateY(8px); }
-  to   { opacity: 1; transform: translateY(0); }
+@keyframes fade-in {
+  from { opacity: 0; transform: scale(0.97); }
+  to   { opacity: 1; transform: scale(1); }
+}
+
+// ── Winner node ───────────────────────────────────────────────────────────────
+.winner-node {
+  display:        flex;
+  flex-direction: column;
+  align-items:    center;
+  gap:            0.4rem;
+  margin-bottom:  12px; // gap before org-fork (matches fork::before height)
+}
+
+.winner-photo-wrap {
+  position: relative;
+}
+
+.winner-photo {
+  width:           clamp(110px, 22vw, 160px);
+  height:          clamp(110px, 22vw, 160px);
+  border-radius:   50%;
+  object-fit:      cover;
+  object-position: top center;
+  border:          4px solid #fbbf24;
+  box-shadow:      0 0 0 5px rgba(251,191,36,0.25), 0 6px 32px rgba(251,191,36,0.45);
+  display:         block;
+}
+
+.winner-crown {
+  position:   absolute;
+  top:        -22px;
+  left:       50%;
+  transform:  translateX(-50%);
+  font-size:  2rem;
+  line-height: 1;
+  filter:     drop-shadow(0 2px 5px rgba(0,0,0,0.7));
+  animation:  crown-pop 0.45s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+@keyframes crown-pop {
+  from { transform: translateX(-50%) scale(0) rotate(-20deg); opacity: 0; }
+  to   { transform: translateX(-50%) scale(1) rotate(0deg);  opacity: 1; }
+}
+
+.winner-name {
+  font-size:   clamp(0.9rem, 2vw, 1.05rem);
+  font-weight: 800;
+  color:       #fbbf24;
+  text-align:  center;
+  animation:   slide-up 0.3s ease forwards;
+}
+
+.tie-badge {
+  font-size:   1.4rem;
+  font-weight: 800;
+  color:       var(--rz-ink);
+  text-align:  center;
+  padding:     1rem;
+}
+
+// ── Fork connector lines ──────────────────────────────────────────────────────
+// Creates the classic org-chart ─┬─ fork shape:
+//          │    ← winner-to-fork vertical (fork-left::before)
+//       ───┴───  ← horizontal (border-top on both halves)
+//       │     │  ← fork-to-fighter verticals (fork-*::after)
+.org-fork {
+  display: flex;
+  width:   100%;
+  height:  28px;
+}
+
+.fork-half {
+  flex:     1;
+  position: relative;
+}
+
+.fork-left {
+  border-top:   2px solid rgba(255, 255, 255, 0.35);
+  border-right: 2px solid rgba(255, 255, 255, 0.35);
+
+  // Vertical going UP to winner (from center of container, i.e. right edge of fork-left)
+  &::before {
+    content:    '';
+    position:   absolute;
+    top:        -14px;
+    right:      -2px;
+    width:      2px;
+    height:     14px;
+    background: rgba(255, 255, 255, 0.35);
+  }
+
+  // Vertical going DOWN to fighter 1 (center of this half)
+  &::after {
+    content:    '';
+    position:   absolute;
+    bottom:     -16px;
+    left:       50%;
+    transform:  translateX(-50%);
+    width:      2px;
+    height:     16px;
+    background: rgba(255, 255, 255, 0.35);
+  }
+}
+
+.fork-right {
+  border-top:  2px solid rgba(255, 255, 255, 0.35);
+  border-left: 2px solid rgba(255, 255, 255, 0.35);
+
+  // Vertical going DOWN to fighter 2 (center of this half)
+  &::after {
+    content:    '';
+    position:   absolute;
+    bottom:     -16px;
+    left:       50%;
+    transform:  translateX(-50%);
+    width:      2px;
+    height:     16px;
+    background: rgba(255, 255, 255, 0.35);
+  }
+}
+
+// ── Fighters at bottom of org-chart ──────────────────────────────────────────
+.org-fighters {
+  display:  flex;
+  width:    100%;
+  gap:      0;
+  padding-top: 16px; // matches fork ::after heights
+}
+
+.org-fighter {
+  flex:           1;
+  display:        flex;
+  flex-direction: column;
+  align-items:    center;
+  gap:            0.3rem;
+  padding:        0 0.25rem;
+
+  &.is-winner .org-photo {
+    border-color: #fbbf24;
+    box-shadow:   0 0 0 3px rgba(251,191,36,0.3);
+  }
+}
+
+.org-photo {
+  width:           clamp(70px, 14vw, 100px);
+  height:          clamp(70px, 14vw, 100px);
+  border-radius:   50%;
+  object-fit:      cover;
+  object-position: top center;
+  border:          2px solid var(--rz-glass-border);
+  display:         block;
+  transition:      border-color 0.3s, box-shadow 0.3s;
+  background:      var(--rz-surface-hover);
+}
+
+.org-name {
+  font-size:   clamp(0.68rem, 1.5vw, 0.82rem);
+  font-weight: 700;
+  color:       var(--rz-ink);
+  text-align:  center;
+  line-height: 1.2;
+}
+
+.org-votes {
+  font-size: 0.65rem;
+  color:     var(--rz-ink-muted);
+  text-align: center;
+}
+
+// ── % bar directly below fighters ─────────────────────────────────────────────
+.org-bar-wrap {
+  width:      100%;
+  margin-top: 0.75rem;
+  display:    flex;
+  flex-direction: column;
+  gap:        0.3rem;
 }
 
 .results-bar {
   display:       flex;
-  height:        2.25rem;
+  height:        2rem;
   border-radius: var(--rz-radius-sm);
   overflow:      hidden;
   background:    var(--rz-border-faint);
 }
 
-.bar-left,
-.bar-right {
-  display:         flex;
-  align-items:     center;
-  justify-content: center;
-  overflow:        hidden;
-  transition:      width 0.55s cubic-bezier(0.4, 0, 0.2, 1);
-  min-width:       0;
-}
-
 .bar-left {
   background:    var(--rz-gradient);
+  display:       flex;
+  align-items:   center;
+  justify-content: center;
   border-radius: var(--rz-radius-sm) 0 0 var(--rz-radius-sm);
+  transition:    width 0.55s cubic-bezier(0.4, 0, 0.2, 1);
+  min-width:     0;
+  overflow:      hidden;
 }
 
 .bar-right {
   background:    linear-gradient(135deg, #c62828, #ef5350);
+  display:       flex;
+  align-items:   center;
+  justify-content: center;
   border-radius: 0 var(--rz-radius-sm) var(--rz-radius-sm) 0;
+  transition:    width 0.55s cubic-bezier(0.4, 0, 0.2, 1);
+  min-width:     0;
+  overflow:      hidden;
 }
 
 .bar-pct {
-  font-size:          0.72rem;
-  font-weight:        700;
-  color:              #fff;
-  padding:            0 0.4rem;
-  white-space:        nowrap;
+  font-size:            0.72rem;
+  font-weight:          700;
+  color:                #fff;
+  padding:              0 0.35rem;
+  white-space:          nowrap;
   font-variant-numeric: tabular-nums;
 }
 
-.total-label {
-  text-align: center;
-  font-size:  0.68rem;
-  color:      var(--rz-ink-muted);
+.bar-labels {
+  display:         flex;
+  justify-content: space-between;
+  align-items:     center;
+  font-size:       0.68rem;
+  color:           var(--rz-ink-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.total-votes { color: var(--rz-ink-faint); font-size: 0.62rem; }
+
+@keyframes slide-up {
+  from { opacity: 0; transform: translateY(5px); }
+  to   { opacity: 1; transform: translateY(0); }
 }
