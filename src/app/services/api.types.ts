@@ -65,13 +65,25 @@ export interface HistoryItemDto {
 }
 
 // ── Auth ──────────────────────────────────────────────────────────────────────
-export interface RegisterRequest { username: string; email: string; password: string; }
-export interface LoginRequest { username: string; password: string; }
-export interface AuthResponse {
-  token: string;
-  userId: number;
+export interface RegisterRequest {
   username: string;
-  role: 'USER' | 'ADMIN';
+  email: string;
+  password: string;
+  confirmPassword: string;
+  firstName: string;
+  lastName: string;
+}
+export interface LoginRequest { username: string; password: string; }
+export interface RefreshRequest { refreshToken: string; }
+export interface LoginResponse {
+  accessToken: string;
+  refreshToken: string | null;
+  tokenType: string;
+  expiresIn: number;
+  subject: string;
+  username: string;
+  email: string | null;
+  roles: string[];
 }
 
 // ── Admin CRUD ────────────────────────────────────────────────────────────────

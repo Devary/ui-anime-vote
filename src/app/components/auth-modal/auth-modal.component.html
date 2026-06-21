@@ -21,7 +21,7 @@
   @if (activeTab() === 'login') {
     <form class="form" (ngSubmit)="submitLogin()">
       <label class="field">
-        <span class="label">Username</span>
+        <span class="label">Username or email</span>
         <input class="input" type="text" [(ngModel)]="loginUsername" name="lu" autocomplete="username" />
       </label>
       <label class="field">
@@ -40,16 +40,26 @@
   <!-- Register form -->
   @if (activeTab() === 'register') {
     <form class="form" (ngSubmit)="submitRegister()">
+      <div class="field-row">
+        <label class="field">
+          <span class="label">First name <span class="req">*</span></span>
+          <input class="input" type="text" [(ngModel)]="regFirstName" name="rfn" autocomplete="given-name" />
+        </label>
+        <label class="field">
+          <span class="label">Last name</span>
+          <input class="input" type="text" [(ngModel)]="regLastName" name="rln" autocomplete="family-name" />
+        </label>
+      </div>
       <label class="field">
-        <span class="label">Username</span>
+        <span class="label">Username <span class="req">*</span></span>
         <input class="input" type="text" [(ngModel)]="regUsername" name="ru" autocomplete="username" />
       </label>
       <label class="field">
-        <span class="label">Email</span>
+        <span class="label">Email <span class="req">*</span></span>
         <input class="input" type="email" [(ngModel)]="regEmail" name="re" autocomplete="email" />
       </label>
       <label class="field">
-        <span class="label">Password</span>
+        <span class="label">Password <span class="req">*</span></span>
         <input class="input" type="password" [(ngModel)]="regPassword" name="rp" autocomplete="new-password" />
       </label>
       <label class="field">

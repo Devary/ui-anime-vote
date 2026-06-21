@@ -8,6 +8,7 @@ import { MultiPollCardComponent } from './components/multi-poll-card/multi-poll-
 import { VoteHistoryComponent } from './components/vote-history/vote-history.component';
 import { AuthModalComponent } from './components/auth-modal/auth-modal.component';
 import { AdminPanelComponent } from './components/admin-panel/admin-panel.component';
+import { ToastComponent } from './components/toast/toast.component';
 import { ALL_POLLS, Poll, MultiPoll } from './anime-data';
 
 @Component({
@@ -20,6 +21,7 @@ import { ALL_POLLS, Poll, MultiPoll } from './anime-data';
     VoteHistoryComponent,
     AuthModalComponent,
     AdminPanelComponent,
+    ToastComponent,
   ],
   templateUrl: './app.html',
   styleUrl: './app.scss'

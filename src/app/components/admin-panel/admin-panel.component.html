@@ -3,7 +3,7 @@
 <div class="panel" role="dialog" aria-modal="true">
 
   <div class="panel-header">
-    <span class="panel-title">⚙ Admin Panel</span>
+    <span class="panel-title">⚙ Manage Polls</span>
     <div class="tab-row">
       <button class="tab" [class.active]="activeTab() === 'polls'"  (click)="switchTab('polls')">Polls</button>
       <button class="tab" [class.active]="activeTab() === 'multi'"  (click)="switchTab('multi')">Multi-Polls</button>
@@ -13,6 +13,18 @@
 
   @if (error()) {
     <div class="error-bar">{{ error() }}</div>
+  }
+
+  <!-- Duplicate error popup -->
+  @if (dupError()) {
+    <div class="dup-overlay">
+      <div class="dup-dialog" role="alertdialog">
+        <div class="dup-icon">⚠</div>
+        <div class="dup-title">Duplicate Poll</div>
+        <div class="dup-message">{{ dupError() }}</div>
+        <button class="dup-close" (click)="dismissDupError()">OK</button>
+      </div>
+    </div>
   }
 
   <div class="panel-body">

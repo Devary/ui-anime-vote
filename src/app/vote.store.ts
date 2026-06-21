@@ -1,5 +1,6 @@
 import { Injectable, inject, signal } from '@angular/core';
 import { AnimeApiService } from './services/anime-api.service';
+import { ToastService } from './services/toast.service';
 import { PollResultDto, MultiPollResultDto } from './services/api.types';
 
 type VoteMap      = Record<string, number>;
@@ -8,7 +9,8 @@ type TimestampMap = Record<string, number>;
 
 @Injectable({ providedIn: 'root' })
 export class VoteStore {
-  private readonly api = inject(AnimeApiService);
+  private readonly api   = inject(AnimeApiService);
+  private readonly toast = inject(ToastService);
 
   private readonly _votes      = signal<VoteMap>({});
   private readonly _myVotes    = signal<MyVoteMap>({});
@@ -44,8 +46,8 @@ export class VoteStore {
     this._timestamps.set({ ...this._timestamps(), [pollId]: Date.now() });
 
     this.api.castVote(pollId, characterId).subscribe({
-      next: res => this.applyPollResult(res),
-      error: () => {},
+      next: res => { this.applyPollResult(res); this.toast.success('Vote cast!'); },
+      error: err => this.toast.error(this.extractError(err, 'Failed to cast vote')),
     });
   }
 
@@ -57,8 +59,8 @@ export class VoteStore {
     this._myVotes.set({ ...this._myVotes(), [pollId]: newCharId });
 
     this.api.changeVote(pollId, newCharId).subscribe({
-      next: res => this.applyPollResult(res),
-      error: () => {},
+      next: res => { this.applyPollResult(res); this.toast.info('Vote changed!'); },
+      error: err => this.toast.error(this.extractError(err, 'Failed to change vote')),
     });
   }
 
@@ -77,8 +79,8 @@ export class VoteStore {
     this._timestamps.set({ ...this._timestamps(), [pollId]: Date.now() });
 
     this.api.castMultiVote(pollId, characterId).subscribe({
-      next: res => this.applyMultiPollResult(res),
-      error: () => {},
+      next: res => { this.applyMultiPollResult(res); this.toast.success('Vote cast!'); },
+      error: err => this.toast.error(this.extractError(err, 'Failed to cast vote')),
     });
   }
 
@@ -90,8 +92,8 @@ export class VoteStore {
     this._myVotes.set({ ...this._myVotes(), [pollId]: newCharId });
 
     this.api.changeMultiVote(pollId, newCharId).subscribe({
-      next: res => this.applyMultiPollResult(res),
-      error: () => {},
+      next: res => { this.applyMultiPollResult(res); this.toast.info('Vote changed!'); },
+      error: err => this.toast.error(this.extractError(err, 'Failed to change vote')),
     });
   }
 
@@ -125,6 +127,10 @@ export class VoteStore {
     if (res.myVoteCharId) {
       this._myVotes.set({ ...this._myVotes(), [res.poll.id]: res.myVoteCharId });
     }
+  }
+
+  private extractError(err: any, fallback: string): string {
+    return err?.error?.message ?? err?.message ?? fallback;
   }
 
   // ── Getters ───────────────────────────────────────────────────────────────

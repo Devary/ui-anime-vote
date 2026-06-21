@@ -3,7 +3,7 @@ import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import {
   PollResultDto, MultiPollResultDto, HistoryItemDto,
-  RegisterRequest, LoginRequest, AuthResponse,
+  RegisterRequest, LoginRequest, RefreshRequest, LoginResponse,
   PollCreateDto, PollDto, MultiPollCreateDto, MultiPollAdminDto, CharacterDto
 } from './api.types';
 
@@ -47,12 +47,16 @@ export class AnimeApiService {
 
   // ── Auth ──────────────────────────────────────────────────────────────────
 
-  register(req: RegisterRequest): Observable<AuthResponse> {
-    return this.http.post<AuthResponse>(`${API}/auth/register`, req);
+  login(req: LoginRequest): Observable<LoginResponse> {
+    return this.http.post<LoginResponse>(`${API}/auth/login`, req);
   }
 
-  login(req: LoginRequest): Observable<AuthResponse> {
-    return this.http.post<AuthResponse>(`${API}/auth/login`, req);
+  register(req: RegisterRequest): Observable<LoginResponse> {
+    return this.http.post<LoginResponse>(`${API}/auth/register`, req);
+  }
+
+  refresh(req: RefreshRequest): Observable<LoginResponse> {
+    return this.http.post<LoginResponse>(`${API}/auth/refresh`, req);
   }
 
   // ── Admin CRUD — Polls ────────────────────────────────────────────────────

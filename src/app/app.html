@@ -5,10 +5,8 @@
       <span class="app-brand">⚔ Anime Vote</span>
 
       <div class="header-actions">
-        @if (isAdmin()) {
-          <button class="admin-btn" (click)="openAdmin()" aria-label="Admin panel">⚙ Admin</button>
-        }
         @if (isLoggedIn()) {
+          <button class="admin-btn" (click)="openAdmin()" aria-label="Manage polls">⚙ Polls</button>
           <span class="username-chip">{{ currentUser()?.username }}</span>
           <button class="login-btn" (click)="logout()">Logout</button>
         } @else {
@@ -64,3 +62,6 @@
 @if (showAdmin()) {
   <app-admin-panel (close)="closeAdmin()" />
 }
+
+<!-- Toast notifications -->
+<app-toast />

@@ -249,6 +249,52 @@
   &:hover { border-color: var(--rz-primary); color: var(--rz-primary); }
 }
 
+// ── Duplicate error popup ─────────────────────────────────────────────────────
+.dup-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.55);
+  backdrop-filter: blur(4px);
+  border-radius: var(--rz-radius-lg);
+}
+
+.dup-dialog {
+  background: var(--rz-surface);
+  border: 1px solid rgba(239, 68, 68, 0.4);
+  border-radius: var(--rz-radius-md);
+  padding: 2rem 1.75rem;
+  max-width: 340px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.75rem;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+}
+
+.dup-icon { font-size: 2rem; }
+.dup-title { font-size: 1rem; font-weight: 800; color: var(--rz-danger, #f87171); }
+.dup-message { font-size: 0.83rem; color: var(--rz-ink-muted); line-height: 1.5; }
+
+.dup-close {
+  margin-top: 0.5rem;
+  height: 2.2rem;
+  padding: 0 2rem;
+  border: none;
+  border-radius: var(--rz-radius-sm);
+  background: var(--rz-danger, #f87171);
+  color: #fff;
+  font-size: 0.82rem;
+  font-weight: 800;
+  cursor: pointer;
+  transition: opacity 0.15s;
+  &:hover { opacity: 0.85; }
+}
+
 // ── Data table ────────────────────────────────────────────────────────────────
 .data-table {
   width: 100%;

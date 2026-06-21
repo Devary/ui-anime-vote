@@ -97,11 +97,19 @@
   gap: 0.75rem;
 }
 
+.field-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.5rem;
+}
+
 .field {
   display: flex;
   flex-direction: column;
   gap: 0.3rem;
 }
+
+.req { color: var(--rz-primary); }
 
 .label {
   font-size: 0.75rem;

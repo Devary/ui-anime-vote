@@ -2,6 +2,7 @@ import { Component, OnInit, inject, output, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { AnimeApiService } from '../../services/anime-api.service';
+import { ToastService } from '../../services/toast.service';
 import { PollDto, MultiPollAdminDto, CharacterDto, PollCreateDto, MultiPollCreateDto, GroupCreateDto } from '../../services/api.types';
 import { CHARACTERS } from '../../anime-data';
 
@@ -16,11 +17,13 @@ type Tab = 'polls' | 'multi';
 })
 export class AdminPanelComponent implements OnInit {
   readonly close = output<void>();
-  private readonly api = inject(AnimeApiService);
+  private readonly api   = inject(AnimeApiService);
+  private readonly toast = inject(ToastService);
 
-  readonly activeTab  = signal<Tab>('polls');
-  readonly loading    = signal(false);
-  readonly error      = signal<string | null>(null);
+  readonly activeTab    = signal<Tab>('polls');
+  readonly loading      = signal(false);
+  readonly error        = signal<string | null>(null);
+  readonly dupError     = signal<string | null>(null);
 
   // ── Character list (from local static data) ───────────────────────────────
   readonly allChars: CharacterDto[] = CHARACTERS.map(c => ({
@@ -33,7 +36,7 @@ export class AdminPanelComponent implements OnInit {
   newPoll: PollCreateDto = { anime: '', question: '', fighter1Id: '', fighter2Id: '' };
 
   // ── Multi-Polls ────────────────────────────────────────────────────────────
-  multiPolls   = signal<MultiPollAdminDto[]>([]);
+  multiPolls    = signal<MultiPollAdminDto[]>([]);
   showMultiForm = signal(false);
   newMulti: MultiPollCreateDto = { anime: '', question: '', groups: [this.emptyGroup(), this.emptyGroup()] };
 
@@ -45,7 +48,9 @@ export class AdminPanelComponent implements OnInit {
     this.loadMultiPolls();
   }
 
-  switchTab(t: Tab): void { this.activeTab.set(t); this.error.set(null); }
+  switchTab(t: Tab): void { this.activeTab.set(t); this.clearErrors(); }
+
+  clearErrors(): void { this.error.set(null); this.dupError.set(null); }
 
   // ── Polls CRUD ────────────────────────────────────────────────────────────
 
@@ -57,8 +62,12 @@ export class AdminPanelComponent implements OnInit {
   }
 
   submitPoll(): void {
+    this.clearErrors();
     if (!this.newPoll.anime || !this.newPoll.question || !this.newPoll.fighter1Id || !this.newPoll.fighter2Id) {
       this.error.set('Fill in all poll fields'); return;
+    }
+    if (this.newPoll.fighter1Id === this.newPoll.fighter2Id) {
+      this.error.set('Fighter 1 and Fighter 2 must be different'); return;
     }
     this.loading.set(true);
     this.api.adminCreatePoll(this.newPoll).subscribe({
@@ -67,16 +76,28 @@ export class AdminPanelComponent implements OnInit {
         this.newPoll = { anime: '', question: '', fighter1Id: '', fighter2Id: '' };
         this.showPollForm.set(false);
         this.loading.set(false);
+        this.toast.success('Poll created!');
       },
-      error: e => { this.error.set(this.msg(e)); this.loading.set(false); }
+      error: e => {
+        this.loading.set(false);
+        const status = e?.status;
+        if (status === 409) {
+          this.dupError.set(this.msg(e));
+        } else {
+          this.error.set(this.msg(e));
+        }
+      }
     });
   }
 
   deletePoll(id: string): void {
     if (!confirm('Delete this poll and all its votes?')) return;
     this.api.adminDeletePoll(id).subscribe({
-      next: () => this.polls.update(arr => arr.filter(p => p.id !== id)),
-      error: e => this.error.set(this.msg(e))
+      next: () => {
+        this.polls.update(arr => arr.filter(p => p.id !== id));
+        this.toast.success('Poll deleted');
+      },
+      error: e => this.toast.error(this.msg(e))
     });
   }
 
@@ -97,8 +118,6 @@ export class AdminPanelComponent implements OnInit {
     this.newMulti.groups = this.newMulti.groups.filter((_, i) => i !== idx);
   }
 
-  charsForGroup(idx: number): CharacterDto[] { return this.allChars; }
-
   toggleCandidate(group: GroupCreateDto, charId: string): void {
     const i = group.characterIds.indexOf(charId);
     if (i >= 0) group.characterIds.splice(i, 1);
@@ -110,6 +129,7 @@ export class AdminPanelComponent implements OnInit {
   }
 
   submitMulti(): void {
+    this.clearErrors();
     if (!this.newMulti.anime || !this.newMulti.question || this.newMulti.groups.length < 2) {
       this.error.set('Provide anime, question and at least 2 groups'); return;
     }
@@ -123,16 +143,27 @@ export class AdminPanelComponent implements OnInit {
         this.newMulti = { anime: '', question: '', groups: [this.emptyGroup(), this.emptyGroup()] };
         this.showMultiForm.set(false);
         this.loading.set(false);
+        this.toast.success('Multi-poll created!');
       },
-      error: e => { this.error.set(this.msg(e)); this.loading.set(false); }
+      error: e => {
+        this.loading.set(false);
+        if (e?.status === 409) {
+          this.dupError.set(this.msg(e));
+        } else {
+          this.error.set(this.msg(e));
+        }
+      }
     });
   }
 
   deleteMulti(id: string): void {
     if (!confirm('Delete this multi-poll and all its votes?')) return;
     this.api.adminDeleteMultiPoll(id).subscribe({
-      next: () => this.multiPolls.update(arr => arr.filter(p => p.id !== id)),
-      error: e => this.error.set(this.msg(e))
+      next: () => {
+        this.multiPolls.update(arr => arr.filter(p => p.id !== id));
+        this.toast.success('Multi-poll deleted');
+      },
+      error: e => this.toast.error(this.msg(e))
     });
   }
 
@@ -151,4 +182,6 @@ export class AdminPanelComponent implements OnInit {
   charName(id: string): string {
     return this.allChars.find(c => c.id === id)?.name ?? id;
   }
+
+  dismissDupError(): void { this.dupError.set(null); }
 }
