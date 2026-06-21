@@ -1,4 +1,4 @@
-import { Component, computed, inject, input, output } from '@angular/core';
+import { Component, OnInit, computed, inject, input, output } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { OrganizationChartModule } from 'primeng/organizationchart';
 import { TreeNode } from 'primeng/api';
@@ -12,11 +12,15 @@ import { VoteStore } from '../../vote.store';
   templateUrl: './vote-detail-modal.component.html',
   styleUrl: './vote-detail-modal.component.scss'
 })
-export class VoteDetailModalComponent {
+export class VoteDetailModalComponent implements OnInit {
   readonly poll   = input.required<Poll>();
   readonly close  = output<void>();
 
   private readonly voteStore = inject(VoteStore);
+
+  ngOnInit(): void {
+    this.voteStore.refreshPollResult(this.poll().id);
+  }
 
   readonly myVoteCharId = computed(() =>
     this.voteStore.getMyVote(this.poll().id)

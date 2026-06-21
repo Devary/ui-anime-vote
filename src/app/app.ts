@@ -46,7 +46,12 @@ export class App implements OnInit {
 
   onVote(characterId: string): void {
     if (this.advancing) return;
-    this.voteStore.vote(characterId, this.currentPoll().id);
+    const poll = this.currentPoll();
+    if (poll.type === 'multi') {
+      this.voteStore.voteMulti(characterId, poll.id);
+    } else {
+      this.voteStore.vote(characterId, poll.id);
+    }
     this.advancing = true;
     this.progressPct.set(0);
     setTimeout(() => this.progressPct.set(100), 10);
@@ -66,6 +71,7 @@ export class App implements OnInit {
   }
 
   ngOnInit(): void {
+    this.voteStore.loadTodayVotes();
     if (this.isStandalone) return;
     window.addEventListener('message', (event: MessageEvent) => {
       if (event.origin !== window.location.origin) return;

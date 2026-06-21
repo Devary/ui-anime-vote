@@ -62,8 +62,13 @@ export class VoteHistoryComponent {
   readonly selectedMultiPoll  = signal<MultiPoll | null>(null);
 
   openDetail(p: AnyPoll): void {
-    if (this.isSingle(p)) this.selectedSinglePoll.set(p);
-    else                  this.selectedMultiPoll.set(p);
+    if (this.isSingle(p)) {
+      this.selectedSinglePoll.set(p);
+      this.voteStore.refreshPollResult(p.id);
+    } else {
+      this.selectedMultiPoll.set(p);
+      this.voteStore.refreshMultiPollResult(p.id);
+    }
   }
 
   closeSingleDetail(): void { this.selectedSinglePoll.set(null); }

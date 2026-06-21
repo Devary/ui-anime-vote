@@ -1,4 +1,4 @@
-import { Component, computed, inject, input, output } from '@angular/core';
+import { Component, OnInit, computed, inject, input, output } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { OrganizationChartModule } from 'primeng/organizationchart';
 import { TreeNode } from 'primeng/api';
@@ -14,11 +14,15 @@ const SEGMENT_COLORS = ['#1565c0', '#c62828', '#2e7d32', '#6a1b9a', '#e65100'];
   templateUrl: './multi-poll-detail-modal.component.html',
   styleUrl:    './multi-poll-detail-modal.component.scss',
 })
-export class MultiPollDetailModalComponent {
+export class MultiPollDetailModalComponent implements OnInit {
   readonly poll  = input.required<MultiPoll>();
   readonly close = output<void>();
 
   private readonly voteStore = inject(VoteStore);
+
+  ngOnInit(): void {
+    this.voteStore.refreshMultiPollResult(this.poll().id);
+  }
 
   readonly myVoteCharId = computed(() => this.voteStore.getMyVote(this.poll().id));
 
@@ -92,6 +96,6 @@ export class MultiPollDetailModalComponent {
   switchVote(newCharId: string): void {
     const myVote = this.myVoteCharId();
     if (!myVote || myVote === newCharId) return;
-    this.voteStore.changeVote(this.poll().id, myVote, newCharId);
+    this.voteStore.changeMultiVote(this.poll().id, myVote, newCharId);
   }
 }
