@@ -6,11 +6,19 @@ type VoteMap      = Record<string, number>;   // charId → total count
 type MyVoteMap    = Record<string, string>;   // pollId → charId the user chose
 type TimestampMap = Record<string, number>;   // pollId → Date.now() when voted
 
+function generateUUID(): string {
+  if (typeof crypto.randomUUID === 'function') return crypto.randomUUID();
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => {
+    const r = Math.random() * 16 | 0;
+    return (c === 'x' ? r : (r & 0x3 | 0x8)).toString(16);
+  });
+}
+
 function getOrCreateSessionId(): string {
   const key = 'anime_session_id';
   let id = localStorage.getItem(key);
   if (!id) {
-    id = crypto.randomUUID();
+    id = generateUUID();
     localStorage.setItem(key, id);
   }
   return id;
