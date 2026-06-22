@@ -6,8 +6,9 @@ import {
   RegisterRequest, LoginRequest, RefreshRequest, LoginResponse,
   PollCreateDto, PollDto, MultiPollCreateDto, MultiPollAdminDto, CharacterDto
 } from './api.types';
+import { environment } from '../../environments/environment';
 
-const API = '/api';
+const API = environment.apiUrl;
 
 @Injectable({ providedIn: 'root' })
 export class AnimeApiService {
