@@ -7,7 +7,7 @@ import {
   PollCreateDto, PollDto, MultiPollCreateDto, MultiPollAdminDto, CharacterDto
 } from './api.types';
 
-const API = 'http://localhost:5556';
+const API = '/api';
 
 @Injectable({ providedIn: 'root' })
 export class AnimeApiService {
