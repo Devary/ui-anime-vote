@@ -65,3 +65,214 @@ html, body {
   background: linear-gradient(160deg, var(--rz-bg-from) 0%, var(--rz-bg-to) 100%);
   transition: background 0.25s ease, color 0.25s ease;
 }
+
+// ── PrimeNG DataTable — glassmorphism skin ────────────────────────────────────
+.p-datatable {
+  font-size: 0.82rem;
+  color: var(--rz-ink);
+
+  .p-datatable-header {
+    background: transparent !important;
+    border: none !important;
+    padding: 0 0 0.75rem 0 !important;
+  }
+
+  .p-datatable-table-container {
+    overflow-x: auto;
+  }
+
+  .p-datatable-thead > tr > th {
+    background: var(--rz-surface) !important;
+    color: var(--rz-ink-muted) !important;
+    font-size: 0.73rem !important;
+    font-weight: 600 !important;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    border-bottom: 1px solid var(--rz-border) !important;
+    border-top: none !important;
+    border-left: none !important;
+    border-right: none !important;
+    padding: 0.5rem 0.75rem !important;
+    white-space: nowrap;
+    user-select: none;
+  }
+
+  .p-datatable-tbody > tr {
+    background: transparent !important;
+    transition: background 0.12s;
+
+    > td {
+      background: transparent !important;
+      border-bottom: 1px solid var(--rz-border-faint) !important;
+      border-top: none !important;
+      border-left: none !important;
+      border-right: none !important;
+      color: var(--rz-ink) !important;
+      padding: 0.5rem 0.75rem !important;
+      vertical-align: middle;
+    }
+
+    &:hover > td {
+      background: var(--rz-surface-hover) !important;
+    }
+  }
+
+  .p-datatable-emptymessage > td {
+    text-align: center !important;
+    color: var(--rz-ink-faint) !important;
+    padding: 2rem !important;
+    border: none !important;
+  }
+
+  // Sortable columns
+  .p-sortable-column {
+    outline: none !important;
+
+    .p-sortable-column-icon {
+      color: var(--rz-ink-faint) !important;
+      margin-left: 0.3rem;
+      font-size: 0.72rem;
+    }
+
+    &:not(.p-highlight):hover {
+      background: var(--rz-surface-hover) !important;
+      color: var(--rz-ink) !important;
+    }
+
+    &.p-highlight {
+      background: transparent !important;
+      color: var(--rz-primary) !important;
+
+      .p-sortable-column-icon { color: var(--rz-primary) !important; }
+    }
+  }
+
+  // Column filter button
+  .p-column-filter-menu-button {
+    color: var(--rz-ink-faint) !important;
+    background: transparent !important;
+    border: none !important;
+    border-radius: var(--rz-radius-sm) !important;
+    width: 1.4rem !important;
+    height: 1.4rem !important;
+    margin-left: 0.25rem;
+
+    &:hover {
+      background: var(--rz-surface-hover) !important;
+      color: var(--rz-primary) !important;
+    }
+
+    &.p-column-filter-menu-button-active {
+      background: var(--rz-surface-active) !important;
+      color: var(--rz-primary) !important;
+    }
+  }
+}
+
+// Filter overlay panel
+.p-datatable-column-filter-overlay {
+  background: var(--rz-surface) !important;
+  border: 1px solid var(--rz-border) !important;
+  border-radius: var(--rz-radius-md) !important;
+  box-shadow: var(--rz-glass-shadow) !important;
+  padding: 0.75rem !important;
+  font-size: 0.82rem;
+  color: var(--rz-ink);
+
+  input {
+    background: var(--rz-glass-bg) !important;
+    border: 1px solid var(--rz-border) !important;
+    border-radius: var(--rz-radius-sm) !important;
+    color: var(--rz-ink) !important;
+    padding: 0.35rem 0.6rem !important;
+    font-size: 0.8rem !important;
+
+    &:focus { outline: none; border-color: var(--rz-primary) !important; }
+  }
+
+  button {
+    background: var(--rz-primary) !important;
+    border: none !important;
+    border-radius: var(--rz-radius-sm) !important;
+    color: #fff !important;
+    padding: 0.3rem 0.75rem !important;
+    font-size: 0.78rem !important;
+    cursor: pointer;
+
+    &.p-button-outlined {
+      background: transparent !important;
+      color: var(--rz-ink-muted) !important;
+      border: 1px solid var(--rz-border) !important;
+
+      &:hover { background: var(--rz-surface-hover) !important; }
+    }
+  }
+}
+
+// ── PrimeNG Paginator — glassmorphism skin ────────────────────────────────────
+.p-paginator {
+  background: transparent !important;
+  border: none !important;
+  border-top: 1px solid var(--rz-border-faint) !important;
+  padding: 0.5rem 0 0 0 !important;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.25rem;
+
+  .p-paginator-first,
+  .p-paginator-prev,
+  .p-paginator-next,
+  .p-paginator-last,
+  .p-paginator-page {
+    min-width: 2rem !important;
+    height: 2rem !important;
+    border-radius: var(--rz-radius-sm) !important;
+    border: none !important;
+    background: transparent !important;
+    color: var(--rz-ink-muted) !important;
+    font-size: 0.8rem !important;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.12s;
+    padding: 0 !important;
+
+    &:not(:disabled):hover {
+      background: var(--rz-surface-hover) !important;
+      color: var(--rz-ink) !important;
+    }
+
+    &.p-highlight {
+      background: var(--rz-primary) !important;
+      color: #fff !important;
+    }
+
+    &:disabled { opacity: 0.3 !important; cursor: default; }
+  }
+
+  // Hide the rows-per-page dropdown for cleanliness
+  .p-paginator-rpp-options { display: none !important; }
+  .p-paginator-jtp { display: none !important; }
+}
+
+// ── PrimeNG InputText used in table search ────────────────────────────────────
+.p-inputtext {
+  background: var(--rz-surface) !important;
+  border: 1px solid var(--rz-border) !important;
+  border-radius: var(--rz-radius-sm) !important;
+  color: var(--rz-ink) !important;
+  padding: 0.35rem 0.6rem !important;
+  font-size: 0.82rem !important;
+  font-family: inherit !important;
+  outline: none !important;
+  transition: border-color 0.15s;
+
+  &:focus {
+    border-color: var(--rz-primary) !important;
+    box-shadow: none !important;
+  }
+
+  &::placeholder { color: var(--rz-ink-faint) !important; }
+}

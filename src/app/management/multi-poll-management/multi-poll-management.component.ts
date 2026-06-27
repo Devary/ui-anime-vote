@@ -1,6 +1,10 @@
-import { Component, OnInit, inject, signal, computed } from '@angular/core';
+import { Component, OnInit, ViewChild, inject, signal, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { Table, TableModule } from 'primeng/table';
+import { InputTextModule } from 'primeng/inputtext';
+import { IconFieldModule } from 'primeng/iconfield';
+import { InputIconModule } from 'primeng/inputicon';
 import { AnimeApiService } from '../../services/anime-api.service';
 import { ToastService } from '../../services/toast.service';
 import { AnimeDto, CharacterDto, MultiPollAdminDto, MultiPollCreateDto, GroupCreateDto } from '../../services/api.types';
@@ -8,15 +12,9 @@ import { AnimeDto, CharacterDto, MultiPollAdminDto, MultiPollCreateDto, GroupCre
 @Component({
   selector: 'app-multi-poll-management',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, TableModule, InputTextModule, IconFieldModule, InputIconModule],
   template: `
     <div class="section">
-      <div class="section-toolbar">
-        <span class="count">{{ multiPolls().length }} multi-polls</span>
-        <button class="btn-primary" (click)="toggleForm()">
-          {{ showForm() ? 'Cancel' : '+ New Multi-Poll' }}
-        </button>
-      </div>
 
       @if (showForm()) {
         <form class="form-card" (ngSubmit)="save()">
@@ -37,14 +35,17 @@ import { AnimeDto, CharacterDto, MultiPollAdminDto, MultiPollCreateDto, GroupCre
             </label>
           </div>
 
-          <!-- Character search for groups -->
           <div class="char-search-bar">
-            <input class="char-search" [(ngModel)]="globalCharSearch" name="gcs"
-                   placeholder="Search characters for groups…" />
+            <p-iconfield>
+              <p-inputicon styleClass="pi pi-search" />
+              <input pInputText type="text" [(ngModel)]="globalCharSearch" name="gcs"
+                     (ngModelChange)="triggerCharFilter()"
+                     placeholder="Search characters for groups…" />
+            </p-iconfield>
           </div>
 
           <div class="groups-header">
-            <span class="groups-label">Groups (min 2)</span>
+            <span class="groups-label">Groups <span class="optional">(min 2, each with ≥2 characters)</span></span>
             <button type="button" class="btn-ghost-sm" (click)="addGroup()">+ Group</button>
           </div>
 
@@ -54,7 +55,9 @@ import { AnimeDto, CharacterDto, MultiPollAdminDto, MultiPollCreateDto, GroupCre
                 <input class="input group-label-input" [(ngModel)]="group.label" [name]="'gl'+i"
                        placeholder="Group label e.g. Round 1" />
                 <button type="button" class="btn-icon danger" (click)="removeGroup(i)"
-                        [disabled]="form.groups.length <= 2" title="Remove group">✕</button>
+                        [disabled]="form.groups.length <= 2" title="Remove">
+                  <i class="pi pi-times"></i>
+                </button>
               </div>
               <div class="char-picker">
                 @for (c of filteredChars(); track c.id) {
@@ -87,37 +90,76 @@ import { AnimeDto, CharacterDto, MultiPollAdminDto, MultiPollCreateDto, GroupCre
         </form>
       }
 
-      <div class="table-wrap">
-        <table class="data-table">
-          <thead>
-            <tr><th>Anime</th><th>Question</th><th>Groups</th><th>Candidates</th><th>Actions</th></tr>
-          </thead>
-          <tbody>
-            @for (mp of multiPolls(); track mp.id) {
-              <tr>
-                <td class="muted-cell">{{ mp.anime || '—' }}</td>
-                <td class="name-cell">{{ mp.question }}</td>
-                <td class="muted-cell">{{ mp.groups?.length ?? 0 }}</td>
-                <td class="muted-cell">{{ totalCandidates(mp) }}</td>
-                <td class="actions-cell">
-                  <button class="btn-icon" (click)="startEdit(mp)" title="Edit">✏</button>
-                  <button class="btn-icon danger" (click)="del(mp.id)" title="Delete">🗑</button>
-                </td>
-              </tr>
-            }
-            @if (multiPolls().length === 0 && !loading()) {
-              <tr><td colspan="5" class="empty-cell">No multi-polls yet.</td></tr>
-            }
-          </tbody>
-        </table>
-      </div>
+      <p-table
+        #dt
+        [value]="multiPolls()"
+        [paginator]="true"
+        [rows]="10"
+        [rowsPerPageOptions]="[10, 25, 50]"
+        [globalFilterFields]="['anime', 'question']"
+        [loading]="loading()"
+        sortMode="single"
+        dataKey="id">
+
+        <ng-template pTemplate="caption">
+          <div class="table-caption">
+            <p-iconfield>
+              <p-inputicon styleClass="pi pi-search" />
+              <input pInputText type="text"
+                     (input)="dt.filterGlobal($any($event.target).value, 'contains')"
+                     placeholder="Search multi-polls…" />
+            </p-iconfield>
+            <button class="btn-primary" type="button" (click)="toggleForm()">
+              {{ showForm() ? '✕ Cancel' : '+ New Multi-Poll' }}
+            </button>
+          </div>
+        </ng-template>
+
+        <ng-template pTemplate="header">
+          <tr>
+            <th pSortableColumn="anime">
+              Anime
+              <p-sortIcon field="anime" />
+              <p-columnFilter type="text" field="anime" display="menu" />
+            </th>
+            <th pSortableColumn="question">
+              Question
+              <p-sortIcon field="question" />
+              <p-columnFilter type="text" field="question" display="menu" />
+            </th>
+            <th style="width:90px">Groups</th>
+            <th style="width:110px">Candidates</th>
+            <th style="width:100px">Actions</th>
+          </tr>
+        </ng-template>
+
+        <ng-template pTemplate="body" let-mp>
+          <tr>
+            <td class="muted-cell">{{ mp.anime || '—' }}</td>
+            <td class="name-cell">{{ mp.question }}</td>
+            <td class="center-cell">{{ mp.groups?.length ?? 0 }}</td>
+            <td class="center-cell">{{ totalCandidates(mp) }}</td>
+            <td class="actions-cell">
+              <button class="btn-icon" (click)="startEdit(mp)" title="Edit">
+                <i class="pi pi-pencil"></i>
+              </button>
+              <button class="btn-icon danger" (click)="del(mp.id)" title="Delete">
+                <i class="pi pi-trash"></i>
+              </button>
+            </td>
+          </tr>
+        </ng-template>
+
+        <ng-template pTemplate="emptymessage">
+          <tr><td colspan="5">No multi-polls found.</td></tr>
+        </ng-template>
+
+      </p-table>
     </div>
   `,
   styles: [`
     :host { display: block; }
     .section { display: flex; flex-direction: column; gap: 1rem; }
-    .section-toolbar { display: flex; align-items: center; justify-content: space-between; }
-    .count { font-size: 0.82rem; color: var(--rz-ink-muted); }
     .form-card { background: var(--rz-surface); border: 1px solid var(--rz-border);
                   border-radius: var(--rz-radius-md); padding: 1rem; display: flex;
                   flex-direction: column; gap: 0.75rem; }
@@ -130,10 +172,6 @@ import { AnimeDto, CharacterDto, MultiPollAdminDto, MultiPollCreateDto, GroupCre
               background: var(--rz-glass-bg); color: var(--rz-ink); font-size: 0.82rem; }
     .input:focus { outline: none; border-color: var(--rz-primary); }
     .char-search-bar { display: flex; }
-    .char-search { flex: 1; padding: 0.35rem 0.6rem; border: 1px solid var(--rz-border);
-                    border-radius: var(--rz-radius-sm); background: var(--rz-surface);
-                    color: var(--rz-ink); font-size: 0.8rem; }
-    .char-search:focus { outline: none; border-color: var(--rz-accent); }
     .groups-header { display: flex; align-items: center; justify-content: space-between; }
     .groups-label { font-size: 0.8rem; font-weight: 600; color: var(--rz-ink-muted); }
     .group-card { background: var(--rz-surface-hover); border: 1px solid var(--rz-border-faint);
@@ -145,10 +183,9 @@ import { AnimeDto, CharacterDto, MultiPollAdminDto, MultiPollCreateDto, GroupCre
     .char-chip { display: flex; align-items: center; gap: 0.3rem; padding: 0.25rem 0.5rem;
                   border: 1px solid var(--rz-border); border-radius: var(--rz-radius-full);
                   cursor: pointer; font-size: 0.75rem; color: var(--rz-ink-muted);
-                  transition: all 0.15s; background: var(--rz-surface); }
+                  background: var(--rz-surface); transition: all 0.15s; }
     .char-chip:hover { border-color: var(--rz-primary); color: var(--rz-primary); }
-    .char-chip.selected { background: var(--rz-primary); border-color: var(--rz-primary);
-                           color: #fff; }
+    .char-chip.selected { background: var(--rz-primary); border-color: var(--rz-primary); color: #fff; }
     .chip-img { width: 20px; height: 20px; border-radius: 50%; object-fit: cover; }
     .chip-name { white-space: nowrap; }
     .group-count { font-size: 0.72rem; color: var(--rz-ink-faint); }
@@ -157,16 +194,11 @@ import { AnimeDto, CharacterDto, MultiPollAdminDto, MultiPollCreateDto, GroupCre
                    color: var(--rz-danger); border-radius: var(--rz-radius-sm); padding: 0.5rem 0.75rem; font-size: 0.8rem; }
     .dup-close { background: none; border: none; cursor: pointer; color: var(--rz-danger); font-size: 1rem; padding: 0; }
     .form-actions { display: flex; gap: 0.5rem; }
-    .table-wrap { overflow-x: auto; }
-    .data-table { width: 100%; border-collapse: collapse; font-size: 0.82rem; }
-    .data-table th { text-align: left; padding: 0.5rem 0.75rem; color: var(--rz-ink-muted);
-                      font-size: 0.75rem; font-weight: 600; border-bottom: 1px solid var(--rz-border); }
-    .data-table td { padding: 0.5rem 0.75rem; border-bottom: 1px solid var(--rz-border-faint);
-                      color: var(--rz-ink); vertical-align: middle; }
+    .table-caption { display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; flex-wrap: wrap; }
     .name-cell { font-weight: 600; }
     .muted-cell { color: var(--rz-ink-muted); }
+    .center-cell { text-align: center; color: var(--rz-ink-muted); }
     .actions-cell { display: flex; gap: 0.4rem; align-items: center; }
-    .empty-cell { text-align: center; color: var(--rz-ink-faint); padding: 2rem; }
     .btn-primary { padding: 0.4rem 1rem; border-radius: var(--rz-radius-sm); border: none;
                     background: var(--rz-primary); color: #fff; font-size: 0.8rem; font-weight: 600; cursor: pointer; }
     .btn-primary:hover:not(:disabled) { opacity: 0.88; }
@@ -179,14 +211,17 @@ import { AnimeDto, CharacterDto, MultiPollAdminDto, MultiPollCreateDto, GroupCre
                      border: 1px solid var(--rz-border); background: transparent; color: var(--rz-ink);
                      font-size: 0.78rem; cursor: pointer; }
     .btn-ghost-sm:hover { background: var(--rz-surface-hover); }
-    .btn-icon { background: none; border: none; cursor: pointer; font-size: 1rem; padding: 0.2rem 0.4rem;
+    .btn-icon { background: none; border: none; cursor: pointer; font-size: 0.9rem; padding: 0.3rem 0.4rem;
                  border-radius: var(--rz-radius-sm); color: var(--rz-ink-muted); }
     .btn-icon:hover { background: var(--rz-surface-hover); color: var(--rz-ink); }
     .btn-icon.danger:hover { background: var(--rz-danger-bg); color: var(--rz-danger); }
     .btn-icon:disabled { opacity: 0.3; cursor: default; }
+    @media (max-width: 640px) { .form-grid { grid-template-columns: 1fr; } .span-2 { grid-column: span 1; } }
   `]
 })
 export class MultiPollManagementComponent implements OnInit {
+  @ViewChild('dt') dt!: Table;
+
   private readonly api = inject(AnimeApiService);
   private readonly toast = inject(ToastService);
 
@@ -201,13 +236,17 @@ export class MultiPollManagementComponent implements OnInit {
   readonly dupError = signal<string | null>(null);
 
   globalCharSearch = '';
+  private readonly _charFilterTick = signal(0);
 
   readonly filteredChars = computed(() => {
+    this._charFilterTick();
     const q = this.globalCharSearch.toLowerCase();
     return q
       ? this.chars().filter(c => c.name.toLowerCase().includes(q) || (c.anime ?? '').toLowerCase().includes(q))
       : this.chars();
   });
+
+  triggerCharFilter(): void { this._charFilterTick.update(n => n + 1); }
 
   form: MultiPollCreateDto = { anime: '', question: '', groups: [this.emptyGroup(), this.emptyGroup()] };
 
@@ -234,14 +273,9 @@ export class MultiPollManagementComponent implements OnInit {
     this.form = {
       anime: mp.anime ?? '',
       question: mp.question,
-      groups: (mp.groups ?? []).map(g => ({
-        label: g.label,
-        characterIds: g.candidates.map(c => c.id)
-      }))
+      groups: (mp.groups ?? []).map(g => ({ label: g.label, characterIds: g.candidates.map(c => c.id) }))
     };
-    if (this.form.groups.length < 2) {
-      while (this.form.groups.length < 2) this.form.groups.push(this.emptyGroup());
-    }
+    while (this.form.groups.length < 2) this.form.groups.push(this.emptyGroup());
     this.showForm.set(true);
     this.error.set(null);
     this.dupError.set(null);
@@ -256,13 +290,9 @@ export class MultiPollManagementComponent implements OnInit {
     this.globalCharSearch = '';
   }
 
-  addGroup(): void {
-    this.form.groups = [...this.form.groups, this.emptyGroup()];
-  }
+  addGroup(): void { this.form.groups = [...this.form.groups, this.emptyGroup()]; }
 
-  removeGroup(idx: number): void {
-    this.form.groups = this.form.groups.filter((_, i) => i !== idx);
-  }
+  removeGroup(idx: number): void { this.form.groups = this.form.groups.filter((_, i) => i !== idx); }
 
   toggleCandidate(group: GroupCreateDto, charId: string): void {
     const idx = group.characterIds.indexOf(charId);
@@ -280,8 +310,7 @@ export class MultiPollManagementComponent implements OnInit {
     if (!this.form.question?.trim()) { this.error.set('Question is required'); return; }
     if (this.form.groups.length < 2) { this.error.set('At least 2 groups required'); return; }
     if (this.form.groups.some(g => !g.label?.trim() || g.characterIds.length < 2)) {
-      this.error.set('Each group needs a label and at least 2 characters');
-      return;
+      this.error.set('Each group needs a label and at least 2 characters'); return;
     }
     this.saving.set(true);
     const editId = this.editing()?.id;
@@ -292,10 +321,10 @@ export class MultiPollManagementComponent implements OnInit {
     req$.subscribe({
       next: saved => {
         if (editId) {
-          this.multiPolls.update(list => list.map(mp => mp.id === editId ? saved : mp));
+          this.multiPolls.update(l => l.map(mp => mp.id === editId ? saved : mp));
           this.toast.success('Multi-poll updated');
         } else {
-          this.multiPolls.update(list => [saved, ...list]);
+          this.multiPolls.update(l => [saved, ...l]);
           this.toast.success('Multi-poll created');
         }
         this.saving.set(false);
