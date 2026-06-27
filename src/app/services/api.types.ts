@@ -119,3 +119,26 @@ export interface MultiPollAdminDto {
   question: string;
   groups: MultiPollGroupDto[];
 }
+
+// ── Management CRUD ───────────────────────────────────────────────────────────
+export interface AnimeDto {
+  id: string;
+  name: string;
+  imageUrl: string | null;
+}
+
+export interface AnimeCreateDto {
+  name: string;
+  imageUrl: string | null;
+}
+
+export interface CharacterCreateDto {
+  name: string;
+  title: string;
+  anime: string;
+  imageUrl: string | null;
+}
+
+export interface UploadResponse {
+  url: string;
+}

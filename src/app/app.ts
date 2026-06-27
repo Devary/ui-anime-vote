@@ -7,8 +7,8 @@ import { PollCardComponent } from './components/poll-card/poll-card.component';
 import { MultiPollCardComponent } from './components/multi-poll-card/multi-poll-card.component';
 import { VoteHistoryComponent } from './components/vote-history/vote-history.component';
 import { AuthModalComponent } from './components/auth-modal/auth-modal.component';
-import { AdminPanelComponent } from './components/admin-panel/admin-panel.component';
 import { ToastComponent } from './components/toast/toast.component';
+import { ManagementComponent } from './management/management.component';
 import { ALL_POLLS, Poll, MultiPoll } from './anime-data';
 
 @Component({
@@ -20,7 +20,7 @@ import { ALL_POLLS, Poll, MultiPoll } from './anime-data';
     MultiPollCardComponent,
     VoteHistoryComponent,
     AuthModalComponent,
-    AdminPanelComponent,
+    ManagementComponent,
     ToastComponent,
   ],
   templateUrl: './app.html',
@@ -39,7 +39,7 @@ export class App implements OnInit {
   readonly isAdmin     = this.authService.isAdmin;
   readonly currentUser = this.authService.currentUser;
   readonly showAuth    = signal(false);
-  readonly showAdmin   = signal(false);
+  readonly showManagement = signal(false);
 
   readonly totalPolls  = ALL_POLLS.length;
   private readonly _index = signal(0);
@@ -59,13 +59,13 @@ export class App implements OnInit {
 
   private advancing = false;
 
-  toggleTheme(): void  { this.themeStore.toggle(); }
-  openHistory(): void  { this.showHistory.set(true); }
-  closeHistory(): void { this.showHistory.set(false); }
-  openAuth(): void     { this.showAuth.set(true); }
-  closeAuth(): void    { this.showAuth.set(false); }
-  openAdmin(): void    { this.showAdmin.set(true); }
-  closeAdmin(): void   { this.showAdmin.set(false); }
+  toggleTheme(): void     { this.themeStore.toggle(); }
+  openHistory(): void     { this.showHistory.set(true); }
+  closeHistory(): void    { this.showHistory.set(false); }
+  openAuth(): void        { this.showAuth.set(true); }
+  closeAuth(): void       { this.showAuth.set(false); }
+  openManagement(): void  { this.showManagement.set(true); }
+  closeManagement(): void { this.showManagement.set(false); }
 
   logout(): void { this.authService.logout(); }
 

@@ -6,7 +6,7 @@
 
       <div class="header-actions">
         @if (isLoggedIn()) {
-          <button class="admin-btn" (click)="openAdmin()" aria-label="Manage polls">⚙ Polls</button>
+          <button class="admin-btn" (click)="openManagement()" aria-label="Management">⚙ Manage</button>
           <span class="username-chip">{{ currentUser()?.username }}</span>
           <button class="login-btn" (click)="logout()">Logout</button>
         } @else {
@@ -58,9 +58,9 @@
   <app-auth-modal (close)="closeAuth()" />
 }
 
-<!-- Admin panel -->
-@if (showAdmin()) {
-  <app-admin-panel (close)="closeAdmin()" />
+<!-- Management panel -->
+@if (showManagement()) {
+  <app-management (close)="closeManagement()" />
 }
 
 <!-- Toast notifications -->

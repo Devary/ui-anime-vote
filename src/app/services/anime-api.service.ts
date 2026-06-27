@@ -4,7 +4,8 @@ import { Observable } from 'rxjs';
 import {
   PollResultDto, MultiPollResultDto, HistoryItemDto,
   RegisterRequest, LoginRequest, RefreshRequest, LoginResponse,
-  PollCreateDto, PollDto, MultiPollCreateDto, MultiPollAdminDto, CharacterDto
+  PollCreateDto, PollDto, MultiPollCreateDto, MultiPollAdminDto, CharacterDto,
+  AnimeDto, AnimeCreateDto, CharacterCreateDto, UploadResponse
 } from './api.types';
 import { environment } from '../../environments/environment';
 
@@ -94,5 +95,65 @@ export class AnimeApiService {
 
   adminDeleteMultiPoll(id: string): Observable<void> {
     return this.http.delete<void>(`${API}/admin/multi-polls/${id}`);
+  }
+
+  adminUpdateMultiPoll(id: string, req: MultiPollCreateDto): Observable<MultiPollAdminDto> {
+    return this.http.put<MultiPollAdminDto>(`${API}/admin/multi-polls/${id}`, req);
+  }
+
+  // ── Admin CRUD — Anime ────────────────────────────────────────────────────
+
+  adminGetAnimeList(): Observable<AnimeDto[]> {
+    return this.http.get<AnimeDto[]>(`${API}/admin/anime`);
+  }
+
+  adminCreateAnime(req: AnimeCreateDto): Observable<AnimeDto> {
+    return this.http.post<AnimeDto>(`${API}/admin/anime`, req);
+  }
+
+  adminUpdateAnime(id: string, req: AnimeCreateDto): Observable<AnimeDto> {
+    return this.http.put<AnimeDto>(`${API}/admin/anime/${id}`, req);
+  }
+
+  adminDeleteAnime(id: string): Observable<void> {
+    return this.http.delete<void>(`${API}/admin/anime/${id}`);
+  }
+
+  // ── Admin CRUD — Characters ───────────────────────────────────────────────
+
+  adminGetAllCharacters(): Observable<CharacterDto[]> {
+    return this.http.get<CharacterDto[]>(`${API}/admin/characters`);
+  }
+
+  adminCreateCharacter(req: CharacterCreateDto): Observable<CharacterDto> {
+    return this.http.post<CharacterDto>(`${API}/admin/characters`, req);
+  }
+
+  adminUpdateCharacter(id: string, req: CharacterCreateDto): Observable<CharacterDto> {
+    return this.http.put<CharacterDto>(`${API}/admin/characters/${id}`, req);
+  }
+
+  adminDeleteCharacter(id: string): Observable<void> {
+    return this.http.delete<void>(`${API}/admin/characters/${id}`);
+  }
+
+  // ── Image Upload ──────────────────────────────────────────────────────────
+
+  uploadImage(file: File): Observable<UploadResponse> {
+    return new Observable(observer => {
+      const reader = new FileReader();
+      reader.onload = () => {
+        const dataUrl = reader.result as string;
+        const commaIdx = dataUrl.indexOf(',');
+        const data = dataUrl.substring(commaIdx + 1);
+        this.http.post<UploadResponse>(`${API}/admin/upload`, {
+          filename: file.name,
+          mimeType: file.type || 'image/jpeg',
+          data,
+        }).subscribe(observer);
+      };
+      reader.onerror = () => observer.error(new Error('FileReader error'));
+      reader.readAsDataURL(file);
+    });
   }
 }

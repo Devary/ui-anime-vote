@@ -1,0 +1,43 @@
+<div class="backdrop" (click)="close.emit()"></div>
+
+<div class="panel" role="dialog" aria-modal="true" aria-label="Management">
+
+  <!-- Sidebar -->
+  <aside class="sidebar">
+    <div class="sidebar-brand">⚙ Management</div>
+    <nav class="sidebar-nav">
+      @for (item of navItems; track item.id) {
+        <button class="nav-item"
+                [class.active]="activeSection() === item.id"
+                (click)="setSection(item.id)">
+          <span class="nav-icon">{{ item.icon }}</span>
+          <span class="nav-label">{{ item.label }}</span>
+        </button>
+      }
+    </nav>
+  </aside>
+
+  <!-- Content -->
+  <div class="content">
+    <div class="content-header">
+      <h2 class="section-title">{{ activeLabel() }}</h2>
+      <button class="close-btn" (click)="close.emit()" aria-label="Close">✕</button>
+    </div>
+
+    <div class="content-body">
+      @if (activeSection() === 'anime') {
+        <app-anime-management />
+      }
+      @if (activeSection() === 'characters') {
+        <app-character-management />
+      }
+      @if (activeSection() === 'polls') {
+        <app-poll-management />
+      }
+      @if (activeSection() === 'multi-polls') {
+        <app-multi-poll-management />
+      }
+    </div>
+  </div>
+
+</div>
