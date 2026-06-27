@@ -5,6 +5,7 @@ import { Table, TableModule } from 'primeng/table';
 import { InputTextModule } from 'primeng/inputtext';
 import { IconFieldModule } from 'primeng/iconfield';
 import { InputIconModule } from 'primeng/inputicon';
+import { SelectModule } from 'primeng/select';
 import { AnimeApiService } from '../../services/anime-api.service';
 import { ToastService } from '../../services/toast.service';
 import { AnimeDto, CharacterDto, CharacterCreateDto } from '../../services/api.types';
@@ -13,7 +14,7 @@ import { ImageUploadComponent } from '../../shared/image-upload/image-upload.com
 @Component({
   selector: 'app-character-management',
   standalone: true,
-  imports: [CommonModule, FormsModule, TableModule, InputTextModule, IconFieldModule, InputIconModule, ImageUploadComponent],
+  imports: [CommonModule, FormsModule, TableModule, InputTextModule, IconFieldModule, InputIconModule, SelectModule, ImageUploadComponent],
   template: `
     <div class="section">
 
@@ -31,13 +32,18 @@ import { ImageUploadComponent } from '../../shared/image-upload/image-upload.com
             </label>
             <label class="field">
               <span>Anime</span>
-              <input class="input" list="char-anime-dl" [(ngModel)]="form.anime" name="canime"
-                     placeholder="Select or type anime…" />
-              <datalist id="char-anime-dl">
-                @for (a of animeList(); track a.id) {
-                  <option [value]="a.name"></option>
-                }
-              </datalist>
+              <p-select
+                [options]="animeList()"
+                [(ngModel)]="form.anime"
+                optionLabel="name"
+                optionValue="name"
+                [filter]="true"
+                filterBy="name"
+                [editable]="true"
+                [showClear]="true"
+                placeholder="Select or type anime…"
+                name="canime"
+                appendTo="body" />
             </label>
           </div>
           <label class="field">

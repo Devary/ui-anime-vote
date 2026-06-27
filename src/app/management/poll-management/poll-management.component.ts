@@ -5,6 +5,7 @@ import { Table, TableModule } from 'primeng/table';
 import { InputTextModule } from 'primeng/inputtext';
 import { IconFieldModule } from 'primeng/iconfield';
 import { InputIconModule } from 'primeng/inputicon';
+import { SelectModule } from 'primeng/select';
 import { AnimeApiService } from '../../services/anime-api.service';
 import { ToastService } from '../../services/toast.service';
 import { AnimeDto, CharacterDto, PollDto, PollCreateDto } from '../../services/api.types';
@@ -12,7 +13,7 @@ import { AnimeDto, CharacterDto, PollDto, PollCreateDto } from '../../services/a
 @Component({
   selector: 'app-poll-management',
   standalone: true,
-  imports: [CommonModule, FormsModule, TableModule, InputTextModule, IconFieldModule, InputIconModule],
+  imports: [CommonModule, FormsModule, TableModule, InputTextModule, IconFieldModule, InputIconModule, SelectModule],
   template: `
     <div class="section">
 
@@ -26,13 +27,18 @@ import { AnimeDto, CharacterDto, PollDto, PollCreateDto } from '../../services/a
             </label>
             <label class="field">
               <span>Anime <span class="optional">(optional)</span></span>
-              <input class="input" list="poll-anime-dl" [(ngModel)]="form.anime" name="pa"
-                     placeholder="Select or type…" />
-              <datalist id="poll-anime-dl">
-                @for (a of animeList(); track a.id) {
-                  <option [value]="a.name"></option>
-                }
-              </datalist>
+              <p-select
+                [options]="animeList()"
+                [(ngModel)]="form.anime"
+                optionLabel="name"
+                optionValue="name"
+                [filter]="true"
+                filterBy="name"
+                [editable]="true"
+                [showClear]="true"
+                placeholder="Select or type…"
+                name="pa"
+                appendTo="body" />
             </label>
           </div>
 

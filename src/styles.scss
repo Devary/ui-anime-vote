@@ -276,3 +276,113 @@ html, body {
 
   &::placeholder { color: var(--rz-ink-faint) !important; }
 }
+
+// ── PrimeNG Select (dropdown with search) — glassmorphism skin ────────────────
+.p-select {
+  width: 100% !important;
+  background: var(--rz-glass-bg) !important;
+  border: 1px solid var(--rz-border) !important;
+  border-radius: var(--rz-radius-sm) !important;
+  color: var(--rz-ink) !important;
+  font-family: inherit !important;
+  font-size: 0.82rem !important;
+  transition: border-color 0.15s !important;
+  box-shadow: none !important;
+
+  &:hover { border-color: var(--rz-accent) !important; }
+
+  &.p-focus {
+    border-color: var(--rz-primary) !important;
+    box-shadow: none !important;
+  }
+
+  .p-select-label {
+    padding: 0.4rem 0.6rem !important;
+    color: var(--rz-ink) !important;
+    font-size: 0.82rem !important;
+
+    &.p-placeholder { color: var(--rz-ink-faint) !important; }
+  }
+
+  .p-select-dropdown {
+    color: var(--rz-ink-muted) !important;
+    background: transparent !important;
+    border: none !important;
+    width: 2rem !important;
+  }
+
+  .p-select-clear-icon {
+    color: var(--rz-ink-muted) !important;
+    &:hover { color: var(--rz-danger) !important; }
+  }
+}
+
+.p-select-overlay {
+  background: var(--rz-surface) !important;
+  border: 1px solid var(--rz-border) !important;
+  border-radius: var(--rz-radius-md) !important;
+  box-shadow: var(--rz-glass-shadow) !important;
+  backdrop-filter: blur(var(--rz-glass-blur)) !important;
+  overflow: hidden;
+
+  .p-select-header {
+    padding: 0.5rem 0.75rem !important;
+    border-bottom: 1px solid var(--rz-border-faint) !important;
+    background: transparent !important;
+  }
+
+  .p-select-filter {
+    padding: 0.5rem 0.75rem !important;
+    background: transparent !important;
+
+    input {
+      width: 100% !important;
+      background: var(--rz-surface) !important;
+      border: 1px solid var(--rz-border) !important;
+      border-radius: var(--rz-radius-sm) !important;
+      color: var(--rz-ink) !important;
+      padding: 0.35rem 0.6rem !important;
+      font-size: 0.8rem !important;
+      font-family: inherit !important;
+
+      &:focus { outline: none; border-color: var(--rz-primary) !important; box-shadow: none !important; }
+      &::placeholder { color: var(--rz-ink-faint) !important; }
+    }
+  }
+
+  .p-select-list-container {
+    max-height: 220px !important;
+    overflow-y: auto !important;
+  }
+
+  .p-select-list {
+    padding: 0.25rem 0 !important;
+    background: transparent !important;
+  }
+
+  .p-select-option {
+    padding: 0.45rem 0.75rem !important;
+    color: var(--rz-ink) !important;
+    font-size: 0.82rem !important;
+    cursor: pointer;
+    transition: background 0.1s;
+    border-radius: 0 !important;
+
+    &:hover { background: var(--rz-surface-hover) !important; }
+
+    &.p-select-option-selected {
+      background: var(--rz-surface-active) !important;
+      color: var(--rz-primary) !important;
+      font-weight: 600;
+    }
+
+    .p-select-option-check-icon { color: var(--rz-primary) !important; font-size: 0.75rem !important; }
+  }
+
+  .p-select-empty-message {
+    padding: 0.75rem !important;
+    color: var(--rz-ink-faint) !important;
+    font-size: 0.82rem !important;
+    text-align: center;
+  }
+}
