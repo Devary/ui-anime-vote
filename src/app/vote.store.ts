@@ -108,8 +108,9 @@ export class VoteStore {
 
   private applyPollResult(res: PollResultDto): void {
     const v = { ...this._votes() };
-    v[res.poll.fighter1.id] = res.votes1;
-    v[res.poll.fighter2.id] = res.votes2;
+    for (const fr of res.fighterResults) {
+      v[fr.charId] = fr.votes;
+    }
     this._votes.set(v);
     if (res.myVoteCharId) {
       this._myVotes.set({ ...this._myVotes(), [res.poll.id]: res.myVoteCharId });

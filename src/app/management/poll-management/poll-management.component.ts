@@ -10,6 +10,8 @@ import { AnimeApiService } from '../../services/anime-api.service';
 import { ToastService } from '../../services/toast.service';
 import { AnimeDto, CharacterDto, PollDto, PollCreateDto } from '../../services/api.types';
 
+interface CharOption { id: string; displayName: string; imageUrl: string; }
+
 @Component({
   selector: 'app-poll-management',
   standalone: true,
@@ -42,33 +44,45 @@ import { AnimeDto, CharacterDto, PollDto, PollCreateDto } from '../../services/a
             </label>
           </div>
 
-          <div class="form-grid">
-            <label class="field">
-              <span>Fighter 1 *</span>
-              <input class="char-search" [(ngModel)]="charSearch1" name="cs1" placeholder="Type to search…"
-                     (ngModelChange)="triggerFilter()" />
-              <select class="input select-lg" [(ngModel)]="form.fighter1Id" name="pf1" size="5">
-                @for (c of filteredChars1(); track c.id) {
-                  <option [value]="c.id">{{ c.name }}{{ c.anime ? ' (' + c.anime + ')' : '' }}</option>
-                }
-              </select>
-              @if (form.fighter1Id) {
-                <small class="selected-name">✓ {{ charName(form.fighter1Id) }}</small>
+          <div class="fighters-section">
+            <div class="fighters-header">
+              <span class="field-label">Fighters *
+                <small class="optional">({{ form.fighterIds.length }}/10, min 2)</small>
+              </span>
+              @if (form.fighterIds.length < 10) {
+                <button type="button" class="btn-ghost-sm" (click)="addFighter()">+ Add Fighter</button>
               }
-            </label>
-            <label class="field">
-              <span>Fighter 2 *</span>
-              <input class="char-search" [(ngModel)]="charSearch2" name="cs2" placeholder="Type to search…"
-                     (ngModelChange)="triggerFilter()" />
-              <select class="input select-lg" [(ngModel)]="form.fighter2Id" name="pf2" size="5">
-                @for (c of filteredChars2(); track c.id) {
-                  <option [value]="c.id">{{ c.name }}{{ c.anime ? ' (' + c.anime + ')' : '' }}</option>
+            </div>
+            @for (fId of form.fighterIds; track $index; let idx = $index) {
+              <div class="fighter-slot">
+                <span class="slot-num">{{ idx + 1 }}</span>
+                <p-select
+                  [options]="charOptions()"
+                  [(ngModel)]="form.fighterIds[idx]"
+                  [name]="'pf' + idx"
+                  optionLabel="displayName"
+                  optionValue="id"
+                  [filter]="true"
+                  filterBy="displayName"
+                  [showClear]="true"
+                  placeholder="Select fighter…"
+                  appendTo="body">
+                  <ng-template pTemplate="option" let-opt>
+                    <div class="char-opt">
+                      @if (opt.imageUrl) {
+                        <img class="opt-img" [src]="opt.imageUrl" [alt]="opt.displayName" (error)="onImgErr($event)" />
+                      }
+                      <span>{{ opt.displayName }}</span>
+                    </div>
+                  </ng-template>
+                </p-select>
+                @if (form.fighterIds.length > 2) {
+                  <button type="button" class="btn-icon danger" (click)="removeFighter(idx)" title="Remove fighter">
+                    <i class="pi pi-times"></i>
+                  </button>
                 }
-              </select>
-              @if (form.fighter2Id) {
-                <small class="selected-name">✓ {{ charName(form.fighter2Id) }}</small>
-              }
-            </label>
+              </div>
+            }
           </div>
 
           @if (error()) { <div class="error-msg">{{ error() }}</div> }
@@ -92,7 +106,7 @@ import { AnimeDto, CharacterDto, PollDto, PollCreateDto } from '../../services/a
         [paginator]="true"
         [rows]="10"
         [rowsPerPageOptions]="[10, 25, 50]"
-        [globalFilterFields]="['anime', 'question', 'fighter1.name', 'fighter2.name']"
+        [globalFilterFields]="['anime', 'question']"
         [loading]="loading()"
         sortMode="single"
         dataKey="id">
@@ -123,8 +137,7 @@ import { AnimeDto, CharacterDto, PollDto, PollCreateDto } from '../../services/a
               <p-sortIcon field="question" />
               <p-columnFilter type="text" field="question" display="menu" />
             </th>
-            <th>Fighter 1</th>
-            <th>Fighter 2</th>
+            <th>Fighters</th>
             <th style="width:100px">Actions</th>
           </tr>
         </ng-template>
@@ -134,19 +147,16 @@ import { AnimeDto, CharacterDto, PollDto, PollCreateDto } from '../../services/a
             <td class="muted-cell">{{ poll.anime || '—' }}</td>
             <td class="name-cell">{{ poll.question }}</td>
             <td>
-              <div class="char-cell">
-                @if (poll.fighter1?.imageUrl) {
-                  <img class="thumb" [src]="poll.fighter1.imageUrl" [alt]="poll.fighter1.name" (error)="onImgErr($event)" />
+              <div class="fighters-cell">
+                @for (f of poll.fighters; track f.id; let i = $index) {
+                  @if (i > 0) { <span class="vs-sep">vs</span> }
+                  <div class="char-cell">
+                    @if (f.imageUrl) {
+                      <img class="thumb" [src]="f.imageUrl" [alt]="f.name" (error)="onImgErr($event)" />
+                    }
+                    <span>{{ f.name }}</span>
+                  </div>
                 }
-                {{ poll.fighter1?.name }}
-              </div>
-            </td>
-            <td>
-              <div class="char-cell">
-                @if (poll.fighter2?.imageUrl) {
-                  <img class="thumb" [src]="poll.fighter2.imageUrl" [alt]="poll.fighter2.name" (error)="onImgErr($event)" />
-                }
-                {{ poll.fighter2?.name }}
               </div>
             </td>
             <td class="actions-cell">
@@ -161,7 +171,7 @@ import { AnimeDto, CharacterDto, PollDto, PollCreateDto } from '../../services/a
         </ng-template>
 
         <ng-template pTemplate="emptymessage">
-          <tr><td colspan="5">No polls found.</td></tr>
+          <tr><td colspan="4">No polls found.</td></tr>
         </ng-template>
 
       </p-table>
@@ -181,19 +191,27 @@ import { AnimeDto, CharacterDto, PollDto, PollCreateDto } from '../../services/a
     .input { padding: 0.4rem 0.6rem; border: 1px solid var(--rz-border); border-radius: var(--rz-radius-sm);
               background: var(--rz-glass-bg); color: var(--rz-ink); font-size: 0.82rem; }
     .input:focus { outline: none; border-color: var(--rz-primary); }
-    .char-search { padding: 0.35rem 0.5rem; border: 1px solid var(--rz-border); border-radius: var(--rz-radius-sm);
-                    background: var(--rz-surface); color: var(--rz-ink); font-size: 0.78rem; margin-bottom: 0.25rem; }
-    .char-search:focus { outline: none; border-color: var(--rz-accent); }
-    .select-lg { height: 110px; overflow-y: auto; font-size: 0.78rem; }
-    .selected-name { color: var(--rz-primary); font-size: 0.75rem; margin-top: 0.2rem; }
+    .fighters-section { display: flex; flex-direction: column; gap: 0.5rem; }
+    .fighters-header { display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; }
+    .field-label { font-size: 0.8rem; color: var(--rz-ink-muted); font-weight: 500; }
+    .fighter-slot { display: flex; align-items: center; gap: 0.5rem; }
+    .slot-num { min-width: 1.4rem; height: 1.4rem; border-radius: 50%;
+                 background: var(--rz-surface-hover); border: 1px solid var(--rz-border);
+                 color: var(--rz-ink-muted); font-size: 0.72rem; font-weight: 700;
+                 display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+    .fighter-slot p-select { flex: 1; }
+    .char-opt { display: flex; align-items: center; gap: 0.5rem; }
+    .opt-img { width: 28px; height: 28px; border-radius: 50%; object-fit: cover; flex-shrink: 0; }
     .error-msg { color: var(--rz-danger); font-size: 0.8rem; }
     .dup-banner { display: flex; align-items: center; gap: 0.5rem; background: var(--rz-danger-bg);
                    color: var(--rz-danger); border-radius: var(--rz-radius-sm); padding: 0.5rem 0.75rem; font-size: 0.8rem; }
     .dup-close { background: none; border: none; cursor: pointer; color: var(--rz-danger); font-size: 1rem; padding: 0; }
     .form-actions { display: flex; gap: 0.5rem; }
     .table-caption { display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; flex-wrap: wrap; }
-    .char-cell { display: flex; align-items: center; gap: 0.4rem; }
-    .thumb { width: 32px; height: 32px; object-fit: cover; border-radius: var(--rz-radius-sm); flex-shrink: 0; }
+    .fighters-cell { display: flex; align-items: center; gap: 0.4rem; flex-wrap: wrap; }
+    .vs-sep { font-size: 0.65rem; font-weight: 700; color: var(--rz-ink-faint); text-transform: uppercase; padding: 0 0.1rem; }
+    .char-cell { display: flex; align-items: center; gap: 0.3rem; }
+    .thumb { width: 28px; height: 28px; object-fit: cover; border-radius: 50%; flex-shrink: 0; }
     .name-cell { font-weight: 600; }
     .muted-cell { color: var(--rz-ink-muted); }
     .actions-cell { display: flex; gap: 0.4rem; align-items: center; }
@@ -205,6 +223,10 @@ import { AnimeDto, CharacterDto, PollDto, PollCreateDto } from '../../services/a
                   border: 1px solid var(--rz-border); background: transparent; color: var(--rz-ink);
                   font-size: 0.8rem; cursor: pointer; }
     .btn-ghost:hover { background: var(--rz-surface-hover); }
+    .btn-ghost-sm { padding: 0.25rem 0.75rem; border-radius: var(--rz-radius-sm);
+                     border: 1px solid var(--rz-border); background: transparent; color: var(--rz-ink);
+                     font-size: 0.78rem; cursor: pointer; white-space: nowrap; }
+    .btn-ghost-sm:hover { background: var(--rz-surface-hover); }
     .btn-icon { background: none; border: none; cursor: pointer; font-size: 0.9rem; padding: 0.3rem 0.4rem;
                  border-radius: var(--rz-radius-sm); color: var(--rz-ink-muted); }
     .btn-icon:hover { background: var(--rz-surface-hover); color: var(--rz-ink); }
@@ -228,26 +250,15 @@ export class PollManagementComponent implements OnInit {
   readonly error = signal<string | null>(null);
   readonly dupError = signal<string | null>(null);
 
-  charSearch1 = '';
-  charSearch2 = '';
-  form: PollCreateDto = { anime: '', question: '', fighter1Id: '', fighter2Id: '' };
+  form = { anime: '', question: '', fighterIds: ['', ''] as string[] };
 
-  readonly filteredChars1 = computed(() => this.filterChars(this.charSearch1));
-  readonly filteredChars2 = computed(() => this.filterChars(this.charSearch2));
-
-  // Dummy signal toggled to force computed re-evaluation when search terms change
-  private readonly _filterTick = signal(0);
-
-  private filterChars(q: string): CharacterDto[] {
-    this._filterTick(); // read to establish dependency
-    if (!q) return this.chars();
-    const lower = q.toLowerCase();
-    return this.chars().filter(c =>
-      c.name.toLowerCase().includes(lower) || (c.anime ?? '').toLowerCase().includes(lower)
-    );
-  }
-
-  triggerFilter(): void { this._filterTick.update(n => n + 1); }
+  readonly charOptions = computed<CharOption[]>(() =>
+    this.chars().map(c => ({
+      id: c.id,
+      displayName: c.anime ? `${c.name} (${c.anime})` : c.name,
+      imageUrl: c.imageUrl
+    }))
+  );
 
   ngOnInit(): void {
     this.load();
@@ -269,9 +280,9 @@ export class PollManagementComponent implements OnInit {
 
   startEdit(p: PollDto): void {
     this.editing.set(p);
-    this.form = { anime: p.anime ?? '', question: p.question, fighter1Id: p.fighter1.id, fighter2Id: p.fighter2.id };
-    this.charSearch1 = '';
-    this.charSearch2 = '';
+    const ids = (p.fighters ?? []).map(f => f.id);
+    while (ids.length < 2) ids.push('');
+    this.form = { anime: p.anime ?? '', question: p.question, fighterIds: ids };
     this.showForm.set(true);
     this.error.set(null);
     this.dupError.set(null);
@@ -279,25 +290,35 @@ export class PollManagementComponent implements OnInit {
 
   cancelEdit(): void {
     this.editing.set(null);
-    this.form = { anime: '', question: '', fighter1Id: '', fighter2Id: '' };
-    this.charSearch1 = '';
-    this.charSearch2 = '';
+    this.form = { anime: '', question: '', fighterIds: ['', ''] };
     this.showForm.set(false);
     this.error.set(null);
     this.dupError.set(null);
+  }
+
+  addFighter(): void {
+    if (this.form.fighterIds.length < 10) {
+      this.form.fighterIds = [...this.form.fighterIds, ''];
+    }
+  }
+
+  removeFighter(idx: number): void {
+    this.form.fighterIds = this.form.fighterIds.filter((_, i) => i !== idx);
   }
 
   save(): void {
     this.error.set(null);
     this.dupError.set(null);
     if (!this.form.question?.trim()) { this.error.set('Question is required'); return; }
-    if (!this.form.fighter1Id || !this.form.fighter2Id) { this.error.set('Select both fighters'); return; }
-    if (this.form.fighter1Id === this.form.fighter2Id) { this.error.set('Fighters must be different'); return; }
+    const filled = this.form.fighterIds.filter(id => id);
+    if (filled.length < 2) { this.error.set('Select at least 2 fighters'); return; }
+    if (new Set(filled).size < filled.length) { this.error.set('Fighters must be different'); return; }
     this.saving.set(true);
     const editId = this.editing()?.id;
+    const dto: PollCreateDto = { anime: this.form.anime, question: this.form.question, fighterIds: filled };
     const req$ = editId
-      ? this.api.adminUpdatePoll(editId, this.form)
-      : this.api.adminCreatePoll(this.form);
+      ? this.api.adminUpdatePoll(editId, dto)
+      : this.api.adminCreatePoll(dto);
 
     req$.subscribe({
       next: saved => {
@@ -327,7 +348,6 @@ export class PollManagementComponent implements OnInit {
     });
   }
 
-  charName(id: string): string { return this.chars().find(c => c.id === id)?.name ?? id; }
   onImgErr(event: Event): void { (event.target as HTMLImageElement).style.display = 'none'; }
   private msg(e: any): string { return e?.error?.message ?? e?.message ?? 'Request failed'; }
 }

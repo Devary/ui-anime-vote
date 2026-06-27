@@ -53,7 +53,7 @@
           <div class="form-row">
             <label class="field">
               <span>Fighter 1</span>
-              <select class="input" [(ngModel)]="newPoll.fighter1Id" name="pf1">
+              <select class="input" [(ngModel)]="fighter1Id" name="pf1">
                 <option value="">— select —</option>
                 @for (c of allChars; track c.id) {
                   <option [value]="c.id">{{ c.name }} ({{ c.anime }})</option>
@@ -62,7 +62,7 @@
             </label>
             <label class="field">
               <span>Fighter 2</span>
-              <select class="input" [(ngModel)]="newPoll.fighter2Id" name="pf2">
+              <select class="input" [(ngModel)]="fighter2Id" name="pf2">
                 <option value="">— select —</option>
                 @for (c of allChars; track c.id) {
                   <option [value]="c.id">{{ c.name }} ({{ c.anime }})</option>
@@ -84,8 +84,8 @@
           @for (p of polls(); track p.id) {
             <tr>
               <td class="question-cell">{{ p.question }}</td>
-              <td>{{ p.fighter1.name }}</td>
-              <td>{{ p.fighter2.name }}</td>
+              <td>{{ p.fighters[0]?.name }}</td>
+              <td>{{ p.fighters[1]?.name }}</td>
               <td>
                 <button class="del-btn" (click)="deletePoll(p.id)" title="Delete">✕</button>
               </td>

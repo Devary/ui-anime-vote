@@ -13,18 +13,17 @@ export interface MultiPollGroupDto {
   candidates: CharacterDto[];
 }
 
+export interface FighterResultDto {
+  charId: string;
+  name: string;
+  imageUrl: string;
+  votes: number;
+  pct: number;
+}
+
 export interface PollResultDto {
-  poll: {
-    id: string;
-    anime: string;
-    question: string;
-    fighter1: CharacterDto;
-    fighter2: CharacterDto;
-  };
-  votes1: number;
-  votes2: number;
-  pct1: number;
-  pct2: number;
+  poll: PollDto;
+  fighterResults: FighterResultDto[];
   total: number;
   myVoteCharId: string | null;
 }
@@ -90,16 +89,14 @@ export interface LoginResponse {
 export interface PollCreateDto {
   anime: string;
   question: string;
-  fighter1Id: string;
-  fighter2Id: string;
+  fighterIds: string[]; // 2-10 character IDs in order
 }
 
 export interface PollDto {
   id: string;
   anime: string;
   question: string;
-  fighter1: CharacterDto;
-  fighter2: CharacterDto;
+  fighters: CharacterDto[];
 }
 
 export interface MultiPollCreateDto {

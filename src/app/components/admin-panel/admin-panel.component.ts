@@ -33,7 +33,11 @@ export class AdminPanelComponent implements OnInit {
   // ── Polls ──────────────────────────────────────────────────────────────────
   polls = signal<PollDto[]>([]);
   showPollForm = signal(false);
-  newPoll: PollCreateDto = { anime: '', question: '', fighter1Id: '', fighter2Id: '' };
+  newPoll: PollCreateDto = { anime: '', question: '', fighterIds: ['', ''] };
+  get fighter1Id(): string { return this.newPoll.fighterIds[0] ?? ''; }
+  set fighter1Id(v: string) { this.newPoll.fighterIds[0] = v; }
+  get fighter2Id(): string { return this.newPoll.fighterIds[1] ?? ''; }
+  set fighter2Id(v: string) { this.newPoll.fighterIds[1] = v; }
 
   // ── Multi-Polls ────────────────────────────────────────────────────────────
   multiPolls    = signal<MultiPollAdminDto[]>([]);
@@ -63,17 +67,17 @@ export class AdminPanelComponent implements OnInit {
 
   submitPoll(): void {
     this.clearErrors();
-    if (!this.newPoll.anime || !this.newPoll.question || !this.newPoll.fighter1Id || !this.newPoll.fighter2Id) {
+    if (!this.newPoll.anime || !this.newPoll.question || !this.fighter1Id || !this.fighter2Id) {
       this.error.set('Fill in all poll fields'); return;
     }
-    if (this.newPoll.fighter1Id === this.newPoll.fighter2Id) {
+    if (this.fighter1Id === this.fighter2Id) {
       this.error.set('Fighter 1 and Fighter 2 must be different'); return;
     }
     this.loading.set(true);
     this.api.adminCreatePoll(this.newPoll).subscribe({
       next: p => {
         this.polls.update(arr => [p, ...arr]);
-        this.newPoll = { anime: '', question: '', fighter1Id: '', fighter2Id: '' };
+        this.newPoll = { anime: '', question: '', fighterIds: ['', ''] };
         this.showPollForm.set(false);
         this.loading.set(false);
         this.toast.success('Poll created!');

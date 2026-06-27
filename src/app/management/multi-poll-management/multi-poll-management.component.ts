@@ -10,6 +10,8 @@ import { AnimeApiService } from '../../services/anime-api.service';
 import { ToastService } from '../../services/toast.service';
 import { AnimeDto, CharacterDto, MultiPollAdminDto, MultiPollCreateDto, GroupCreateDto } from '../../services/api.types';
 
+interface CharOption { id: string; displayName: string; imageUrl: string; }
+
 @Component({
   selector: 'app-multi-poll-management',
   standalone: true,
@@ -42,17 +44,8 @@ import { AnimeDto, CharacterDto, MultiPollAdminDto, MultiPollCreateDto, GroupCre
             </label>
           </div>
 
-          <div class="char-search-bar">
-            <p-iconfield>
-              <p-inputicon styleClass="pi pi-search" />
-              <input pInputText type="text" [(ngModel)]="globalCharSearch" name="gcs"
-                     (ngModelChange)="triggerCharFilter()"
-                     placeholder="Search characters for groups…" />
-            </p-iconfield>
-          </div>
-
           <div class="groups-header">
-            <span class="groups-label">Groups <span class="optional">(min 2, each with ≥2 characters)</span></span>
+            <span class="groups-label">Groups <span class="optional">(min 2, each with ≥2 fighters)</span></span>
             <button type="button" class="btn-ghost-sm" (click)="addGroup()">+ Group</button>
           </div>
 
@@ -62,23 +55,46 @@ import { AnimeDto, CharacterDto, MultiPollAdminDto, MultiPollCreateDto, GroupCre
                 <input class="input group-label-input" [(ngModel)]="group.label" [name]="'gl'+i"
                        placeholder="Group label e.g. Round 1" />
                 <button type="button" class="btn-icon danger" (click)="removeGroup(i)"
-                        [disabled]="form.groups.length <= 2" title="Remove">
-                  <i class="pi pi-times"></i>
+                        [disabled]="form.groups.length <= 2" title="Remove group">
+                  <i class="pi pi-trash"></i>
                 </button>
               </div>
-              <div class="char-picker">
-                @for (c of filteredChars(); track c.id) {
-                  <label class="char-chip" [class.selected]="isSelected(group, c.id)">
-                    <input type="checkbox" hidden [checked]="isSelected(group, c.id)"
-                           (change)="toggleCandidate(group, c.id)" />
-                    @if (c.imageUrl) {
-                      <img class="chip-img" [src]="c.imageUrl" [alt]="c.name" (error)="onImgErr($event)" />
+
+              <div class="candidates-section">
+                @for (cId of group.characterIds; track $index; let cIdx = $index) {
+                  <div class="candidate-slot">
+                    <span class="slot-num">{{ cIdx + 1 }}</span>
+                    <p-select
+                      [options]="charOptions()"
+                      [(ngModel)]="group.characterIds[cIdx]"
+                      [name]="'gc'+i+'_'+cIdx"
+                      optionLabel="displayName"
+                      optionValue="id"
+                      [filter]="true"
+                      filterBy="displayName"
+                      [showClear]="true"
+                      placeholder="Select fighter…"
+                      appendTo="body">
+                      <ng-template pTemplate="option" let-opt>
+                        <div class="char-opt">
+                          @if (opt.imageUrl) {
+                            <img class="opt-img" [src]="opt.imageUrl" [alt]="opt.displayName" (error)="onImgErr($event)" />
+                          }
+                          <span>{{ opt.displayName }}</span>
+                        </div>
+                      </ng-template>
+                    </p-select>
+                    @if (group.characterIds.length > 2) {
+                      <button type="button" class="btn-icon danger" (click)="removeCandidate(i, cIdx)" title="Remove fighter">
+                        <i class="pi pi-times"></i>
+                      </button>
                     }
-                    <span class="chip-name">{{ c.name }}</span>
-                  </label>
+                  </div>
+                }
+                @if (group.characterIds.length < 10) {
+                  <button type="button" class="btn-ghost-sm add-cand" (click)="addCandidate(i)">+ Add Fighter</button>
                 }
               </div>
-              <small class="group-count">{{ group.characterIds.length }} selected</small>
             </div>
           }
 
@@ -178,7 +194,6 @@ import { AnimeDto, CharacterDto, MultiPollAdminDto, MultiPollCreateDto, GroupCre
     .input { padding: 0.4rem 0.6rem; border: 1px solid var(--rz-border); border-radius: var(--rz-radius-sm);
               background: var(--rz-glass-bg); color: var(--rz-ink); font-size: 0.82rem; }
     .input:focus { outline: none; border-color: var(--rz-primary); }
-    .char-search-bar { display: flex; }
     .groups-header { display: flex; align-items: center; justify-content: space-between; }
     .groups-label { font-size: 0.8rem; font-weight: 600; color: var(--rz-ink-muted); }
     .group-card { background: var(--rz-surface-hover); border: 1px solid var(--rz-border-faint);
@@ -186,16 +201,16 @@ import { AnimeDto, CharacterDto, MultiPollAdminDto, MultiPollCreateDto, GroupCre
                    flex-direction: column; gap: 0.5rem; }
     .group-header { display: flex; gap: 0.5rem; align-items: center; }
     .group-label-input { flex: 1; }
-    .char-picker { display: flex; flex-wrap: wrap; gap: 0.4rem; max-height: 160px; overflow-y: auto; }
-    .char-chip { display: flex; align-items: center; gap: 0.3rem; padding: 0.25rem 0.5rem;
-                  border: 1px solid var(--rz-border); border-radius: var(--rz-radius-full);
-                  cursor: pointer; font-size: 0.75rem; color: var(--rz-ink-muted);
-                  background: var(--rz-surface); transition: all 0.15s; }
-    .char-chip:hover { border-color: var(--rz-primary); color: var(--rz-primary); }
-    .char-chip.selected { background: var(--rz-primary); border-color: var(--rz-primary); color: #fff; }
-    .chip-img { width: 20px; height: 20px; border-radius: 50%; object-fit: cover; }
-    .chip-name { white-space: nowrap; }
-    .group-count { font-size: 0.72rem; color: var(--rz-ink-faint); }
+    .candidates-section { display: flex; flex-direction: column; gap: 0.4rem; }
+    .candidate-slot { display: flex; align-items: center; gap: 0.5rem; }
+    .slot-num { min-width: 1.4rem; height: 1.4rem; border-radius: 50%;
+                 background: var(--rz-surface); border: 1px solid var(--rz-border);
+                 color: var(--rz-ink-muted); font-size: 0.72rem; font-weight: 700;
+                 display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+    .candidate-slot p-select { flex: 1; }
+    .char-opt { display: flex; align-items: center; gap: 0.5rem; }
+    .opt-img { width: 28px; height: 28px; border-radius: 50%; object-fit: cover; flex-shrink: 0; }
+    .add-cand { align-self: flex-start; margin-top: 0.1rem; }
     .error-msg { color: var(--rz-danger); font-size: 0.8rem; }
     .dup-banner { display: flex; align-items: center; gap: 0.5rem; background: var(--rz-danger-bg);
                    color: var(--rz-danger); border-radius: var(--rz-radius-sm); padding: 0.5rem 0.75rem; font-size: 0.8rem; }
@@ -242,18 +257,13 @@ export class MultiPollManagementComponent implements OnInit {
   readonly error = signal<string | null>(null);
   readonly dupError = signal<string | null>(null);
 
-  globalCharSearch = '';
-  private readonly _charFilterTick = signal(0);
-
-  readonly filteredChars = computed(() => {
-    this._charFilterTick();
-    const q = this.globalCharSearch.toLowerCase();
-    return q
-      ? this.chars().filter(c => c.name.toLowerCase().includes(q) || (c.anime ?? '').toLowerCase().includes(q))
-      : this.chars();
-  });
-
-  triggerCharFilter(): void { this._charFilterTick.update(n => n + 1); }
+  readonly charOptions = computed<CharOption[]>(() =>
+    this.chars().map(c => ({
+      id: c.id,
+      displayName: c.anime ? `${c.name} (${c.anime})` : c.name,
+      imageUrl: c.imageUrl
+    }))
+  );
 
   form: MultiPollCreateDto = { anime: '', question: '', groups: [this.emptyGroup(), this.emptyGroup()] };
 
@@ -277,12 +287,13 @@ export class MultiPollManagementComponent implements OnInit {
 
   startEdit(mp: MultiPollAdminDto): void {
     this.editing.set(mp);
-    this.form = {
-      anime: mp.anime ?? '',
-      question: mp.question,
-      groups: (mp.groups ?? []).map(g => ({ label: g.label, characterIds: g.candidates.map(c => c.id) }))
-    };
-    while (this.form.groups.length < 2) this.form.groups.push(this.emptyGroup());
+    const groups = (mp.groups ?? []).map(g => {
+      const ids = g.candidates.map(c => c.id);
+      while (ids.length < 2) ids.push('');
+      return { label: g.label, characterIds: ids };
+    });
+    while (groups.length < 2) groups.push(this.emptyGroup());
+    this.form = { anime: mp.anime ?? '', question: mp.question, groups };
     this.showForm.set(true);
     this.error.set(null);
     this.dupError.set(null);
@@ -294,21 +305,20 @@ export class MultiPollManagementComponent implements OnInit {
     this.showForm.set(false);
     this.error.set(null);
     this.dupError.set(null);
-    this.globalCharSearch = '';
   }
 
   addGroup(): void { this.form.groups = [...this.form.groups, this.emptyGroup()]; }
 
   removeGroup(idx: number): void { this.form.groups = this.form.groups.filter((_, i) => i !== idx); }
 
-  toggleCandidate(group: GroupCreateDto, charId: string): void {
-    const idx = group.characterIds.indexOf(charId);
-    if (idx >= 0) group.characterIds.splice(idx, 1);
-    else group.characterIds.push(charId);
+  addCandidate(groupIdx: number): void {
+    if (this.form.groups[groupIdx].characterIds.length < 10) {
+      this.form.groups[groupIdx].characterIds = [...this.form.groups[groupIdx].characterIds, ''];
+    }
   }
 
-  isSelected(group: GroupCreateDto, charId: string): boolean {
-    return group.characterIds.includes(charId);
+  removeCandidate(groupIdx: number, cIdx: number): void {
+    this.form.groups[groupIdx].characterIds = this.form.groups[groupIdx].characterIds.filter((_, i) => i !== cIdx);
   }
 
   save(): void {
@@ -316,14 +326,27 @@ export class MultiPollManagementComponent implements OnInit {
     this.dupError.set(null);
     if (!this.form.question?.trim()) { this.error.set('Question is required'); return; }
     if (this.form.groups.length < 2) { this.error.set('At least 2 groups required'); return; }
-    if (this.form.groups.some(g => !g.label?.trim() || g.characterIds.length < 2)) {
-      this.error.set('Each group needs a label and at least 2 characters'); return;
+
+    const filledGroups: GroupCreateDto[] = this.form.groups.map(g => ({
+      label: g.label,
+      characterIds: g.characterIds.filter(id => id)
+    }));
+
+    for (const g of filledGroups) {
+      if (!g.label?.trim() || g.characterIds.length < 2) {
+        this.error.set('Each group needs a label and at least 2 fighters'); return;
+      }
+      if (new Set(g.characterIds).size < g.characterIds.length) {
+        this.error.set(`Group "${g.label}" has duplicate fighters`); return;
+      }
     }
+
     this.saving.set(true);
     const editId = this.editing()?.id;
+    const dto: MultiPollCreateDto = { anime: this.form.anime, question: this.form.question, groups: filledGroups };
     const req$ = editId
-      ? this.api.adminUpdateMultiPoll(editId, this.form)
-      : this.api.adminCreateMultiPoll(this.form);
+      ? this.api.adminUpdateMultiPoll(editId, dto)
+      : this.api.adminCreateMultiPoll(dto);
 
     req$.subscribe({
       next: saved => {
@@ -359,6 +382,6 @@ export class MultiPollManagementComponent implements OnInit {
 
   onImgErr(event: Event): void { (event.target as HTMLImageElement).style.display = 'none'; }
 
-  private emptyGroup(): GroupCreateDto { return { label: '', characterIds: [] }; }
+  private emptyGroup(): GroupCreateDto { return { label: '', characterIds: ['', ''] }; }
   private msg(e: any): string { return e?.error?.message ?? e?.message ?? 'Request failed'; }
 }
