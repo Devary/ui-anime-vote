@@ -47,6 +47,10 @@ export class MultiPollCardComponent implements OnInit, OnDestroy {
 
   readonly voted = computed(() => this.voteStore.getMyVote(this.poll().id) !== null);
 
+  readonly bgImages = computed(() =>
+    this.poll().groups.flatMap(g => g.candidates).map(c => c.image).slice(0, 6)
+  );
+
   readonly myVoteCharId = computed(() => this.voteStore.getMyVote(this.poll().id));
 
   // Candidate with most votes in a group

@@ -1,3 +1,9 @@
+<div class="poll-bg" aria-hidden="true">
+  <div class="bg-half bg-left"  [style.background-image]="'url(' + poll().fighter1.image + ')'"></div>
+  <div class="bg-half bg-right" [style.background-image]="'url(' + poll().fighter2.image + ')'"></div>
+  <div class="bg-overlay"></div>
+</div>
+
 <div class="poll-page" [class.has-voted]="voted()">
 
   <div class="poll-meta">

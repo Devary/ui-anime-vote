@@ -4,7 +4,41 @@
   flex:           1;
   min-height:     0;
   overflow-y:     auto;
+  position:       relative;
 }
+
+// ── Blurred split background ──────────────────────────────────────────────────
+.poll-bg {
+  position:       absolute;
+  inset:          0;
+  display:        flex;
+  pointer-events: none;
+  overflow:       hidden;
+  z-index:        0;
+}
+
+.bg-half {
+  flex:                1;
+  background-size:     cover;
+  background-position: top center;
+  filter:              blur(22px) brightness(0.28) saturate(1.5);
+  transform:           scale(1.12); // push edges past clip boundary
+  transition:          background-image 0.4s ease;
+}
+
+.bg-overlay {
+  position:   absolute;
+  inset:      0;
+  background: linear-gradient(
+    to right,
+    rgba(0,0,0,0.22) 0%,
+    transparent 48%,
+    transparent 52%,
+    rgba(0,0,0,0.22) 100%
+  );
+}
+
+.poll-page { position: relative; z-index: 1; }
 
 .poll-page {
   flex:            1;

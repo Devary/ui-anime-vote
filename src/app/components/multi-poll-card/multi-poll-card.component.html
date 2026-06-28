@@ -1,3 +1,10 @@
+<div class="poll-bg" aria-hidden="true">
+  @for (img of bgImages(); track img) {
+    <div class="bg-slice" [style.background-image]="'url(' + img + ')'"></div>
+  }
+  <div class="bg-overlay"></div>
+</div>
+
 <div class="multi-page">
 
   <!-- Anime tag -->
