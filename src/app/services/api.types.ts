@@ -130,6 +130,8 @@ export interface GroupCreateDto {
   startNow: boolean;
   startDate?: string | null; // ISO-8601, absent when startNow=true
   endDate?: string | null;   // ISO-8601, required
+  level?: number;            // 0 = QF; 1 = SF; 2 = GF
+  feederIndices?: number[];  // indices into parent groups list for level > 0
 }
 
 export interface ServerTimeDto {
