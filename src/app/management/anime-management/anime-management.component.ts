@@ -1,4 +1,4 @@
-import { Component, OnInit, ViewChild, inject, signal } from '@angular/core';
+import { Component, OnInit, ViewChild, inject, signal, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Table, TableModule } from 'primeng/table';
@@ -48,8 +48,6 @@ import { ImageUploadComponent } from '../../shared/image-upload/image-upload.com
         [rowsPerPageOptions]="[10, 25, 50]"
         [globalFilterFields]="['name']"
         [loading]="loading()"
-        selectionMode="multiple"
-        [(selection)]="selected"
         sortMode="single"
         dataKey="id">
 
@@ -63,9 +61,9 @@ import { ImageUploadComponent } from '../../shared/image-upload/image-upload.com
             </p-iconfield>
             <div class="caption-actions">
               <button class="btn-danger" type="button"
-                      [disabled]="!selected.length"
+                      [disabled]="!selectedIds().size"
                       (click)="delSelected()">
-                Remove Selected{{ selected.length ? ' (' + selected.length + ')' : '' }}
+                Remove Selected{{ selectedIds().size ? ' (' + selectedIds().size + ')' : '' }}
               </button>
               <button class="btn-danger" type="button"
                       [disabled]="!animeList().length"
@@ -81,7 +79,12 @@ import { ImageUploadComponent } from '../../shared/image-upload/image-upload.com
 
         <ng-template pTemplate="header">
           <tr>
-            <th style="width:3rem"><p-tableHeaderCheckbox /></th>
+            <th style="width:3rem">
+              <input type="checkbox" class="row-check"
+                     [checked]="allSelected()"
+                     [indeterminate]="someSelected()"
+                     (change)="toggleAll()" />
+            </th>
             <th style="width:60px">Poster</th>
             <th pSortableColumn="name">
               Name
@@ -93,8 +96,12 @@ import { ImageUploadComponent } from '../../shared/image-upload/image-upload.com
         </ng-template>
 
         <ng-template pTemplate="body" let-anime>
-          <tr>
-            <td><p-tableCheckbox [value]="anime" /></td>
+          <tr [class.row-selected]="selectedIds().has(anime.id)">
+            <td>
+              <input type="checkbox" class="row-check"
+                     [checked]="selectedIds().has(anime.id)"
+                     (change)="toggleRow(anime.id)" />
+            </td>
             <td>
               @if (anime.imageUrl) {
                 <img class="thumb" [src]="anime.imageUrl" [alt]="anime.name" (error)="onImgErr($event)" />
@@ -136,6 +143,8 @@ import { ImageUploadComponent } from '../../shared/image-upload/image-upload.com
     .error-msg { color: var(--rz-danger); font-size: 0.8rem; }
     .table-caption { display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; flex-wrap: wrap; }
     .caption-actions { display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap; }
+    .row-check { width: 15px; height: 15px; cursor: pointer; accent-color: var(--rz-primary); }
+    .row-selected td { background: rgba(21, 101, 192, 0.08); }
     .thumb { width: 40px; height: 40px; object-fit: cover; border-radius: var(--rz-radius-sm); }
     .no-img { width: 40px; height: 40px; background: var(--rz-surface-hover);
                border-radius: var(--rz-radius-sm); display: flex; align-items: center;
@@ -173,8 +182,15 @@ export class AnimeManagementComponent implements OnInit {
   readonly showForm = signal(false);
   readonly editing = signal<AnimeDto | null>(null);
   readonly error = signal<string | null>(null);
+  readonly selectedIds = signal(new Set<string>());
 
-  selected: AnimeDto[] = [];
+  readonly allSelected = computed(() =>
+    this.animeList().length > 0 && this.selectedIds().size === this.animeList().length
+  );
+  readonly someSelected = computed(() =>
+    this.selectedIds().size > 0 && this.selectedIds().size < this.animeList().length
+  );
+
   form: AnimeCreateDto = { name: '', imageUrl: null };
 
   ngOnInit(): void { this.load(); }
@@ -185,6 +201,18 @@ export class AnimeManagementComponent implements OnInit {
       next: list => { this.animeList.set(list); this.loading.set(false); },
       error: e => { this.toast.error(this.msg(e)); this.loading.set(false); }
     });
+  }
+
+  toggleRow(id: string): void {
+    this.selectedIds.update(s => { const n = new Set(s); n.has(id) ? n.delete(id) : n.add(id); return n; });
+  }
+
+  toggleAll(): void {
+    if (this.allSelected()) {
+      this.selectedIds.set(new Set());
+    } else {
+      this.selectedIds.set(new Set(this.animeList().map(a => a.id)));
+    }
   }
 
   toggleForm(): void {
@@ -235,7 +263,7 @@ export class AnimeManagementComponent implements OnInit {
     this.api.adminDeleteAnime(id).subscribe({
       next: () => {
         this.animeList.update(l => l.filter(a => a.id !== id));
-        this.selected = this.selected.filter(a => a.id !== id);
+        this.selectedIds.update(s => { const n = new Set(s); n.delete(id); return n; });
         this.toast.success('Anime deleted');
       },
       error: e => this.toast.error(this.msg(e))
@@ -243,13 +271,13 @@ export class AnimeManagementComponent implements OnInit {
   }
 
   delSelected(): void {
-    const sel = [...this.selected];
-    if (!sel.length) return;
-    if (!confirm(`Delete ${sel.length} selected anime?`)) return;
-    this.bulkDelete(sel.map(a => a.id), id => this.api.adminDeleteAnime(id)).subscribe(deleted => {
+    const ids = [...this.selectedIds()];
+    if (!ids.length) return;
+    if (!confirm(`Delete ${ids.length} selected anime?`)) return;
+    this.bulkDelete(ids, id => this.api.adminDeleteAnime(id)).subscribe(deleted => {
       this.animeList.update(l => l.filter(a => !deleted.includes(a.id)));
-      this.selected = [];
-      this.toast.success(`Deleted ${deleted.length}${deleted.length < sel.length ? '/' + sel.length + ' (some failed)' : ''} anime`);
+      this.selectedIds.update(s => { const n = new Set(s); deleted.forEach(id => n.delete(id)); return n; });
+      this.toast.success(`Deleted ${deleted.length}${deleted.length < ids.length ? '/' + ids.length + ' (some failed)' : ''} anime`);
     });
   }
 
@@ -259,7 +287,7 @@ export class AnimeManagementComponent implements OnInit {
     if (!confirm(`Delete all ${items.length} anime? This cannot be undone.`)) return;
     this.bulkDelete(items.map(a => a.id), id => this.api.adminDeleteAnime(id)).subscribe(deleted => {
       this.animeList.update(l => l.filter(a => !deleted.includes(a.id)));
-      this.selected = [];
+      this.selectedIds.set(new Set());
       this.toast.success(`Deleted ${deleted.length}${deleted.length < items.length ? '/' + items.length + ' (some failed)' : ''} anime`);
     });
   }

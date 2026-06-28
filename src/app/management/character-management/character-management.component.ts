@@ -1,4 +1,4 @@
-import { Component, OnInit, ViewChild, inject, signal } from '@angular/core';
+import { Component, OnInit, ViewChild, inject, signal, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Table, TableModule } from 'primeng/table';
@@ -70,8 +70,6 @@ import { ImageUploadComponent } from '../../shared/image-upload/image-upload.com
         [rowsPerPageOptions]="[10, 25, 50]"
         [globalFilterFields]="['name', 'title', 'anime']"
         [loading]="loading()"
-        selectionMode="multiple"
-        [(selection)]="selected"
         sortMode="single"
         dataKey="id">
 
@@ -85,9 +83,9 @@ import { ImageUploadComponent } from '../../shared/image-upload/image-upload.com
             </p-iconfield>
             <div class="caption-actions">
               <button class="btn-danger" type="button"
-                      [disabled]="!selected.length"
+                      [disabled]="!selectedIds().size"
                       (click)="delSelected()">
-                Remove Selected{{ selected.length ? ' (' + selected.length + ')' : '' }}
+                Remove Selected{{ selectedIds().size ? ' (' + selectedIds().size + ')' : '' }}
               </button>
               <button class="btn-danger" type="button"
                       [disabled]="!chars().length"
@@ -103,7 +101,12 @@ import { ImageUploadComponent } from '../../shared/image-upload/image-upload.com
 
         <ng-template pTemplate="header">
           <tr>
-            <th style="width:3rem"><p-tableHeaderCheckbox /></th>
+            <th style="width:3rem">
+              <input type="checkbox" class="row-check"
+                     [checked]="allSelected()"
+                     [indeterminate]="someSelected()"
+                     (change)="toggleAll()" />
+            </th>
             <th style="width:60px">Image</th>
             <th pSortableColumn="name">
               Name
@@ -125,8 +128,12 @@ import { ImageUploadComponent } from '../../shared/image-upload/image-upload.com
         </ng-template>
 
         <ng-template pTemplate="body" let-c>
-          <tr>
-            <td><p-tableCheckbox [value]="c" /></td>
+          <tr [class.row-selected]="selectedIds().has(c.id)">
+            <td>
+              <input type="checkbox" class="row-check"
+                     [checked]="selectedIds().has(c.id)"
+                     (change)="toggleRow(c.id)" />
+            </td>
             <td>
               @if (c.imageUrl) {
                 <img class="thumb" [src]="c.imageUrl" [alt]="c.name" (error)="onImgErr($event)" />
@@ -171,6 +178,8 @@ import { ImageUploadComponent } from '../../shared/image-upload/image-upload.com
     .error-msg { color: var(--rz-danger); font-size: 0.8rem; }
     .table-caption { display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; flex-wrap: wrap; }
     .caption-actions { display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap; }
+    .row-check { width: 15px; height: 15px; cursor: pointer; accent-color: var(--rz-primary); }
+    .row-selected td { background: rgba(21, 101, 192, 0.08); }
     .thumb { width: 40px; height: 40px; object-fit: cover; border-radius: var(--rz-radius-sm); }
     .no-img { width: 40px; height: 40px; background: var(--rz-surface-hover);
                border-radius: var(--rz-radius-sm); display: flex; align-items: center;
@@ -211,8 +220,15 @@ export class CharacterManagementComponent implements OnInit {
   readonly showForm = signal(false);
   readonly editing = signal<CharacterDto | null>(null);
   readonly error = signal<string | null>(null);
+  readonly selectedIds = signal(new Set<string>());
 
-  selected: CharacterDto[] = [];
+  readonly allSelected = computed(() =>
+    this.chars().length > 0 && this.selectedIds().size === this.chars().length
+  );
+  readonly someSelected = computed(() =>
+    this.selectedIds().size > 0 && this.selectedIds().size < this.chars().length
+  );
+
   form: CharacterCreateDto = { name: '', title: '', anime: '', imageUrl: null };
 
   ngOnInit(): void {
@@ -226,6 +242,18 @@ export class CharacterManagementComponent implements OnInit {
       next: list => { this.chars.set(list); this.loading.set(false); },
       error: e => { this.toast.error(this.msg(e)); this.loading.set(false); }
     });
+  }
+
+  toggleRow(id: string): void {
+    this.selectedIds.update(s => { const n = new Set(s); n.has(id) ? n.delete(id) : n.add(id); return n; });
+  }
+
+  toggleAll(): void {
+    if (this.allSelected()) {
+      this.selectedIds.set(new Set());
+    } else {
+      this.selectedIds.set(new Set(this.chars().map(c => c.id)));
+    }
   }
 
   toggleForm(): void {
@@ -276,7 +304,7 @@ export class CharacterManagementComponent implements OnInit {
     this.api.adminDeleteCharacter(id).subscribe({
       next: () => {
         this.chars.update(l => l.filter(c => c.id !== id));
-        this.selected = this.selected.filter(c => c.id !== id);
+        this.selectedIds.update(s => { const n = new Set(s); n.delete(id); return n; });
         this.toast.success('Character deleted');
       },
       error: e => this.toast.error(this.msg(e))
@@ -284,13 +312,13 @@ export class CharacterManagementComponent implements OnInit {
   }
 
   delSelected(): void {
-    const sel = [...this.selected];
-    if (!sel.length) return;
-    if (!confirm(`Delete ${sel.length} selected characters? This may affect existing polls.`)) return;
-    this.bulkDelete(sel.map(c => c.id), id => this.api.adminDeleteCharacter(id)).subscribe(deleted => {
+    const ids = [...this.selectedIds()];
+    if (!ids.length) return;
+    if (!confirm(`Delete ${ids.length} selected characters? This may affect existing polls.`)) return;
+    this.bulkDelete(ids, id => this.api.adminDeleteCharacter(id)).subscribe(deleted => {
       this.chars.update(l => l.filter(c => !deleted.includes(c.id)));
-      this.selected = [];
-      this.toast.success(`Deleted ${deleted.length}${deleted.length < sel.length ? '/' + sel.length + ' (some failed)' : ''} characters`);
+      this.selectedIds.update(s => { const n = new Set(s); deleted.forEach(id => n.delete(id)); return n; });
+      this.toast.success(`Deleted ${deleted.length}${deleted.length < ids.length ? '/' + ids.length + ' (some failed)' : ''} characters`);
     });
   }
 
@@ -300,7 +328,7 @@ export class CharacterManagementComponent implements OnInit {
     if (!confirm(`Delete all ${items.length} characters? This may affect existing polls.`)) return;
     this.bulkDelete(items.map(c => c.id), id => this.api.adminDeleteCharacter(id)).subscribe(deleted => {
       this.chars.update(l => l.filter(c => !deleted.includes(c.id)));
-      this.selected = [];
+      this.selectedIds.set(new Set());
       this.toast.success(`Deleted ${deleted.length}${deleted.length < items.length ? '/' + items.length + ' (some failed)' : ''} characters`);
     });
   }

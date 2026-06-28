@@ -103,8 +103,6 @@ import { PollGroupFormComponent, CharOption, createGroupForm, groupPeriodValidat
         [rowsPerPageOptions]="[10, 25, 50]"
         [globalFilterFields]="['anime', 'question']"
         [loading]="loading()"
-        selectionMode="multiple"
-        [(selection)]="selected"
         sortMode="single"
         dataKey="id">
 
@@ -118,9 +116,9 @@ import { PollGroupFormComponent, CharOption, createGroupForm, groupPeriodValidat
             </p-iconfield>
             <div class="caption-actions">
               <button class="btn-danger" type="button"
-                      [disabled]="!selected.length"
+                      [disabled]="!selectedIds().size"
                       (click)="delSelected()">
-                Remove Selected{{ selected.length ? ' (' + selected.length + ')' : '' }}
+                Remove Selected{{ selectedIds().size ? ' (' + selectedIds().size + ')' : '' }}
               </button>
               <button class="btn-danger" type="button"
                       [disabled]="!multiPolls().length"
@@ -136,7 +134,12 @@ import { PollGroupFormComponent, CharOption, createGroupForm, groupPeriodValidat
 
         <ng-template pTemplate="header">
           <tr>
-            <th style="width:3rem"><p-tableHeaderCheckbox /></th>
+            <th style="width:3rem">
+              <input type="checkbox" class="row-check"
+                     [checked]="allSelected()"
+                     [indeterminate]="someSelected()"
+                     (change)="toggleAll()" />
+            </th>
             <th pSortableColumn="anime">
               Anime <p-sortIcon field="anime" />
               <p-columnFilter type="text" field="anime" display="menu" />
@@ -152,8 +155,12 @@ import { PollGroupFormComponent, CharOption, createGroupForm, groupPeriodValidat
         </ng-template>
 
         <ng-template pTemplate="body" let-mp>
-          <tr>
-            <td><p-tableCheckbox [value]="mp" /></td>
+          <tr [class.row-selected]="selectedIds().has(mp.id)">
+            <td>
+              <input type="checkbox" class="row-check"
+                     [checked]="selectedIds().has(mp.id)"
+                     (change)="toggleRow(mp.id)" />
+            </td>
             <td class="muted-cell">{{ mp.anime || '—' }}</td>
             <td class="name-cell">{{ mp.question }}</td>
             <td class="center-cell">{{ mp.groups?.length ?? 0 }}</td>
@@ -204,6 +211,8 @@ import { PollGroupFormComponent, CharOption, createGroupForm, groupPeriodValidat
     .form-actions { display: flex; gap: 0.5rem; }
     .table-caption { display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; flex-wrap: wrap; }
     .caption-actions { display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap; }
+    .row-check { width: 15px; height: 15px; cursor: pointer; accent-color: var(--rz-primary); }
+    .row-selected td { background: rgba(21, 101, 192, 0.08); }
     .name-cell { font-weight: 600; }
     .muted-cell { color: var(--rz-ink-muted); }
     .center-cell { text-align: center; color: var(--rz-ink-muted); }
@@ -248,6 +257,14 @@ export class MultiPollManagementComponent implements OnInit {
   readonly editing    = signal<MultiPollAdminDto | null>(null);
   readonly error      = signal<string | null>(null);
   readonly dupError   = signal<string | null>(null);
+  readonly selectedIds = signal(new Set<string>());
+
+  readonly allSelected = computed(() =>
+    this.multiPolls().length > 0 && this.selectedIds().size === this.multiPolls().length
+  );
+  readonly someSelected = computed(() =>
+    this.selectedIds().size > 0 && this.selectedIds().size < this.multiPolls().length
+  );
 
   readonly charOptions = computed<CharOption[]>(() =>
     this.chars().map(c => ({
@@ -257,7 +274,6 @@ export class MultiPollManagementComponent implements OnInit {
     }))
   );
 
-  selected: MultiPollAdminDto[] = [];
   private serverNow = new Date();
   submitted = false;
   form!: FormGroup;
@@ -322,6 +338,20 @@ export class MultiPollManagementComponent implements OnInit {
       next: list => { this.multiPolls.set(list); this.loading.set(false); },
       error: e => { this.toast.error(this.msg(e)); this.loading.set(false); }
     });
+  }
+
+  // ── Selection ──────────────────────────────────────────────────────────────
+
+  toggleRow(id: string): void {
+    this.selectedIds.update(s => { const n = new Set(s); n.has(id) ? n.delete(id) : n.add(id); return n; });
+  }
+
+  toggleAll(): void {
+    if (this.allSelected()) {
+      this.selectedIds.set(new Set());
+    } else {
+      this.selectedIds.set(new Set(this.multiPolls().map(mp => mp.id)));
+    }
   }
 
   // ── UI actions ─────────────────────────────────────────────────────────────
@@ -452,7 +482,7 @@ export class MultiPollManagementComponent implements OnInit {
     this.api.adminDeleteMultiPoll(id).subscribe({
       next: () => {
         this.multiPolls.update(l => l.filter(mp => mp.id !== id));
-        this.selected = this.selected.filter(mp => mp.id !== id);
+        this.selectedIds.update(s => { const n = new Set(s); n.delete(id); return n; });
         this.toast.success('Multi-poll deleted');
       },
       error: e => this.toast.error(this.msg(e))
@@ -460,13 +490,13 @@ export class MultiPollManagementComponent implements OnInit {
   }
 
   delSelected(): void {
-    const sel = [...this.selected];
-    if (!sel.length) return;
-    if (!confirm(`Delete ${sel.length} selected multi-polls and all their votes?`)) return;
-    this.bulkDelete(sel.map(mp => mp.id), id => this.api.adminDeleteMultiPoll(id)).subscribe(deleted => {
+    const ids = [...this.selectedIds()];
+    if (!ids.length) return;
+    if (!confirm(`Delete ${ids.length} selected multi-polls and all their votes?`)) return;
+    this.bulkDelete(ids, id => this.api.adminDeleteMultiPoll(id)).subscribe(deleted => {
       this.multiPolls.update(l => l.filter(mp => !deleted.includes(mp.id)));
-      this.selected = [];
-      this.toast.success(`Deleted ${deleted.length}${deleted.length < sel.length ? '/' + sel.length + ' (some failed)' : ''} multi-polls`);
+      this.selectedIds.update(s => { const n = new Set(s); deleted.forEach(id => n.delete(id)); return n; });
+      this.toast.success(`Deleted ${deleted.length}${deleted.length < ids.length ? '/' + ids.length + ' (some failed)' : ''} multi-polls`);
     });
   }
 
@@ -476,7 +506,7 @@ export class MultiPollManagementComponent implements OnInit {
     if (!confirm(`Delete all ${items.length} multi-polls and all their votes? This cannot be undone.`)) return;
     this.bulkDelete(items.map(mp => mp.id), id => this.api.adminDeleteMultiPoll(id)).subscribe(deleted => {
       this.multiPolls.update(l => l.filter(mp => !deleted.includes(mp.id)));
-      this.selected = [];
+      this.selectedIds.set(new Set());
       this.toast.success(`Deleted ${deleted.length}${deleted.length < items.length ? '/' + items.length + ' (some failed)' : ''} multi-polls`);
     });
   }

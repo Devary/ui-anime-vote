@@ -85,8 +85,6 @@ import { PollGroupFormComponent, CharOption, createGroupForm } from '../poll-gro
         [rowsPerPageOptions]="[10, 25, 50]"
         [globalFilterFields]="['anime', 'question']"
         [loading]="loading()"
-        selectionMode="multiple"
-        [(selection)]="selected"
         sortMode="single"
         dataKey="id">
 
@@ -100,9 +98,9 @@ import { PollGroupFormComponent, CharOption, createGroupForm } from '../poll-gro
             </p-iconfield>
             <div class="caption-actions">
               <button class="btn-danger" type="button"
-                      [disabled]="!selected.length"
+                      [disabled]="!selectedIds().size"
                       (click)="delSelected()">
-                Remove Selected{{ selected.length ? ' (' + selected.length + ')' : '' }}
+                Remove Selected{{ selectedIds().size ? ' (' + selectedIds().size + ')' : '' }}
               </button>
               <button class="btn-danger" type="button"
                       [disabled]="!polls().length"
@@ -118,7 +116,12 @@ import { PollGroupFormComponent, CharOption, createGroupForm } from '../poll-gro
 
         <ng-template pTemplate="header">
           <tr>
-            <th style="width:3rem"><p-tableHeaderCheckbox /></th>
+            <th style="width:3rem">
+              <input type="checkbox" class="row-check"
+                     [checked]="allSelected()"
+                     [indeterminate]="someSelected()"
+                     (change)="toggleAll()" />
+            </th>
             <th pSortableColumn="anime">
               Anime <p-sortIcon field="anime" />
               <p-columnFilter type="text" field="anime" display="menu" />
@@ -133,8 +136,12 @@ import { PollGroupFormComponent, CharOption, createGroupForm } from '../poll-gro
         </ng-template>
 
         <ng-template pTemplate="body" let-poll>
-          <tr>
-            <td><p-tableCheckbox [value]="poll" /></td>
+          <tr [class.row-selected]="selectedIds().has(poll.id)">
+            <td>
+              <input type="checkbox" class="row-check"
+                     [checked]="selectedIds().has(poll.id)"
+                     (change)="toggleRow(poll.id)" />
+            </td>
             <td class="muted-cell">{{ poll.anime || '—' }}</td>
             <td class="name-cell">{{ poll.question }}</td>
             <td>
@@ -192,6 +199,8 @@ import { PollGroupFormComponent, CharOption, createGroupForm } from '../poll-gro
     .form-actions { display: flex; gap: 0.5rem; }
     .table-caption { display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; flex-wrap: wrap; }
     .caption-actions { display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap; }
+    .row-check { width: 15px; height: 15px; cursor: pointer; accent-color: var(--rz-primary); }
+    .row-selected td { background: rgba(21, 101, 192, 0.08); }
     .fighters-cell { display: flex; align-items: center; gap: 0.4rem; flex-wrap: wrap; }
     .vs-sep { font-size: 0.65rem; font-weight: 700; color: var(--rz-ink-faint); text-transform: uppercase; padding: 0 0.1rem; }
     .char-cell { display: flex; align-items: center; gap: 0.3rem; }
@@ -235,6 +244,14 @@ export class PollManagementComponent implements OnInit {
   readonly editing  = signal<PollDto | null>(null);
   readonly error    = signal<string | null>(null);
   readonly dupError = signal<string | null>(null);
+  readonly selectedIds = signal(new Set<string>());
+
+  readonly allSelected = computed(() =>
+    this.polls().length > 0 && this.selectedIds().size === this.polls().length
+  );
+  readonly someSelected = computed(() =>
+    this.selectedIds().size > 0 && this.selectedIds().size < this.polls().length
+  );
 
   readonly charOptions = computed<CharOption[]>(() =>
     this.chars().map(c => ({
@@ -244,7 +261,6 @@ export class PollManagementComponent implements OnInit {
     }))
   );
 
-  selected: PollDto[] = [];
   submitted = false;
 
   meta = new FormGroup({
@@ -270,6 +286,18 @@ export class PollManagementComponent implements OnInit {
       next: list => { this.polls.set(list); this.loading.set(false); },
       error: e => { this.toast.error(this.msg(e)); this.loading.set(false); }
     });
+  }
+
+  toggleRow(id: string): void {
+    this.selectedIds.update(s => { const n = new Set(s); n.has(id) ? n.delete(id) : n.add(id); return n; });
+  }
+
+  toggleAll(): void {
+    if (this.allSelected()) {
+      this.selectedIds.set(new Set());
+    } else {
+      this.selectedIds.set(new Set(this.polls().map(p => p.id)));
+    }
   }
 
   toggleForm(): void {
@@ -349,7 +377,7 @@ export class PollManagementComponent implements OnInit {
     this.api.adminDeletePoll(id).subscribe({
       next: () => {
         this.polls.update(l => l.filter(p => p.id !== id));
-        this.selected = this.selected.filter(p => p.id !== id);
+        this.selectedIds.update(s => { const n = new Set(s); n.delete(id); return n; });
         this.toast.success('Poll deleted');
       },
       error: e => this.toast.error(this.msg(e))
@@ -357,13 +385,13 @@ export class PollManagementComponent implements OnInit {
   }
 
   delSelected(): void {
-    const sel = [...this.selected];
-    if (!sel.length) return;
-    if (!confirm(`Delete ${sel.length} selected polls and all their votes?`)) return;
-    this.bulkDelete(sel.map(p => p.id), id => this.api.adminDeletePoll(id)).subscribe(deleted => {
+    const ids = [...this.selectedIds()];
+    if (!ids.length) return;
+    if (!confirm(`Delete ${ids.length} selected polls and all their votes?`)) return;
+    this.bulkDelete(ids, id => this.api.adminDeletePoll(id)).subscribe(deleted => {
       this.polls.update(l => l.filter(p => !deleted.includes(p.id)));
-      this.selected = [];
-      this.toast.success(`Deleted ${deleted.length}${deleted.length < sel.length ? '/' + sel.length + ' (some failed)' : ''} polls`);
+      this.selectedIds.update(s => { const n = new Set(s); deleted.forEach(id => n.delete(id)); return n; });
+      this.toast.success(`Deleted ${deleted.length}${deleted.length < ids.length ? '/' + ids.length + ' (some failed)' : ''} polls`);
     });
   }
 
@@ -373,7 +401,7 @@ export class PollManagementComponent implements OnInit {
     if (!confirm(`Delete all ${items.length} polls and all their votes? This cannot be undone.`)) return;
     this.bulkDelete(items.map(p => p.id), id => this.api.adminDeletePoll(id)).subscribe(deleted => {
       this.polls.update(l => l.filter(p => !deleted.includes(p.id)));
-      this.selected = [];
+      this.selectedIds.set(new Set());
       this.toast.success(`Deleted ${deleted.length}${deleted.length < items.length ? '/' + items.length + ' (some failed)' : ''} polls`);
     });
   }
