@@ -7,172 +7,106 @@
 
 <div class="multi-page">
 
-  <!-- Anime tag -->
+  <!-- Header -->
   <div class="poll-meta">
     <span class="anime-tag">{{ poll().anime }}</span>
-    <span class="multi-badge">{{ isBracket() ? 'TOURNAMENT' : 'MULTI' }}</span>
+    <span class="multi-badge">TOURNAMENT</span>
   </div>
 
-  <!-- ══ BRACKET TOURNAMENT VIEW ══════════════════════════════════════════════ -->
-  @if (isBracket()) {
-    <div class="bracket-container">
-      @for (levelRow of groupsByLevel(); track levelRow.level; let li = $index) {
-        <div class="bracket-level">
-          <div class="bracket-level-label">
-            @if (levelRow.level === 0) { Quarter-Finals }
-            @else if (levelRow.level === groupsByLevel()[0].level) { Grand Final }
-            @else { Semi-Finals }
-          </div>
-          <div class="bracket-groups-row">
-            @for (group of levelRow.groups; track group.id) {
-              <div class="bracket-group-card"
-                   [class.group-tbd]="groupStatuses().get(group.id) === 'tbd'"
-                   [class.group-ended]="groupStatuses().get(group.id) === 'ended'"
-                   [class.group-upcoming]="groupStatuses().get(group.id) === 'upcoming'">
+  <!-- Bracket view -->
+  <div class="bracket-container">
+    @for (levelRow of groupsByLevel(); track levelRow.level; let li = $index) {
+      <div class="bracket-level">
+        <div class="bracket-level-label">
+          @if (li === 0) { Grand Final }
+          @else if (levelRow.level === 0) { Quarter-Finals }
+          @else { Semi-Finals }
+        </div>
+        <div class="bracket-groups-row">
+          @for (group of levelRow.groups; track group.id) {
+            <div class="bracket-group-card"
+                 [class.group-tbd]="groupStatuses().get(group.id) === 'tbd'"
+                 [class.group-ended]="groupStatuses().get(group.id) === 'ended'"
+                 [class.group-upcoming]="groupStatuses().get(group.id) === 'upcoming'">
 
-                <div class="bracket-group-header">
-                  <span class="bracket-group-label">{{ group.label }}</span>
-                  @if (group.endDate && groupStatuses().get(group.id) !== 'tbd') {
-                    <app-countdown [endDate]="group.endDate" [startDate]="group.startDate" />
-                  }
-                  @if (groupStatuses().get(group.id) === 'ended') {
-                    <span class="badge-ended">Ended</span>
-                  }
-                  @if (groupStatuses().get(group.id) === 'upcoming') {
-                    <span class="badge-upcoming">Coming soon</span>
-                  }
-                  @if (groupStatuses().get(group.id) === 'tbd') {
-                    <span class="badge-tbd">Awaiting results</span>
+              <div class="bracket-group-header">
+                <span class="bracket-group-label">{{ group.label }}</span>
+                @if (group.endDate && groupStatuses().get(group.id) !== 'tbd') {
+                  <app-countdown [endDate]="group.endDate" [startDate]="group.startDate" />
+                }
+                @if (groupStatuses().get(group.id) === 'ended') {
+                  <span class="badge-ended">Ended</span>
+                }
+                @if (groupStatuses().get(group.id) === 'upcoming') {
+                  <span class="badge-upcoming">Coming soon</span>
+                }
+                @if (groupStatuses().get(group.id) === 'tbd') {
+                  <span class="badge-tbd">Awaiting results</span>
+                }
+              </div>
+
+              @if (groupStatuses().get(group.id) === 'tbd') {
+                <div class="tbd-slots">
+                  @for (fid of group.feederGroupIds; track fid) {
+                    <div class="tbd-slot">
+                      <div class="tbd-avatar">?</div>
+                      <span class="tbd-slot-label">TBD</span>
+                    </div>
                   }
                 </div>
-
-                @if (groupStatuses().get(group.id) === 'tbd') {
-                  <!-- Unresolved bracket group: show feeder placeholders -->
-                  <div class="tbd-slots">
-                    @for (fid of group.feederGroupIds; track fid) {
-                      <div class="tbd-slot">
-                        <div class="tbd-avatar">?</div>
-                        <span class="tbd-slot-label">TBD</span>
-                      </div>
-                    }
-                  </div>
-                } @else {
-                  <!-- Resolved: show candidates with vote buttons -->
-                  <div class="bracket-candidates">
-                    @for (c of group.candidates; track c.id; let ci = $index) {
-                      <div class="bracket-candidate"
-                           [class.is-voted]="myGroupVote(group.id) === c.id"
-                           [class.is-winner]="groupStatuses().get(group.id) === 'ended' && c.id === group.candidates[0].id">
-                        <button class="bracket-cand-btn"
-                                (click)="onClickCandidate(c.id, group)"
-                                [disabled]="groupStatuses().get(group.id) !== 'open' || hasVotedInGroup(group.id)">
-                          <img class="bracket-cand-photo"
-                               [src]="c.image" [alt]="c.name"
-                               onerror="this.onerror=null;this.src='https://placehold.co/80x80/1565C0/fff?text=?'" />
-                          @if (myGroupVote(group.id) === c.id) {
-                            <span class="voted-check">✓</span>
-                          }
-                        </button>
-                        <div class="bracket-cand-name">{{ c.name }}</div>
-                        @if (hasVotedInGroup(group.id)) {
-                          <div class="bracket-cand-votes">
-                            {{ voteStore.getCount(c.id) | number }} votes
-                          </div>
+              } @else {
+                <div class="bracket-candidates">
+                  @for (c of group.candidates; track c.id; let ci = $index) {
+                    <div class="bracket-candidate"
+                         [class.is-voted]="myGroupVote(group.id) === c.id"
+                         [class.is-winner]="groupStatuses().get(group.id) === 'ended' && ci === 0">
+                      <button class="bracket-cand-btn"
+                              (click)="onClickCandidate(c.id, group)"
+                              [disabled]="groupStatuses().get(group.id) !== 'open' || hasVotedInGroup(group.id)">
+                        <img class="bracket-cand-photo"
+                             [src]="c.image" [alt]="c.name"
+                             onerror="this.onerror=null;this.src='https://placehold.co/80x80/1565C0/fff?text=?'" />
+                        @if (myGroupVote(group.id) === c.id) {
+                          <span class="voted-check">✓</span>
                         }
-                      </div>
-                    }
-                  </div>
-                  @if (hasVotedInGroup(group.id)) {
-                    <div class="bracket-bar">
-                      @for (c of group.candidates; track c.id; let ci = $index) {
-                        <div class="bracket-bar-seg"
-                             [style.background]="COLORS[ci % COLORS.length]"
-                             [style.width]="(groupTotal(group) > 0 ? voteStore.getCount(c.id) / groupTotal(group) * 100 : 100 / group.candidates.length).toFixed(1) + '%'">
-                        </div>
+                      </button>
+                      <div class="bracket-cand-name">{{ c.name }}</div>
+                      @if (hasVotedInGroup(group.id)) {
+                        <div class="bracket-cand-votes">{{ voteStore.getCount(c.id) | number }} votes</div>
                       }
                     </div>
                   }
-                }
-
-              </div>
-            }
-          </div>
-        </div>
-
-        @if (li < groupsByLevel().length - 1) {
-          <div class="bracket-connector-row">
-            @for (branch of bracketConnectors()[li]; track $index) {
-              <div class="bracket-connector-branch" [style.width.%]="branch.widthPct">
-                <div class="conn-stem"></div>
-                <div class="conn-fork"
-                     [style.left.%]="branch.childPct"
-                     [style.right.%]="branch.childPct"></div>
-              </div>
-            }
-          </div>
-        }
-      }
-    </div>
-
-  } @else {
-
-    <!-- ══ STANDARD MULTI-POLL VIEW ═══════════════════════════════════════════ -->
-    <div class="bracket-groups-row" style="flex-wrap: wrap;">
-      @for (group of poll().groups; track group.id) {
-        <div class="bracket-group-card"
-             [class.group-ended]="groupStatuses().get(group.id) === 'ended'"
-             [class.group-upcoming]="groupStatuses().get(group.id) === 'upcoming'">
-
-          <div class="bracket-group-header">
-            <span class="bracket-group-label">{{ group.label }}</span>
-            @if (group.endDate && groupStatuses().get(group.id) !== 'tbd') {
-              <app-countdown [endDate]="group.endDate" [startDate]="group.startDate" />
-            }
-            @if (groupStatuses().get(group.id) === 'ended') {
-              <span class="badge-ended">Ended</span>
-            }
-            @if (groupStatuses().get(group.id) === 'upcoming') {
-              <span class="badge-upcoming">Coming soon</span>
-            }
-          </div>
-
-          <div class="bracket-candidates">
-            @for (c of group.candidates; track c.id; let ci = $index) {
-              <div class="bracket-candidate"
-                   [class.is-voted]="myGroupVote(group.id) === c.id">
-                <button class="bracket-cand-btn"
-                        (click)="onClickCandidate(c.id, group)"
-                        [disabled]="groupStatuses().get(group.id) !== 'open' || hasVotedInGroup(group.id)">
-                  <img class="bracket-cand-photo"
-                       [src]="c.image" [alt]="c.name"
-                       onerror="this.onerror=null;this.src='https://placehold.co/80x80/1565C0/fff?text=?'" />
-                  @if (myGroupVote(group.id) === c.id) {
-                    <span class="voted-check">✓</span>
-                  }
-                </button>
-                <div class="bracket-cand-name">{{ c.name }}</div>
-                @if (hasVotedInGroup(group.id)) {
-                  <div class="bracket-cand-votes">{{ voteStore.getCount(c.id) | number }} votes</div>
-                }
-              </div>
-            }
-          </div>
-
-          @if (hasVotedInGroup(group.id)) {
-            <div class="bracket-bar">
-              @for (c of group.candidates; track c.id; let ci = $index) {
-                <div class="bracket-bar-seg"
-                     [style.background]="COLORS[ci % COLORS.length]"
-                     [style.width]="(groupTotal(group) > 0 ? voteStore.getCount(c.id) / groupTotal(group) * 100 : 100 / group.candidates.length).toFixed(1) + '%'">
                 </div>
+                @if (hasVotedInGroup(group.id)) {
+                  <div class="bracket-bar">
+                    @for (c of group.candidates; track c.id; let ci = $index) {
+                      <div class="bracket-bar-seg"
+                           [style.background]="COLORS[ci % COLORS.length]"
+                           [style.width]="(groupTotal(group) > 0 ? voteStore.getCount(c.id) / groupTotal(group) * 100 : 100 / group.candidates.length).toFixed(1) + '%'">
+                      </div>
+                    }
+                  </div>
+                }
               }
+
             </div>
           }
+        </div>
+      </div>
 
+      @if (li < groupsByLevel().length - 1) {
+        <div class="bracket-connector-row">
+          @for (branch of bracketConnectors()[li]; track $index) {
+            <div class="bracket-connector-branch" [style.width.%]="branch.widthPct">
+              <div class="conn-stem"></div>
+              <div class="conn-fork"
+                   [style.left.%]="branch.childPct"
+                   [style.right.%]="branch.childPct"></div>
+            </div>
+          }
         </div>
       }
-    </div>
-
-  }
+    }
+  </div>
 
 </div>

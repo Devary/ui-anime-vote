@@ -31,7 +31,7 @@
     } @else if (currentAsSingle(); as poll) {
       <app-poll-card [poll]="poll" (castVote)="onVote($event)" />
     } @else if (currentAsMulti(); as poll) {
-      <app-multi-poll-card [poll]="poll" (castVote)="onVote($event)" />
+      <app-multi-poll-card [poll]="poll" />
     }
 
     <button class="history-btn" (click)="openHistory()" aria-label="Vote history">

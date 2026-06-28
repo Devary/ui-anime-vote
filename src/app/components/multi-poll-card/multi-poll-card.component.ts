@@ -1,4 +1,4 @@
-import { Component, OnInit, OnDestroy, computed, inject, input, output, signal } from '@angular/core';
+import { Component, OnInit, OnDestroy, computed, inject, input, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { MultiPoll, MultiPollGroup } from '../../anime-data';
 import { VoteStore } from '../../vote.store';
@@ -16,8 +16,7 @@ type GroupStatus = 'open' | 'upcoming' | 'ended' | 'tbd';
   styleUrl:    './multi-poll-card.component.scss',
 })
 export class MultiPollCardComponent implements OnInit, OnDestroy {
-  readonly poll     = input.required<MultiPoll>();
-  readonly castVote = output<string>();
+  readonly poll = input.required<MultiPoll>();
 
   readonly voteStore = inject(VoteStore);
   private readonly _now = signal(Date.now());
@@ -26,9 +25,7 @@ export class MultiPollCardComponent implements OnInit, OnDestroy {
   ngOnInit()    { this._timer = setInterval(() => this._now.set(Date.now()), 1000); }
   ngOnDestroy() { clearInterval(this._timer); }
 
-  // ── Bracket detection ─────────────────────────────────────────────────────
-
-  readonly isBracket = computed(() => this.poll().groups.some(g => g.level > 0));
+  // ── Groups sorted by level (descending: Grand Final first, QF last) ───────
 
   readonly groupsByLevel = computed(() => {
     const map = new Map<number, MultiPollGroup[]>();
@@ -41,11 +38,11 @@ export class MultiPollCardComponent implements OnInit, OnDestroy {
       .map(([level, groups]) => ({ level, groups }));
   });
 
-  // ── Vote state ────────────────────────────────────────────────────────────
-
   readonly bgImages = computed(() =>
     this.poll().groups.flatMap(g => g.candidates).map(c => c.image).slice(0, 6)
   );
+
+  // ── Group status (open / upcoming / ended / tbd) ──────────────────────────
 
   readonly groupStatuses = computed((): Map<string, GroupStatus> => {
     const now = this._now();
@@ -74,15 +71,13 @@ export class MultiPollCardComponent implements OnInit, OnDestroy {
     return group.candidates.reduce((s, c) => s + this.voteStore.getCount(c.id), 0);
   }
 
-  // ── Bracket connectors ────────────────────────────────────────────────────
-  readonly bracketConnectors = computed(() => {
-    if (!this.isBracket()) return [];
-    const levels = this.groupsByLevel();
+  // ── Connector geometry ────────────────────────────────────────────────────
 
+  readonly bracketConnectors = computed(() => {
+    const levels = this.groupsByLevel();
     return levels.slice(0, -1).map((levelRow, i) => {
       const nextLevel   = levels[i + 1];
       const totalInNext = nextLevel.groups.length;
-
       return levelRow.groups.map(parentGroup => {
         const n        = parentGroup.feederGroupIds?.length ?? 0;
         const widthPct = totalInNext > 0 && n > 0 ? (n / totalInNext) * 100 : 0;
@@ -98,15 +93,6 @@ export class MultiPollCardComponent implements OnInit, OnDestroy {
     const status = this.groupStatuses().get(group.id);
     if (status !== 'open') return;
     if (this.hasVotedInGroup(group.id)) return;
-
-    const pollId  = this.poll().id;
-    const groupId = group.id;
-
-    if (this.isBracket()) {
-      this.voteStore.voteMultiGroup(charId, pollId, groupId);
-    } else {
-      this.voteStore.voteMultiGroup(charId, pollId, groupId);
-      this.castVote.emit(charId);
-    }
+    this.voteStore.voteMultiGroup(charId, this.poll().id, group.id);
   }
 }
