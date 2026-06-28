@@ -19,6 +19,8 @@ export interface MultiPollGroup {
   id: string;
   label: string;
   candidates: Character[];
+  startDate?: string; // ISO-8601, optional — shows countdown when present
+  endDate?: string;   // ISO-8601, optional
 }
 
 export interface MultiPoll {

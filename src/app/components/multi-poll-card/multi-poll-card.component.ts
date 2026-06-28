@@ -4,6 +4,7 @@ import { OrganizationChartModule } from 'primeng/organizationchart';
 import { TreeNode } from 'primeng/api';
 import { Character, MultiPoll, MultiPollGroup } from '../../anime-data';
 import { VoteStore } from '../../vote.store';
+import { CountdownComponent } from '../countdown/countdown.component';
 
 // Bar segment for a single candidate inside a group bar
 export interface BarSegment {
@@ -29,7 +30,7 @@ const SEGMENT_COLORS = [
 @Component({
   selector:    'app-multi-poll-card',
   standalone:  true,
-  imports:     [CommonModule, OrganizationChartModule],
+  imports:     [CommonModule, OrganizationChartModule, CountdownComponent],
   templateUrl: './multi-poll-card.component.html',
   styleUrl:    './multi-poll-card.component.scss',
 })

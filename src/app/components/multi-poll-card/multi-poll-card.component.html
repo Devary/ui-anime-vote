@@ -12,7 +12,12 @@
       @for (group of poll().groups; track group.id; let gi = $index) {
         @if (gi > 0) { <div class="group-divider"></div> }
         <div class="group-section">
-          <div class="group-label">{{ group.label }}</div>
+          <div class="group-label-row">
+            <span class="group-label">{{ group.label }}</span>
+            @if (group.endDate) {
+              <app-countdown [endDate]="group.endDate" [startDate]="group.startDate" />
+            }
+          </div>
           <div class="candidates-row">
             @for (candidate of group.candidates; track candidate.id; let ci = $index) {
               <div class="candidate-col">
