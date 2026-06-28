@@ -39,11 +39,8 @@ export class AuthService {
     return this.api.login({ username, password }).pipe(tap(res => this.persist(res)));
   }
 
-  register(
-    username: string, email: string, password: string, confirmPassword: string, firstName: string, lastName: string
-  ): Observable<LoginResponse> {
-    return this.api.register({ username, email, password, confirmPassword, firstName, lastName })
-      .pipe(tap(res => this.persist(res)));
+  register(username: string, email: string, password: string, confirmPassword: string): Observable<LoginResponse> {
+    return this.api.register({ username, email, password, confirmPassword }).pipe(tap(res => this.persist(res)));
   }
 
   logout(): void {

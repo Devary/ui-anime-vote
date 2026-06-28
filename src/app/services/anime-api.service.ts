@@ -5,7 +5,8 @@ import {
   PollResultDto, MultiPollResultDto, HistoryItemDto,
   RegisterRequest, LoginRequest, RefreshRequest, LoginResponse,
   PollCreateDto, PollDto, MultiPollCreateDto, MultiPollAdminDto, CharacterDto,
-  AnimeDto, AnimeCreateDto, CharacterCreateDto, UploadResponse, ServerTimeDto
+  AnimeDto, AnimeCreateDto, CharacterCreateDto, UploadResponse, ServerTimeDto,
+  UserDto, UserUpdateDto, AdminUserUpdateDto, RoleDto, RoleCreateDto
 } from './api.types';
 import { environment } from '../../environments/environment';
 
@@ -154,20 +155,63 @@ export class AnimeApiService {
   // ── Image Upload ──────────────────────────────────────────────────────────
 
   uploadImage(file: File): Observable<UploadResponse> {
+    return this.uploadFileToPath(file, `${API}/admin/upload`);
+  }
+
+  uploadUserPicture(file: File): Observable<UploadResponse> {
+    return this.uploadFileToPath(file, `${API}/user/upload`);
+  }
+
+  private uploadFileToPath(file: File, url: string): Observable<UploadResponse> {
     return new Observable(observer => {
       const reader = new FileReader();
       reader.onload = () => {
         const dataUrl = reader.result as string;
         const commaIdx = dataUrl.indexOf(',');
         const data = dataUrl.substring(commaIdx + 1);
-        this.http.post<UploadResponse>(`${API}/admin/upload`, {
-          filename: file.name,
-          mimeType: file.type || 'image/jpeg',
-          data,
-        }).subscribe(observer);
+        this.http.post<UploadResponse>(url, { filename: file.name, mimeType: file.type || 'image/jpeg', data })
+            .subscribe(observer);
       };
       reader.onerror = () => observer.error(new Error('FileReader error'));
       reader.readAsDataURL(file);
     });
+  }
+
+  // ── User profile ──────────────────────────────────────────────────────────
+
+  getMyProfile(): Observable<UserDto> {
+    return this.http.get<UserDto>(`${API}/user/me`);
+  }
+
+  updateMyProfile(dto: UserUpdateDto): Observable<UserDto> {
+    return this.http.put<UserDto>(`${API}/user/me`, dto);
+  }
+
+  // ── Admin — Users ─────────────────────────────────────────────────────────
+
+  adminGetUsers(): Observable<UserDto[]> {
+    return this.http.get<UserDto[]>(`${API}/admin/users`);
+  }
+
+  adminUpdateUser(id: string, dto: AdminUserUpdateDto): Observable<UserDto> {
+    return this.http.put<UserDto>(`${API}/admin/users/${id}`, dto);
+  }
+
+  adminDeleteUser(id: string): Observable<void> {
+    return this.http.delete<void>(`${API}/admin/users/${id}`);
+  }
+
+  // ── Admin — Roles ─────────────────────────────────────────────────────────
+
+  adminGetRoles(): Observable<RoleDto[]> {
+    return this.http.get<RoleDto[]>(`${API}/admin/roles`);
+  }
+
+  adminCreateRole(dto: RoleCreateDto): Observable<RoleDto> {
+    return this.http.post<RoleDto>(`${API}/admin/roles`, dto);
+  }
+
+  adminDeleteRole(id: string): Observable<void> {
+    return this.http.delete<void>(`${API}/admin/roles/${id}`);
   }
 }

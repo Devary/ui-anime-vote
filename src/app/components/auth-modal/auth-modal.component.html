@@ -40,16 +40,6 @@
   <!-- Register form -->
   @if (activeTab() === 'register') {
     <form class="form" (ngSubmit)="submitRegister()">
-      <div class="field-row">
-        <label class="field">
-          <span class="label">First name <span class="req">*</span></span>
-          <input class="input" type="text" [(ngModel)]="regFirstName" name="rfn" autocomplete="given-name" />
-        </label>
-        <label class="field">
-          <span class="label">Last name</span>
-          <input class="input" type="text" [(ngModel)]="regLastName" name="rln" autocomplete="family-name" />
-        </label>
-      </div>
       <label class="field">
         <span class="label">Username <span class="req">*</span></span>
         <input class="input" type="text" [(ngModel)]="regUsername" name="ru" autocomplete="username" />

@@ -78,8 +78,6 @@ export interface RegisterRequest {
   email: string;
   password: string;
   confirmPassword: string;
-  firstName: string;
-  lastName: string;
 }
 export interface LoginRequest { username: string; password: string; }
 export interface RefreshRequest { refreshToken: string; }
@@ -154,4 +152,37 @@ export interface CharacterCreateDto {
 
 export interface UploadResponse {
   url: string;
+}
+
+// ── User management ───────────────────────────────────────────────────────────
+export interface RoleDto {
+  id: string;
+  name: string;
+  description: string | null;
+}
+
+export interface UserDto {
+  id: string;
+  username: string;
+  email: string;
+  profilePicture: string | null;
+  createdAt: string;
+  roles: RoleDto[];
+}
+
+export interface UserUpdateDto {
+  email?: string;
+  profilePicture?: string | null;
+}
+
+export interface AdminUserUpdateDto {
+  email?: string;
+  profilePicture?: string | null;
+  roleIds?: string[];
+}
+
+export interface RoleCreateDto {
+  id: string;
+  name: string;
+  description?: string;
 }
