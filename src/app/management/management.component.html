@@ -40,6 +40,12 @@
       @if (activeSection() === 'users') {
         <app-user-management />
       }
+      @if (activeSection() === 'my-content') {
+        <app-my-content-management />
+      }
+      @if (activeSection() === 'approvals') {
+        <app-approval-management />
+      }
     </div>
   </div>
 

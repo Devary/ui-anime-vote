@@ -6,7 +6,8 @@ import {
   RegisterRequest, LoginRequest, RefreshRequest, LoginResponse,
   PollCreateDto, PollDto, MultiPollCreateDto, MultiPollAdminDto, CharacterDto,
   AnimeDto, AnimeCreateDto, CharacterCreateDto, UploadResponse, ServerTimeDto,
-  UserDto, UserUpdateDto, AdminUserUpdateDto, RoleDto, RoleCreateDto
+  UserDto, UserUpdateDto, AdminUserUpdateDto, RoleDto, RoleCreateDto,
+  ApprovalSummaryDto, DailyLimitDto
 } from './api.types';
 import { environment } from '../../environments/environment';
 
@@ -213,5 +214,105 @@ export class AnimeApiService {
 
   adminDeleteRole(id: string): Observable<void> {
     return this.http.delete<void>(`${API}/admin/roles/${id}`);
+  }
+
+  // ── User content (My Content) ─────────────────────────────────────────────
+
+  getUserLimits(): Observable<DailyLimitDto> {
+    return this.http.get<DailyLimitDto>(`${API}/user/limits`);
+  }
+
+  myCharacters(): Observable<CharacterDto[]> {
+    return this.http.get<CharacterDto[]>(`${API}/user/characters`);
+  }
+
+  createMyCharacter(req: CharacterCreateDto): Observable<CharacterDto> {
+    return this.http.post<CharacterDto>(`${API}/user/characters`, req);
+  }
+
+  updateMyCharacter(id: string, req: CharacterCreateDto): Observable<CharacterDto> {
+    return this.http.put<CharacterDto>(`${API}/user/characters/${id}`, req);
+  }
+
+  deleteMyCharacter(id: string): Observable<void> {
+    return this.http.delete<void>(`${API}/user/characters/${id}`);
+  }
+
+  myPolls(): Observable<PollDto[]> {
+    return this.http.get<PollDto[]>(`${API}/user/polls`);
+  }
+
+  createMyPoll(req: PollCreateDto): Observable<PollDto> {
+    return this.http.post<PollDto>(`${API}/user/polls`, req);
+  }
+
+  updateMyPoll(id: string, req: PollCreateDto): Observable<PollDto> {
+    return this.http.put<PollDto>(`${API}/user/polls/${id}`, req);
+  }
+
+  deleteMyPoll(id: string): Observable<void> {
+    return this.http.delete<void>(`${API}/user/polls/${id}`);
+  }
+
+  myMultiPolls(): Observable<MultiPollAdminDto[]> {
+    return this.http.get<MultiPollAdminDto[]>(`${API}/user/multi-polls`);
+  }
+
+  createMyMultiPoll(req: MultiPollCreateDto): Observable<MultiPollAdminDto> {
+    return this.http.post<MultiPollAdminDto>(`${API}/user/multi-polls`, req);
+  }
+
+  updateMyMultiPoll(id: string, req: MultiPollCreateDto): Observable<MultiPollAdminDto> {
+    return this.http.put<MultiPollAdminDto>(`${API}/user/multi-polls/${id}`, req);
+  }
+
+  deleteMyMultiPoll(id: string): Observable<void> {
+    return this.http.delete<void>(`${API}/user/multi-polls/${id}`);
+  }
+
+  // ── Admin approvals ───────────────────────────────────────────────────────
+
+  getApprovalSummary(): Observable<ApprovalSummaryDto> {
+    return this.http.get<ApprovalSummaryDto>(`${API}/admin/approvals`);
+  }
+
+  approveCharacter(id: string): Observable<void> {
+    return this.http.post<void>(`${API}/admin/approvals/characters/${id}/approve`, {});
+  }
+
+  rejectCharacter(id: string): Observable<void> {
+    return this.http.post<void>(`${API}/admin/approvals/characters/${id}/reject`, {});
+  }
+
+  approvePoll(id: string): Observable<void> {
+    return this.http.post<void>(`${API}/admin/approvals/polls/${id}/approve`, {});
+  }
+
+  rejectPoll(id: string): Observable<void> {
+    return this.http.post<void>(`${API}/admin/approvals/polls/${id}/reject`, {});
+  }
+
+  approveMultiPoll(id: string): Observable<void> {
+    return this.http.post<void>(`${API}/admin/approvals/multi-polls/${id}/approve`, {});
+  }
+
+  rejectMultiPoll(id: string): Observable<void> {
+    return this.http.post<void>(`${API}/admin/approvals/multi-polls/${id}/reject`, {});
+  }
+
+  approvePollDeletion(id: string): Observable<void> {
+    return this.http.post<void>(`${API}/admin/approvals/delete/polls/${id}/approve`, {});
+  }
+
+  rejectPollDeletion(id: string): Observable<void> {
+    return this.http.post<void>(`${API}/admin/approvals/delete/polls/${id}/reject`, {});
+  }
+
+  approveMultiPollDeletion(id: string): Observable<void> {
+    return this.http.post<void>(`${API}/admin/approvals/delete/multi-polls/${id}/approve`, {});
+  }
+
+  rejectMultiPollDeletion(id: string): Observable<void> {
+    return this.http.post<void>(`${API}/admin/approvals/delete/multi-polls/${id}/reject`, {});
   }
 }

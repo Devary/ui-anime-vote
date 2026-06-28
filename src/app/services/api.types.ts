@@ -1,9 +1,14 @@
+export type ContentStatus = 'PENDING' | 'APPROVED' | 'REJECTED';
+
 export interface CharacterDto {
   id: string;
   name: string;
   title: string;
   anime: string;
   imageUrl: string;
+  status?: ContentStatus;
+  ownerId?: string | null;
+  ownerUsername?: string | null;
 }
 
 export interface MultiPollGroupDto {
@@ -97,6 +102,7 @@ export interface PollCreateDto {
   anime: string;
   question: string;
   fighterIds: string[]; // 2-10 character IDs in order
+  isPrivate?: boolean;
 }
 
 export interface PollDto {
@@ -104,11 +110,17 @@ export interface PollDto {
   anime: string;
   question: string;
   fighters: CharacterDto[];
+  status?: ContentStatus;
+  isPrivate?: boolean;
+  ownerId?: string | null;
+  ownerUsername?: string | null;
+  deletePending?: boolean;
 }
 
 export interface MultiPollCreateDto {
   anime: string;
   question: string;
+  isPrivate?: boolean;
   groups: GroupCreateDto[];
 }
 
@@ -129,6 +141,34 @@ export interface MultiPollAdminDto {
   anime: string;
   question: string;
   groups: MultiPollGroupDto[];
+  status?: ContentStatus;
+  isPrivate?: boolean;
+  ownerId?: string | null;
+  ownerUsername?: string | null;
+  deletePending?: boolean;
+}
+
+// ── Approval system ───────────────────────────────────────────────────────────
+export interface ApprovalItemDto {
+  id: string;
+  type: 'POLL' | 'MULTI_POLL' | 'CHARACTER';
+  title: string;
+  anime: string;
+  ownerId: string;
+  ownerUsername: string;
+  createdAt: string;
+  isDeletion: boolean;
+}
+
+export interface ApprovalSummaryDto {
+  pendingContent: ApprovalItemDto[];
+  pendingDeletions: ApprovalItemDto[];
+}
+
+export interface DailyLimitDto {
+  charactersToday: number;
+  pollsToday: number;
+  multiPollsToday: number;
 }
 
 // ── Management CRUD ───────────────────────────────────────────────────────────
