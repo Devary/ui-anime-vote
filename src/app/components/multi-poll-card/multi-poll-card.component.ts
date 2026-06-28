@@ -1,13 +1,8 @@
 import { Component, OnInit, OnDestroy, computed, inject, input, output, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { OrganizationChartModule } from 'primeng/organizationchart';
-import { TreeNode } from 'primeng/api';
-import { Character, MultiPoll, MultiPollGroup } from '../../anime-data';
+import { MultiPoll, MultiPollGroup } from '../../anime-data';
 import { VoteStore } from '../../vote.store';
 import { CountdownComponent } from '../countdown/countdown.component';
-
-export interface BarSegment { name: string; pct: string; color: string; }
-export interface GroupBar    { label: string; total: number; segments: BarSegment[]; }
 
 const SEGMENT_COLORS = ['#1565c0', '#c62828', '#2e7d32', '#6a1b9a', '#e65100'];
 
@@ -16,13 +11,13 @@ type GroupStatus = 'open' | 'upcoming' | 'ended' | 'tbd';
 @Component({
   selector:    'app-multi-poll-card',
   standalone:  true,
-  imports:     [CommonModule, OrganizationChartModule, CountdownComponent],
+  imports:     [CommonModule, CountdownComponent],
   templateUrl: './multi-poll-card.component.html',
   styleUrl:    './multi-poll-card.component.scss',
 })
 export class MultiPollCardComponent implements OnInit, OnDestroy {
   readonly poll     = input.required<MultiPoll>();
-  readonly castVote = output<string>(); // only emitted for standard non-bracket polls
+  readonly castVote = output<string>();
 
   readonly voteStore = inject(VoteStore);
   private readonly _now = signal(Date.now());
@@ -42,13 +37,11 @@ export class MultiPollCardComponent implements OnInit, OnDestroy {
       map.get(g.level)!.push(g);
     }
     return [...map.entries()]
-      .sort(([a], [b]) => b - a)          // descending: GF at top, QF at bottom
+      .sort(([a], [b]) => b - a)
       .map(([level, groups]) => ({ level, groups }));
   });
 
   // ── Vote state ────────────────────────────────────────────────────────────
-
-  readonly voted = computed(() => this.voteStore.getMyVote(this.poll().id) !== null);
 
   readonly bgImages = computed(() =>
     this.poll().groups.flatMap(g => g.candidates).map(c => c.image).slice(0, 6)
@@ -75,87 +68,25 @@ export class MultiPollCardComponent implements OnInit, OnDestroy {
     return this.voteStore.getMyGroupVote(groupId) !== null;
   }
 
-  // ── Standard (non-bracket) result view ───────────────────────────────────
-
-  private groupWinner(group: MultiPollGroup): Character {
-    return group.candidates.reduce((best, c) =>
-      this.voteStore.getCount(c.id) > this.voteStore.getCount(best.id) ? c : best
-    );
-  }
-
-  private overallWinner(): Character {
-    const all = this.poll().groups.flatMap(g => g.candidates);
-    return all.reduce((best, c) =>
-      this.voteStore.getCount(c.id) > this.voteStore.getCount(best.id) ? c : best
-    );
-  }
-
   readonly COLORS = SEGMENT_COLORS;
 
   groupTotal(group: MultiPollGroup): number {
     return group.candidates.reduce((s, c) => s + this.voteStore.getCount(c.id), 0);
   }
 
-  readonly orgNodes = computed<TreeNode[]>(() => {
-    if (!this.voted() || this.isBracket()) return [];
-    const poll   = this.poll();
-    const myVote = this.voteStore.getMyVote(poll.id);
-    const winner = this.overallWinner();
-
-    const children: TreeNode[] = poll.groups.map(group => {
-      const gw = this.groupWinner(group);
-      const gt = this.groupTotal(group);
-      return {
-        expanded: true,
-        type:     'group-winner',
-        data:     { image: gw.image, name: gw.name, label: group.label, isMyVote: myVote === gw.id },
-        children: group.candidates.map((c, ci) => ({
-          type: 'candidate',
-          data: {
-            charId: c.id, image: c.image, name: c.name,
-            votes:    this.voteStore.getCount(c.id),
-            pct:      gt > 0 ? ((this.voteStore.getCount(c.id) / gt) * 100).toFixed(2) : '0.00',
-            color:    SEGMENT_COLORS[ci % SEGMENT_COLORS.length],
-            isMyVote: myVote === c.id,
-            isWinner: gw.id === c.id,
-          },
-        }) as TreeNode),
-      } as TreeNode;
-    });
-
-    return [{ expanded: true, type: 'overall-winner', data: { image: winner.image, name: winner.name }, children }];
-  });
-
-  readonly groupBars = computed<GroupBar[]>(() =>
-    this.poll().groups.filter(g => g.resolved).map(group => {
-      const total = this.groupTotal(group);
-      return {
-        label: group.label, total,
-        segments: group.candidates.map((c, ci) => ({
-          name:  c.name,
-          pct:   total > 0 ? ((this.voteStore.getCount(c.id) / total) * 100).toFixed(2)
-                           : (100 / group.candidates.length).toFixed(2),
-          color: SEGMENT_COLORS[ci % SEGMENT_COLORS.length],
-        })),
-      };
-    })
-  );
-
   // ── Bracket connectors ────────────────────────────────────────────────────
-  // Returns one array of branches per connector row (one row per adjacent level pair).
-  // Branch: widthPct = fraction of total bottom-level width; childPct = fork arm position.
   readonly bracketConnectors = computed(() => {
     if (!this.isBracket()) return [];
-    const levels = this.groupsByLevel(); // descending: GF first, QF last
+    const levels = this.groupsByLevel();
 
     return levels.slice(0, -1).map((levelRow, i) => {
-      const nextLevel = levels[i + 1];
+      const nextLevel   = levels[i + 1];
       const totalInNext = nextLevel.groups.length;
 
       return levelRow.groups.map(parentGroup => {
-        const n       = parentGroup.feederGroupIds?.length ?? 0;
-        const widthPct  = totalInNext > 0 && n > 0 ? (n / totalInNext) * 100 : 0;
-        const childPct  = n > 0 ? (1 / (2 * n)) * 100 : 50; // 25% for n=2
+        const n        = parentGroup.feederGroupIds?.length ?? 0;
+        const widthPct = totalInNext > 0 && n > 0 ? (n / totalInNext) * 100 : 0;
+        const childPct = n > 0 ? (1 / (2 * n)) * 100 : 50;
         return { widthPct, childPct };
       });
     });
@@ -172,12 +103,10 @@ export class MultiPollCardComponent implements OnInit, OnDestroy {
     const groupId = group.id;
 
     if (this.isBracket()) {
-      // Bracket: vote per group, stay on this poll
       this.voteStore.voteMultiGroup(charId, pollId, groupId);
     } else {
-      // Standard multi-poll: single vote for the whole poll
       this.voteStore.voteMultiGroup(charId, pollId, groupId);
-      this.castVote.emit(charId); // triggers navigation in app.ts
+      this.castVote.emit(charId);
     }
   }
 }

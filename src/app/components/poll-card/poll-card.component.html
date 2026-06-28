@@ -1,111 +1,79 @@
 <div class="poll-bg" aria-hidden="true">
-  <div class="bg-half bg-left"  [style.background-image]="'url(' + poll().fighter1.image + ')'"></div>
-  <div class="bg-half bg-right" [style.background-image]="'url(' + poll().fighter2.image + ')'"></div>
+  <div class="bg-half" [style.background-image]="'url(' + poll().fighter1.image + ')'"></div>
+  <div class="bg-half" [style.background-image]="'url(' + poll().fighter2.image + ')'"></div>
   <div class="bg-overlay"></div>
 </div>
 
-<div class="poll-page" [class.has-voted]="voted()">
+<div class="poll-page">
 
   <div class="poll-meta">
     <span class="anime-tag">{{ poll().anime }}</span>
+    @if (voted()) { <span class="badge-voted">Voted</span> }
   </div>
 
-  @if (!voted()) {
-    <!-- ═══ Before vote: two fighters side-by-side ═══ -->
-    <div class="fighters">
+  <div class="poll-card-outer">
+    <div class="bracket-group-card" [class.group-ended]="voted()">
 
-      <div class="fighter">
-        <button class="photo-btn"
-                (click)="onClickFighter(poll().fighter1.id)"
-                [title]="'Vote for ' + poll().fighter1.name">
-          <img class="fighter-photo"
-               [src]="poll().fighter1.image"
-               [alt]="poll().fighter1.name"
-               onerror="this.onerror=null;this.src='https://placehold.co/220x220/1565C0/ffffff?text=?'" />
-          <div class="vote-ring">VOTE</div>
-        </button>
-        <div class="fighter-name">{{ poll().fighter1.name }}</div>
-        <div class="fighter-title">{{ poll().fighter1.title }}</div>
+      <div class="bracket-group-header">
+        <span class="bracket-group-label">{{ poll().question }}</span>
       </div>
 
-      <div class="vs-badge">VS</div>
+      <div class="bracket-candidates">
 
-      <div class="fighter">
-        <button class="photo-btn"
-                (click)="onClickFighter(poll().fighter2.id)"
-                [title]="'Vote for ' + poll().fighter2.name">
-          <img class="fighter-photo"
-               [src]="poll().fighter2.image"
-               [alt]="poll().fighter2.name"
-               onerror="this.onerror=null;this.src='https://placehold.co/220x220/c62828/ffffff?text=?'" />
-          <div class="vote-ring">VOTE</div>
-        </button>
-        <div class="fighter-name">{{ poll().fighter2.name }}</div>
-        <div class="fighter-title">{{ poll().fighter2.title }}</div>
+        <!-- Fighter 1 -->
+        <div class="bracket-candidate" [class.is-voted]="myVoteId() === poll().fighter1.id">
+          <button class="bracket-cand-btn"
+                  (click)="onClickFighter(poll().fighter1.id)"
+                  [disabled]="voted()"
+                  [title]="'Vote for ' + poll().fighter1.name">
+            <img class="bracket-cand-photo"
+                 [src]="poll().fighter1.image" [alt]="poll().fighter1.name"
+                 onerror="this.onerror=null;this.src='https://placehold.co/120x120/1565C0/fff?text=?'" />
+            @if (myVoteId() === poll().fighter1.id) { <span class="voted-check">✓</span> }
+          </button>
+          <div class="bracket-cand-name">{{ poll().fighter1.name }}</div>
+          <div class="bracket-cand-title">{{ poll().fighter1.title }}</div>
+          @if (voted()) {
+            <div class="bracket-cand-votes">{{ voteStore.getCount(poll().fighter1.id) | number }} votes</div>
+          }
+        </div>
+
+        <div class="vs-divider">VS</div>
+
+        <!-- Fighter 2 -->
+        <div class="bracket-candidate" [class.is-voted]="myVoteId() === poll().fighter2.id">
+          <button class="bracket-cand-btn"
+                  (click)="onClickFighter(poll().fighter2.id)"
+                  [disabled]="voted()"
+                  [title]="'Vote for ' + poll().fighter2.name">
+            <img class="bracket-cand-photo"
+                 [src]="poll().fighter2.image" [alt]="poll().fighter2.name"
+                 onerror="this.onerror=null;this.src='https://placehold.co/120x120/c62828/fff?text=?'" />
+            @if (myVoteId() === poll().fighter2.id) { <span class="voted-check">✓</span> }
+          </button>
+          <div class="bracket-cand-name">{{ poll().fighter2.name }}</div>
+          <div class="bracket-cand-title">{{ poll().fighter2.title }}</div>
+          @if (voted()) {
+            <div class="bracket-cand-votes">{{ voteStore.getCount(poll().fighter2.id) | number }} votes</div>
+          }
+        </div>
+
       </div>
 
-    </div>
-
-  } @else {
-    <!-- ═══ After vote: PrimeNG OrganizationChart ═══ -->
-    <div class="org-wrap">
-
-      <p-organization-chart [value]="orgNodes()" [collapsible]="false">
-
-        <!-- Winner node -->
-        <ng-template let-node pTemplate="winner">
-          <div class="node-winner">
-            <div class="winner-photo-wrap">
-              <img class="winner-img"
-                   [src]="node.data.image"
-                   [alt]="node.data.name"
-                   onerror="this.onerror=null;this.src='https://placehold.co/160x160/fbbf24/000?text=W'" />
-              <span class="winner-crown">👑</span>
-            </div>
-            <div class="winner-label">{{ node.data.name }}</div>
+      @if (voted()) {
+        <div class="bracket-bar">
+          <div class="bracket-bar-seg"
+               [style.background]="COLORS[0]"
+               [style.width]="(totalVotes() > 0 ? voteStore.getCount(poll().fighter1.id) / totalVotes() * 100 : 50).toFixed(1) + '%'">
           </div>
-        </ng-template>
-
-        <!-- Tie node -->
-        <ng-template pTemplate="tie">
-          <div class="node-tie">TIE 🤝</div>
-        </ng-template>
-
-        <!-- Fighter node -->
-        <ng-template let-node pTemplate="fighter">
-          <div class="node-fighter" [class.is-winner]="node.data.isWinner">
-            <img class="fighter-img"
-                 [src]="node.data.image"
-                 [alt]="node.data.name"
-                 onerror="this.onerror=null;this.src='https://placehold.co/100x100/1565C0/fff?text=?'" />
-            <div class="fn-name">{{ node.data.name }}</div>
-            <div class="fn-pct">{{ node.data.pct }}%</div>
-            <div class="fn-votes">{{ node.data.votes | number }} votes</div>
-          </div>
-        </ng-template>
-
-      </p-organization-chart>
-
-      <!-- % bar directly below the chart -->
-      @if (barPcts(); as b) {
-        <div class="org-bar-wrap">
-          <div class="results-bar">
-            <div class="bar-left" [style.width]="b.pct1 + '%'">
-              <span class="bar-pct">{{ b.pct1 }}%</span>
-            </div>
-            <div class="bar-right" [style.width]="b.pct2 + '%'">
-              <span class="bar-pct">{{ b.pct2 }}%</span>
-            </div>
-          </div>
-          <div class="bar-labels">
-            <span>{{ b.pct1 }}%</span>
-            <span class="total-votes">{{ b.total | number }} votes</span>
-            <span>{{ b.pct2 }}%</span>
+          <div class="bracket-bar-seg"
+               [style.background]="COLORS[1]"
+               [style.width]="(totalVotes() > 0 ? voteStore.getCount(poll().fighter2.id) / totalVotes() * 100 : 50).toFixed(1) + '%'">
           </div>
         </div>
       }
 
     </div>
-  }
+  </div>
 
 </div>
