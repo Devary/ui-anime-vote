@@ -8,6 +8,7 @@ import { InputIconModule } from 'primeng/inputicon';
 import { SelectModule } from 'primeng/select';
 import { AnimeApiService } from '../../services/anime-api.service';
 import { ToastService } from '../../services/toast.service';
+import { PollExportService } from '../../services/poll-export.service';
 import { AnimeDto, CharacterDto, MultiPollAdminDto, MultiPollCreateDto, GroupCreateDto } from '../../services/api.types';
 import { PollGroupFormComponent, CharOption, createGroupForm, groupPeriodValidator } from '../poll-group-form/poll-group-form.component';
 
@@ -143,6 +144,9 @@ import { PollGroupFormComponent, CharOption, createGroupForm, groupPeriodValidat
               <button class="btn-icon" (click)="startEdit(mp)" title="Edit candidates">
                 <i class="pi pi-pencil"></i>
               </button>
+              <button class="btn-icon" (click)="download(mp)" title="Download hierarchy">
+                <i class="pi pi-download"></i>
+              </button>
               <button class="btn-icon danger" (click)="del(mp.id)" title="Delete">
                 <i class="pi pi-trash"></i>
               </button>
@@ -207,8 +211,9 @@ import { PollGroupFormComponent, CharOption, createGroupForm, groupPeriodValidat
 export class MultiPollManagementComponent implements OnInit {
   @ViewChild('dt') dt!: Table;
 
-  private readonly api   = inject(AnimeApiService);
-  private readonly toast = inject(ToastService);
+  private readonly api    = inject(AnimeApiService);
+  private readonly toast  = inject(ToastService);
+  private readonly export = inject(PollExportService);
 
   readonly multiPolls = signal<MultiPollAdminDto[]>([]);
   readonly chars      = signal<CharacterDto[]>([]);
@@ -416,6 +421,8 @@ export class MultiPollManagementComponent implements OnInit {
       };
     });
   }
+
+  download(mp: MultiPollAdminDto): void { this.export.downloadMultiPoll(mp); }
 
   del(id: string): void {
     if (!confirm('Delete this multi-poll and all its votes?')) return;

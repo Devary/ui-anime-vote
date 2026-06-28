@@ -8,6 +8,7 @@ import { InputIconModule } from 'primeng/inputicon';
 import { SelectModule } from 'primeng/select';
 import { AnimeApiService } from '../../services/anime-api.service';
 import { ToastService } from '../../services/toast.service';
+import { PollExportService } from '../../services/poll-export.service';
 import { AnimeDto, CharacterDto, PollDto, PollCreateDto } from '../../services/api.types';
 import { PollGroupFormComponent, CharOption, createGroupForm } from '../poll-group-form/poll-group-form.component';
 
@@ -135,6 +136,9 @@ import { PollGroupFormComponent, CharOption, createGroupForm } from '../poll-gro
               <button class="btn-icon" (click)="startEdit(poll)" title="Edit">
                 <i class="pi pi-pencil"></i>
               </button>
+              <button class="btn-icon" (click)="download(poll)" title="Download hierarchy">
+                <i class="pi pi-download"></i>
+              </button>
               <button class="btn-icon danger" (click)="del(poll.id)" title="Delete">
                 <i class="pi pi-trash"></i>
               </button>
@@ -194,8 +198,9 @@ import { PollGroupFormComponent, CharOption, createGroupForm } from '../poll-gro
 export class PollManagementComponent implements OnInit {
   @ViewChild('dt') dt!: Table;
 
-  private readonly api   = inject(AnimeApiService);
-  private readonly toast = inject(ToastService);
+  private readonly api    = inject(AnimeApiService);
+  private readonly toast  = inject(ToastService);
+  private readonly export = inject(PollExportService);
 
   readonly polls    = signal<PollDto[]>([]);
   readonly chars    = signal<CharacterDto[]>([]);
@@ -313,6 +318,8 @@ export class PollManagementComponent implements OnInit {
       }
     });
   }
+
+  download(poll: PollDto): void { this.export.downloadPoll(poll); }
 
   del(id: string): void {
     if (!confirm('Delete this poll and all its votes?')) return;
