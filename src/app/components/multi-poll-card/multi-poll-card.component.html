@@ -11,16 +11,16 @@
     <div class="groups-layout">
       @for (group of poll().groups; track group.id; let gi = $index) {
         @if (gi > 0) { <div class="group-divider"></div> }
-        <div class="group-section" [class.group-locked]="groupStatus(group) !== 'open'">
+        <div class="group-section" [class.group-locked]="groupStatuses().get(group.id) !== 'open'">
           <div class="group-label-row">
             <span class="group-label">{{ group.label }}</span>
             @if (group.endDate) {
               <app-countdown [endDate]="group.endDate" [startDate]="group.startDate" />
             }
           </div>
-          @if (groupStatus(group) === 'upcoming') {
+          @if (groupStatuses().get(group.id) === 'upcoming') {
             <div class="group-status-badge upcoming">Coming soon</div>
-          } @else if (groupStatus(group) === 'ended') {
+          } @else if (groupStatuses().get(group.id) === 'ended') {
             <div class="group-status-badge ended">Voting closed</div>
           }
           <div class="candidates-row">
@@ -28,8 +28,8 @@
               <div class="candidate-col">
                 <button class="candidate-btn"
                         (click)="onClickCandidate(candidate.id, group)"
-                        [disabled]="groupStatus(group) !== 'open'"
-                        [title]="groupStatus(group) === 'open' ? 'Vote for ' + candidate.name : (groupStatus(group) === 'upcoming' ? 'Not open yet' : 'Voting closed')"
+                        [disabled]="groupStatuses().get(group.id) !== 'open'"
+                        [title]="groupStatuses().get(group.id) === 'open' ? 'Vote for ' + candidate.name : (groupStatuses().get(group.id) === 'upcoming' ? 'Not open yet' : 'Voting closed')"
                         [style.--accent]="'var(--rz-primary)'">
                   <img class="candidate-photo"
                        [src]="candidate.image"

@@ -1,4 +1,4 @@
-import { Component, computed, inject, input, output } from '@angular/core';
+import { Component, OnInit, OnDestroy, computed, inject, input, output, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { OrganizationChartModule } from 'primeng/organizationchart';
 import { TreeNode } from 'primeng/api';
@@ -34,11 +34,16 @@ const SEGMENT_COLORS = [
   templateUrl: './multi-poll-card.component.html',
   styleUrl:    './multi-poll-card.component.scss',
 })
-export class MultiPollCardComponent {
+export class MultiPollCardComponent implements OnInit, OnDestroy {
   readonly poll     = input.required<MultiPoll>();
   readonly castVote = output<string>();
 
   private readonly voteStore = inject(VoteStore);
+  private readonly _now      = signal(Date.now());
+  private _timer?: ReturnType<typeof setInterval>;
+
+  ngOnInit()    { this._timer = setInterval(() => this._now.set(Date.now()), 1000); }
+  ngOnDestroy() { clearInterval(this._timer); }
 
   readonly voted = computed(() => this.voteStore.getMyVote(this.poll().id) !== null);
 
@@ -128,17 +133,19 @@ export class MultiPollCardComponent {
     });
   });
 
-  groupStatus(group: MultiPollGroup): 'open' | 'upcoming' | 'ended' {
-    if (!group.startDate) return 'open'; // legacy — always open
-    const now  = Date.now();
-    const start = new Date(group.startDate).getTime();
-    const end   = group.endDate ? new Date(group.endDate).getTime() : Infinity;
-    if (now < start) return 'upcoming';
-    if (now > end)   return 'ended';
-    return 'open';
-  }
+  readonly groupStatuses = computed(() => {
+    const now = this._now();
+    const statuses = new Map<string, 'open' | 'upcoming' | 'ended'>();
+    for (const g of this.poll().groups) {
+      if (!g.startDate) { statuses.set(g.id, 'open'); continue; }
+      const start = new Date(g.startDate).getTime();
+      const end   = g.endDate ? new Date(g.endDate).getTime() : Infinity;
+      statuses.set(g.id, now < start ? 'upcoming' : now > end ? 'ended' : 'open');
+    }
+    return statuses;
+  });
 
   onClickCandidate(charId: string, group: MultiPollGroup): void {
-    if (!this.voted() && this.groupStatus(group) === 'open') this.castVote.emit(charId);
+    if (!this.voted() && this.groupStatuses().get(group.id) === 'open') this.castVote.emit(charId);
   }
 }
