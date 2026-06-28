@@ -26,7 +26,9 @@
     <button class="side-nav side-prev" (click)="prev()" aria-label="Previous poll">&#8592;</button>
     <button class="side-nav side-next" (click)="next()" aria-label="Next poll">&#8594;</button>
 
-    @if (currentAsSingle(); as poll) {
+    @if (loading()) {
+      <div class="loading-state">Loading polls…</div>
+    } @else if (currentAsSingle(); as poll) {
       <app-poll-card [poll]="poll" (castVote)="onVote($event)" />
     } @else if (currentAsMulti(); as poll) {
       <app-multi-poll-card [poll]="poll" (castVote)="onVote($event)" />

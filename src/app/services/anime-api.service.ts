@@ -15,6 +15,16 @@ const API = environment.apiUrl;
 export class AnimeApiService {
   private readonly http = inject(HttpClient);
 
+  // ── Public listing ────────────────────────────────────────────────────────
+
+  getPolls(): Observable<PollDto[]> {
+    return this.http.get<PollDto[]>(`${API}/polls`);
+  }
+
+  getMultiPolls(): Observable<MultiPollAdminDto[]> {
+    return this.http.get<MultiPollAdminDto[]>(`${API}/multi-polls`);
+  }
+
   // ── Voting (identity from JWT or IP on backend) ───────────────────────────
 
   castVote(pollId: string, characterId: string): Observable<PollResultDto> {

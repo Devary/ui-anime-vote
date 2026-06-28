@@ -203,3 +203,12 @@
   background: var(--rz-gradient);
   transition: width 0.55s linear;
 }
+
+.loading-state {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--rz-ink-muted);
+  font-size: 0.9rem;
+}
