@@ -20,7 +20,7 @@
         <div class="bracket-level">
           <div class="bracket-level-label">
             @if (levelRow.level === 0) { Quarter-Finals }
-            @else if (levelRow.level === groupsByLevel().length - 1) { Grand Final }
+            @else if (levelRow.level === groupsByLevel()[0].level) { Grand Final }
             @else { Semi-Finals }
           </div>
           <div class="bracket-groups-row">

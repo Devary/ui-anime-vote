@@ -42,7 +42,7 @@ export class MultiPollCardComponent implements OnInit, OnDestroy {
       map.get(g.level)!.push(g);
     }
     return [...map.entries()]
-      .sort(([a], [b]) => a - b)
+      .sort(([a], [b]) => b - a)          // descending: GF at top, QF at bottom
       .map(([level, groups]) => ({ level, groups }));
   });
 
