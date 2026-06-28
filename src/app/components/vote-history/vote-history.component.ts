@@ -59,6 +59,15 @@ export class VoteHistoryComponent {
     !!this.char1Filter().trim() || !!this.char2Filter().trim()
   );
 
+  // Pagination
+  private readonly PAGE_INIT = 10;
+  private readonly PAGE_MORE = 7;
+  readonly visibleCount = signal(this.PAGE_INIT);
+  readonly visiblePolls = computed(() => this.filteredPolls().slice(0, this.visibleCount()));
+  readonly hasMore      = computed(() => this.filteredPolls().length > this.visibleCount());
+
+  showMore(): void { this.visibleCount.update(n => n + this.PAGE_MORE); }
+
   readonly selectedSinglePoll = signal<Poll | null>(null);
   readonly selectedMultiPoll  = signal<MultiPoll | null>(null);
 
@@ -78,11 +87,13 @@ export class VoteHistoryComponent {
   clearFilters(): void {
     this.char1Filter.set('');
     this.char2Filter.set('');
+    this.visibleCount.set(this.PAGE_INIT);
   }
 
   onChar1Change(value: string): void {
     this.char1Filter.set(value);
     if (!value.trim()) this.char2Filter.set('');
+    this.visibleCount.set(this.PAGE_INIT);
   }
 
   // ── Helpers used in template ───────────────────────────────────────────────

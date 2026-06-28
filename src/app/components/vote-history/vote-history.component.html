@@ -60,7 +60,7 @@
       </div>
     } @else {
       <ul class="history-list">
-        @for (poll of filteredPolls(); track poll.id) {
+        @for (poll of visiblePolls(); track poll.id) {
           <li class="history-row is-clickable"
               (click)="openDetail(poll)"
               role="button"
@@ -102,6 +102,11 @@
           </li>
         }
       </ul>
+      @if (hasMore()) {
+        <button class="show-more-btn" (click)="showMore()">
+          Show more <span class="show-more-count">({{ filteredPolls().length - visibleCount() }} remaining)</span>
+        </button>
+      }
     }
   </div>
 

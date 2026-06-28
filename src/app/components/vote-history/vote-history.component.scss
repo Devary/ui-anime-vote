@@ -347,3 +347,26 @@
   font-size: 1.2rem;
   flex-shrink: 0;
 }
+
+.show-more-btn {
+  display:         block;
+  width:           100%;
+  margin-top:      0.5rem;
+  padding:         0.55rem 1rem;
+  background:      var(--rz-surface-hover);
+  border:          1px solid var(--rz-border);
+  border-radius:   var(--rz-radius-sm);
+  color:           var(--rz-ink-muted);
+  font-size:       0.8rem;
+  font-weight:     600;
+  cursor:          pointer;
+  text-align:      center;
+  transition:      background 0.15s, color 0.15s;
+
+  &:hover { background: var(--rz-glass-bg); color: var(--rz-ink); }
+}
+
+.show-more-count {
+  font-weight: 400;
+  color:       var(--rz-ink-faint);
+}
