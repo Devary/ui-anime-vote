@@ -9,6 +9,7 @@ import { forkJoin, of } from 'rxjs';
 import { map, catchError } from 'rxjs/operators';
 import { AnimeApiService } from '../../services/anime-api.service';
 import { ToastService } from '../../services/toast.service';
+import { DataRefreshService } from '../../services/data-refresh.service';
 import { AnimeDto, AnimeCreateDto } from '../../services/api.types';
 import { ImageUploadComponent } from '../../shared/image-upload/image-upload.component';
 
@@ -173,8 +174,9 @@ import { ImageUploadComponent } from '../../shared/image-upload/image-upload.com
 export class AnimeManagementComponent implements OnInit {
   @ViewChild('dt') dt!: Table;
 
-  private readonly api = inject(AnimeApiService);
-  private readonly toast = inject(ToastService);
+  private readonly api     = inject(AnimeApiService);
+  private readonly toast   = inject(ToastService);
+  private readonly refresh = inject(DataRefreshService);
 
   readonly animeList = signal<AnimeDto[]>([]);
   readonly loading = signal(false);
@@ -243,16 +245,12 @@ export class AnimeManagementComponent implements OnInit {
       : this.api.adminCreateAnime(this.form);
 
     req$.subscribe({
-      next: saved => {
-        if (editId) {
-          this.animeList.update(l => l.map(a => a.id === editId ? saved : a));
-          this.toast.success('Anime updated');
-        } else {
-          this.animeList.update(l => [...l, saved].sort((a, b) => a.name.localeCompare(b.name)));
-          this.toast.success('Anime created');
-        }
+      next: () => {
+        this.toast.success(editId ? 'Anime updated' : 'Anime created');
         this.saving.set(false);
         this.cancelEdit();
+        this.load();
+        this.refresh.notify();
       },
       error: e => { this.error.set(this.msg(e)); this.saving.set(false); }
     });
@@ -262,9 +260,9 @@ export class AnimeManagementComponent implements OnInit {
     if (!confirm('Delete this anime?')) return;
     this.api.adminDeleteAnime(id).subscribe({
       next: () => {
-        this.animeList.update(l => l.filter(a => a.id !== id));
-        this.selectedIds.update(s => { const n = new Set(s); n.delete(id); return n; });
         this.toast.success('Anime deleted');
+        this.load();
+        this.refresh.notify();
       },
       error: e => this.toast.error(this.msg(e))
     });
@@ -275,9 +273,10 @@ export class AnimeManagementComponent implements OnInit {
     if (!ids.length) return;
     if (!confirm(`Delete ${ids.length} selected anime?`)) return;
     this.bulkDelete(ids, id => this.api.adminDeleteAnime(id)).subscribe(deleted => {
-      this.animeList.update(l => l.filter(a => !deleted.includes(a.id)));
-      this.selectedIds.update(s => { const n = new Set(s); deleted.forEach(id => n.delete(id)); return n; });
       this.toast.success(`Deleted ${deleted.length}${deleted.length < ids.length ? '/' + ids.length + ' (some failed)' : ''} anime`);
+      this.selectedIds.set(new Set());
+      this.load();
+      this.refresh.notify();
     });
   }
 
@@ -286,9 +285,10 @@ export class AnimeManagementComponent implements OnInit {
     if (!items.length) return;
     if (!confirm(`Delete all ${items.length} anime? This cannot be undone.`)) return;
     this.bulkDelete(items.map(a => a.id), id => this.api.adminDeleteAnime(id)).subscribe(deleted => {
-      this.animeList.update(l => l.filter(a => !deleted.includes(a.id)));
-      this.selectedIds.set(new Set());
       this.toast.success(`Deleted ${deleted.length}${deleted.length < items.length ? '/' + items.length + ' (some failed)' : ''} anime`);
+      this.selectedIds.set(new Set());
+      this.load();
+      this.refresh.notify();
     });
   }
 

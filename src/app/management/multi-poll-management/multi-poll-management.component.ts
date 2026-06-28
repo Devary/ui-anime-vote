@@ -10,6 +10,7 @@ import { forkJoin, of } from 'rxjs';
 import { map, catchError } from 'rxjs/operators';
 import { AnimeApiService } from '../../services/anime-api.service';
 import { ToastService } from '../../services/toast.service';
+import { DataRefreshService } from '../../services/data-refresh.service';
 import { PollExportService } from '../../services/poll-export.service';
 import { AnimeDto, CharacterDto, MultiPollAdminDto, MultiPollCreateDto, GroupCreateDto } from '../../services/api.types';
 import { PollGroupFormComponent, CharOption, createGroupForm, groupPeriodValidator } from '../poll-group-form/poll-group-form.component';
@@ -244,8 +245,9 @@ import { PollGroupFormComponent, CharOption, createGroupForm, groupPeriodValidat
 export class MultiPollManagementComponent implements OnInit {
   @ViewChild('dt') dt!: Table;
 
-  private readonly api    = inject(AnimeApiService);
-  private readonly toast  = inject(ToastService);
+  private readonly api     = inject(AnimeApiService);
+  private readonly toast   = inject(ToastService);
+  private readonly refresh = inject(DataRefreshService);
   private readonly export = inject(PollExportService);
 
   readonly multiPolls = signal<MultiPollAdminDto[]>([]);
@@ -435,16 +437,12 @@ export class MultiPollManagementComponent implements OnInit {
       : this.api.adminCreateMultiPoll(dto);
 
     req$.subscribe({
-      next: saved => {
-        if (editId) {
-          this.multiPolls.update(l => l.map(mp => mp.id === editId ? saved : mp));
-          this.toast.success('Multi-poll updated');
-        } else {
-          this.multiPolls.update(l => [saved, ...l]);
-          this.toast.success('Multi-poll created');
-        }
+      next: () => {
+        this.toast.success(editId ? 'Multi-poll updated' : 'Multi-poll created');
         this.saving.set(false);
         this.cancelEdit();
+        this.load();
+        this.refresh.notify();
       },
       error: e => {
         this.saving.set(false);
@@ -481,9 +479,9 @@ export class MultiPollManagementComponent implements OnInit {
     if (!confirm('Delete this multi-poll and all its votes?')) return;
     this.api.adminDeleteMultiPoll(id).subscribe({
       next: () => {
-        this.multiPolls.update(l => l.filter(mp => mp.id !== id));
-        this.selectedIds.update(s => { const n = new Set(s); n.delete(id); return n; });
         this.toast.success('Multi-poll deleted');
+        this.load();
+        this.refresh.notify();
       },
       error: e => this.toast.error(this.msg(e))
     });
@@ -494,9 +492,10 @@ export class MultiPollManagementComponent implements OnInit {
     if (!ids.length) return;
     if (!confirm(`Delete ${ids.length} selected multi-polls and all their votes?`)) return;
     this.bulkDelete(ids, id => this.api.adminDeleteMultiPoll(id)).subscribe(deleted => {
-      this.multiPolls.update(l => l.filter(mp => !deleted.includes(mp.id)));
-      this.selectedIds.update(s => { const n = new Set(s); deleted.forEach(id => n.delete(id)); return n; });
       this.toast.success(`Deleted ${deleted.length}${deleted.length < ids.length ? '/' + ids.length + ' (some failed)' : ''} multi-polls`);
+      this.selectedIds.set(new Set());
+      this.load();
+      this.refresh.notify();
     });
   }
 
@@ -505,9 +504,10 @@ export class MultiPollManagementComponent implements OnInit {
     if (!items.length) return;
     if (!confirm(`Delete all ${items.length} multi-polls and all their votes? This cannot be undone.`)) return;
     this.bulkDelete(items.map(mp => mp.id), id => this.api.adminDeleteMultiPoll(id)).subscribe(deleted => {
-      this.multiPolls.update(l => l.filter(mp => !deleted.includes(mp.id)));
-      this.selectedIds.set(new Set());
       this.toast.success(`Deleted ${deleted.length}${deleted.length < items.length ? '/' + items.length + ' (some failed)' : ''} multi-polls`);
+      this.selectedIds.set(new Set());
+      this.load();
+      this.refresh.notify();
     });
   }
 

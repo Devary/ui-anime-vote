@@ -10,6 +10,7 @@ import { forkJoin, of } from 'rxjs';
 import { map, catchError } from 'rxjs/operators';
 import { AnimeApiService } from '../../services/anime-api.service';
 import { ToastService } from '../../services/toast.service';
+import { DataRefreshService } from '../../services/data-refresh.service';
 import { AnimeDto, CharacterDto, CharacterCreateDto } from '../../services/api.types';
 import { ImageUploadComponent } from '../../shared/image-upload/image-upload.component';
 
@@ -210,8 +211,9 @@ import { ImageUploadComponent } from '../../shared/image-upload/image-upload.com
 export class CharacterManagementComponent implements OnInit {
   @ViewChild('dt') dt!: Table;
 
-  private readonly api = inject(AnimeApiService);
-  private readonly toast = inject(ToastService);
+  private readonly api     = inject(AnimeApiService);
+  private readonly toast   = inject(ToastService);
+  private readonly refresh = inject(DataRefreshService);
 
   readonly chars = signal<CharacterDto[]>([]);
   readonly animeList = signal<AnimeDto[]>([]);
@@ -284,16 +286,12 @@ export class CharacterManagementComponent implements OnInit {
       : this.api.adminCreateCharacter(this.form);
 
     req$.subscribe({
-      next: saved => {
-        if (editId) {
-          this.chars.update(l => l.map(c => c.id === editId ? saved : c));
-          this.toast.success('Character updated');
-        } else {
-          this.chars.update(l => [...l, saved]);
-          this.toast.success('Character created');
-        }
+      next: () => {
+        this.toast.success(editId ? 'Character updated' : 'Character created');
         this.saving.set(false);
         this.cancelEdit();
+        this.load();
+        this.refresh.notify();
       },
       error: e => { this.error.set(this.msg(e)); this.saving.set(false); }
     });
@@ -303,9 +301,9 @@ export class CharacterManagementComponent implements OnInit {
     if (!confirm('Delete this character? This may affect existing polls.')) return;
     this.api.adminDeleteCharacter(id).subscribe({
       next: () => {
-        this.chars.update(l => l.filter(c => c.id !== id));
-        this.selectedIds.update(s => { const n = new Set(s); n.delete(id); return n; });
         this.toast.success('Character deleted');
+        this.load();
+        this.refresh.notify();
       },
       error: e => this.toast.error(this.msg(e))
     });
@@ -316,9 +314,10 @@ export class CharacterManagementComponent implements OnInit {
     if (!ids.length) return;
     if (!confirm(`Delete ${ids.length} selected characters? This may affect existing polls.`)) return;
     this.bulkDelete(ids, id => this.api.adminDeleteCharacter(id)).subscribe(deleted => {
-      this.chars.update(l => l.filter(c => !deleted.includes(c.id)));
-      this.selectedIds.update(s => { const n = new Set(s); deleted.forEach(id => n.delete(id)); return n; });
       this.toast.success(`Deleted ${deleted.length}${deleted.length < ids.length ? '/' + ids.length + ' (some failed)' : ''} characters`);
+      this.selectedIds.set(new Set());
+      this.load();
+      this.refresh.notify();
     });
   }
 
@@ -327,9 +326,10 @@ export class CharacterManagementComponent implements OnInit {
     if (!items.length) return;
     if (!confirm(`Delete all ${items.length} characters? This may affect existing polls.`)) return;
     this.bulkDelete(items.map(c => c.id), id => this.api.adminDeleteCharacter(id)).subscribe(deleted => {
-      this.chars.update(l => l.filter(c => !deleted.includes(c.id)));
-      this.selectedIds.set(new Set());
       this.toast.success(`Deleted ${deleted.length}${deleted.length < items.length ? '/' + items.length + ' (some failed)' : ''} characters`);
+      this.selectedIds.set(new Set());
+      this.load();
+      this.refresh.notify();
     });
   }
 

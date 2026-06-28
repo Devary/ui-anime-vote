@@ -1,10 +1,12 @@
-import { Component, OnInit, computed, inject, signal } from '@angular/core';
+import { Component, DestroyRef, OnInit, computed, inject, signal } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { CommonModule } from '@angular/common';
 import { forkJoin } from 'rxjs';
 import { ThemeStore } from './theme.store';
 import { VoteStore } from './vote.store';
 import { AuthService } from './services/auth.service';
 import { AnimeApiService } from './services/anime-api.service';
+import { DataRefreshService } from './services/data-refresh.service';
 import { PollCardComponent } from './components/poll-card/poll-card.component';
 import { MultiPollCardComponent } from './components/multi-poll-card/multi-poll-card.component';
 import { VoteHistoryComponent } from './components/vote-history/vote-history.component';
@@ -30,10 +32,12 @@ import { PollDto, MultiPollAdminDto } from './services/api.types';
   styleUrl: './app.scss'
 })
 export class App implements OnInit {
-  private readonly themeStore = inject(ThemeStore);
-  private readonly voteStore  = inject(VoteStore);
-  private readonly api        = inject(AnimeApiService);
-  readonly authService        = inject(AuthService);
+  private readonly themeStore   = inject(ThemeStore);
+  private readonly voteStore    = inject(VoteStore);
+  private readonly api          = inject(AnimeApiService);
+  private readonly dataRefresh  = inject(DataRefreshService);
+  private readonly destroyRef   = inject(DestroyRef);
+  readonly authService          = inject(AuthService);
 
   readonly isStandalone = window.self === window.top;
   readonly isDark       = this.themeStore.isDark;
@@ -68,6 +72,19 @@ export class App implements OnInit {
   });
 
   private advancing = false;
+
+  private loadData(): void {
+    this.loading.set(true);
+    forkJoin({ polls: this.api.getPolls(), multiPolls: this.api.getMultiPolls() }).subscribe({
+      next: ({ polls, multiPolls }) => {
+        const mapped = this.interleave(polls.map(p => this.mapPoll(p)), multiPolls.map(m => this.mapMultiPoll(m)));
+        this.allPolls.set(mapped);
+        this._index.set(0);
+        this.loading.set(false);
+      },
+      error: () => this.loading.set(false),
+    });
+  }
 
   toggleTheme(): void     { this.themeStore.toggle(); }
   openHistory(): void     { this.showHistory.set(true); }
@@ -158,14 +175,10 @@ export class App implements OnInit {
 
   ngOnInit(): void {
     this.voteStore.loadTodayVotes();
-    forkJoin({ polls: this.api.getPolls(), multiPolls: this.api.getMultiPolls() }).subscribe({
-      next: ({ polls, multiPolls }) => {
-        const mapped = this.interleave(polls.map(p => this.mapPoll(p)), multiPolls.map(m => this.mapMultiPoll(m)));
-        this.allPolls.set(mapped);
-        this.loading.set(false);
-      },
-      error: () => this.loading.set(false),
-    });
+    this.loadData();
+    this.dataRefresh.changes$
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe(() => this.loadData());
     if (this.isStandalone) return;
     window.addEventListener('message', (event: MessageEvent) => {
       if (event.origin !== window.location.origin) return;

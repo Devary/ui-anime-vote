@@ -9,6 +9,7 @@ import { forkJoin, of } from 'rxjs';
 import { catchError, map } from 'rxjs/operators';
 import { AnimeApiService } from '../../services/anime-api.service';
 import { ToastService } from '../../services/toast.service';
+import { DataRefreshService } from '../../services/data-refresh.service';
 import { UserDto, RoleDto, AdminUserUpdateDto, RoleCreateDto } from '../../services/api.types';
 
 type SubTab = 'users' | 'roles';
@@ -281,8 +282,9 @@ type SubTab = 'users' | 'roles';
 })
 export class UserManagementComponent implements OnInit {
   @ViewChild('dt') dt!: Table;
-  private readonly api   = inject(AnimeApiService);
-  private readonly toast = inject(ToastService);
+  private readonly api     = inject(AnimeApiService);
+  private readonly toast   = inject(ToastService);
+  private readonly refresh = inject(DataRefreshService);
 
   readonly subTab  = signal<SubTab>('users');
   readonly loading = signal(false);
@@ -366,11 +368,11 @@ export class UserManagementComponent implements OnInit {
       roleIds:        [...this.editRoleIds]
     };
     this.api.adminUpdateUser(u.id, dto).subscribe({
-      next: updated => {
-        this.users.update(l => l.map(x => x.id === u.id ? updated : x));
+      next: () => {
         this.saving.set(false);
         this.cancelEdit();
         this.toast.success('User updated');
+        this.load();
       },
       error: e => { this.saving.set(false); this.editError.set(this.msg(e)); }
     });
@@ -380,9 +382,8 @@ export class UserManagementComponent implements OnInit {
     if (!confirm('Delete this user and all their votes?')) return;
     this.api.adminDeleteUser(id).subscribe({
       next: () => {
-        this.users.update(l => l.filter(u => u.id !== id));
-        this.selectedIds.update(s => { const n = new Set(s); n.delete(id); return n; });
         this.toast.success('User deleted');
+        this.load();
       },
       error: e => this.toast.error(this.msg(e))
     });
@@ -396,9 +397,9 @@ export class UserManagementComponent implements OnInit {
       map(() => id as string | null), catchError(() => of(null))
     ))).subscribe(results => {
       const deleted = results.filter((r): r is string => r !== null);
-      this.users.update(l => l.filter(u => !deleted.includes(u.id)));
-      this.selectedIds.update(s => { const n = new Set(s); deleted.forEach(id => n.delete(id)); return n; });
       this.toast.success(`Deleted ${deleted.length}/${ids.length} users`);
+      this.selectedIds.set(new Set());
+      this.load();
     });
   }
 
@@ -413,10 +414,10 @@ export class UserManagementComponent implements OnInit {
     const dto: RoleCreateDto = { id: this.newRoleId.trim(), name: this.newRoleName.trim(), description: this.newRoleDesc };
     this.api.adminCreateRole(dto).subscribe({
       next: role => {
-        this.allRoles.update(l => [...l, role].sort((a, b) => a.id.localeCompare(b.id)));
         this.newRoleId = ''; this.newRoleName = ''; this.newRoleDesc = '';
         this.savingRole.set(false);
         this.toast.success(`Role "${role.id}" created`);
+        this.load();
       },
       error: e => { this.savingRole.set(false); this.roleError.set(this.msg(e)); }
     });
@@ -426,8 +427,8 @@ export class UserManagementComponent implements OnInit {
     if (!confirm(`Delete role "${id}"? It will be removed from all users.`)) return;
     this.api.adminDeleteRole(id).subscribe({
       next: () => {
-        this.allRoles.update(l => l.filter(r => r.id !== id));
         this.toast.success(`Role "${id}" deleted`);
+        this.load();
       },
       error: e => this.toast.error(this.msg(e))
     });

@@ -10,6 +10,7 @@ import { forkJoin, of } from 'rxjs';
 import { map, catchError } from 'rxjs/operators';
 import { AnimeApiService } from '../../services/anime-api.service';
 import { ToastService } from '../../services/toast.service';
+import { DataRefreshService } from '../../services/data-refresh.service';
 import { PollExportService } from '../../services/poll-export.service';
 import { AnimeDto, CharacterDto, PollDto, PollCreateDto } from '../../services/api.types';
 import { PollGroupFormComponent, CharOption, createGroupForm } from '../poll-group-form/poll-group-form.component';
@@ -231,9 +232,10 @@ import { PollGroupFormComponent, CharOption, createGroupForm } from '../poll-gro
 export class PollManagementComponent implements OnInit {
   @ViewChild('dt') dt!: Table;
 
-  private readonly api    = inject(AnimeApiService);
-  private readonly toast  = inject(ToastService);
-  private readonly export = inject(PollExportService);
+  private readonly api     = inject(AnimeApiService);
+  private readonly toast   = inject(ToastService);
+  private readonly refresh = inject(DataRefreshService);
+  private readonly export  = inject(PollExportService);
 
   readonly polls    = signal<PollDto[]>([]);
   readonly chars    = signal<CharacterDto[]>([]);
@@ -351,16 +353,12 @@ export class PollManagementComponent implements OnInit {
       : this.api.adminCreatePoll(dto);
 
     req$.subscribe({
-      next: saved => {
-        if (editId) {
-          this.polls.update(l => l.map(p => p.id === editId ? saved : p));
-          this.toast.success('Poll updated');
-        } else {
-          this.polls.update(l => [saved, ...l]);
-          this.toast.success('Poll created');
-        }
+      next: () => {
+        this.toast.success(editId ? 'Poll updated' : 'Poll created');
         this.saving.set(false);
         this.cancelEdit();
+        this.load();
+        this.refresh.notify();
       },
       error: e => {
         this.saving.set(false);
@@ -376,9 +374,9 @@ export class PollManagementComponent implements OnInit {
     if (!confirm('Delete this poll and all its votes?')) return;
     this.api.adminDeletePoll(id).subscribe({
       next: () => {
-        this.polls.update(l => l.filter(p => p.id !== id));
-        this.selectedIds.update(s => { const n = new Set(s); n.delete(id); return n; });
         this.toast.success('Poll deleted');
+        this.load();
+        this.refresh.notify();
       },
       error: e => this.toast.error(this.msg(e))
     });
@@ -389,9 +387,10 @@ export class PollManagementComponent implements OnInit {
     if (!ids.length) return;
     if (!confirm(`Delete ${ids.length} selected polls and all their votes?`)) return;
     this.bulkDelete(ids, id => this.api.adminDeletePoll(id)).subscribe(deleted => {
-      this.polls.update(l => l.filter(p => !deleted.includes(p.id)));
-      this.selectedIds.update(s => { const n = new Set(s); deleted.forEach(id => n.delete(id)); return n; });
       this.toast.success(`Deleted ${deleted.length}${deleted.length < ids.length ? '/' + ids.length + ' (some failed)' : ''} polls`);
+      this.selectedIds.set(new Set());
+      this.load();
+      this.refresh.notify();
     });
   }
 
@@ -400,9 +399,10 @@ export class PollManagementComponent implements OnInit {
     if (!items.length) return;
     if (!confirm(`Delete all ${items.length} polls and all their votes? This cannot be undone.`)) return;
     this.bulkDelete(items.map(p => p.id), id => this.api.adminDeletePoll(id)).subscribe(deleted => {
-      this.polls.update(l => l.filter(p => !deleted.includes(p.id)));
-      this.selectedIds.set(new Set());
       this.toast.success(`Deleted ${deleted.length}${deleted.length < items.length ? '/' + items.length + ' (some failed)' : ''} polls`);
+      this.selectedIds.set(new Set());
+      this.load();
+      this.refresh.notify();
     });
   }
 
