@@ -439,13 +439,12 @@ export class MultiPollManagementComponent implements OnInit {
       return;
     }
     const newLevel = this.maxLevel + 1;
-    const isEdit = !!this.editing();
     const newCount = Math.ceil(idxsAtMax.length / 2);
     for (let k = 0; k < newCount; k++) {
       const feederA = idxsAtMax[k * 2];
       const feederB = idxsAtMax[k * 2 + 1];
       const feeders = feederB !== undefined ? [feederA, feederB] : [feederA];
-      this.groupsArray.push(this.newGroupForm(isEdit));
+      this.groupsArray.push(this.newBracketGroupForm());
       this.groupLevels.push(newLevel);
       this.groupFeederIndices.push(feeders);
     }
@@ -513,6 +512,11 @@ export class MultiPollManagementComponent implements OnInit {
 
   private newGroupForm(isEdit: boolean): FormGroup {
     return createGroupForm({ isEdit, showPeriod: !isEdit, serverNow: this.serverNow });
+  }
+
+  /** Bracket groups (level > 0) skip period validation — dates are optional schedule hints. */
+  private newBracketGroupForm(): FormGroup {
+    return createGroupForm({ isEdit: false, showPeriod: false, serverNow: this.serverNow });
   }
 
   // ── Lifecycle ──────────────────────────────────────────────────────────────
