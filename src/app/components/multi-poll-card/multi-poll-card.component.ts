@@ -117,7 +117,7 @@ export class MultiPollCardComponent implements OnInit, OnDestroy {
             isMyVote: myVote === c.id,
             isWinner: gw.id === c.id,
           },
-        } as TreeNode),
+        }) as TreeNode),
       } as TreeNode;
     });
 
