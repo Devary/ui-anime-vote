@@ -163,6 +163,7 @@ import { ConfirmModalComponent } from '../../shared/confirm-modal/confirm-modal.
               <app-poll-group-form
                 [group]="getGroupForm(i)"
                 [charOptions]="charOptions()"
+                [excludeIds]="excludeIdsForGroup(i)"
                 [showLabel]="true"
                 [showPeriod]="!editing()"
                 [isEdit]="!!editing()"
@@ -301,6 +302,8 @@ export class MultiPollManagementComponent implements OnInit {
   onCancelled(): void { this.showConfirm.set(false); }
 
   private serverNow = new Date();
+  /** Mirrors groupsArray indices — level of each group (0 = QF, 1 = SF, …). Used for cross-group uniqueness. */
+  groupLevels: number[] = [];
   submitted = false;
   form!: FormGroup;
 
@@ -384,6 +387,7 @@ export class MultiPollManagementComponent implements OnInit {
 
   openNew(): void {
     this.editing.set(null);
+    this.groupLevels = [];
     this.api.getServerTime().subscribe({ next: t => { this.serverNow = new Date(t.now); } });
     this.initForm(false);
     this.error.set(null);
@@ -396,6 +400,7 @@ export class MultiPollManagementComponent implements OnInit {
     this.initForm(true);
     const ga = this.groupsArray;
     ga.clear();
+    this.groupLevels = [];
     (mp.groups ?? []).forEach(g => {
       const gf = this.newGroupForm(true);
       gf.patchValue({ label: g.label });
@@ -405,8 +410,9 @@ export class MultiPollManagementComponent implements OnInit {
       while (ids.length < 2) ids.push('');
       ids.forEach(id => cArr.push(new FormControl(id)));
       ga.push(gf);
+      this.groupLevels.push(g.level);
     });
-    if (ga.length < 2) ga.push(this.newGroupForm(true));
+    if (ga.length < 2) { ga.push(this.newGroupForm(true)); this.groupLevels.push(0); }
     this.form.patchValue({ anime: mp.anime ?? '', question: mp.question });
     this.error.set(null);
     this.dupError.set(null);
@@ -424,13 +430,36 @@ export class MultiPollManagementComponent implements OnInit {
   closeForm(): void {
     this.showForm.set(false);
     this.editing.set(null);
+    this.groupLevels = [];
     this.initForm(false);
     this.error.set(null);
     this.dupError.set(null);
   }
 
-  addGroup(): void { this.groupsArray.push(this.newGroupForm(!!this.editing())); }
-  removeGroup(i: number): void { if (this.groupsArray.length > 2) this.groupsArray.removeAt(i); }
+  addGroup(): void {
+    this.groupsArray.push(this.newGroupForm(!!this.editing()));
+    this.groupLevels.push(0);
+  }
+
+  removeGroup(i: number): void {
+    if (this.groupsArray.length > 2) {
+      this.groupsArray.removeAt(i);
+      this.groupLevels.splice(i, 1);
+    }
+  }
+
+  /** Returns char IDs already selected in other groups at the same level — passed to each group form. */
+  excludeIdsForGroup(i: number): string[] {
+    const level = this.groupLevels[i] ?? 0;
+    const excluded = new Set<string>();
+    this.groupsArray.controls.forEach((ctrl, j) => {
+      if (j === i) return;
+      if ((this.groupLevels[j] ?? 0) !== level) return;
+      const cArr = (ctrl as FormGroup).get('candidates') as FormArray;
+      cArr.controls.forEach(c => { if (c.value) excluded.add(c.value as string); });
+    });
+    return [...excluded];
+  }
 
   // ── Submit ─────────────────────────────────────────────────────────────────
 
