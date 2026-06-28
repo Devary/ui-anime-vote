@@ -14,69 +14,15 @@ import { DataRefreshService } from '../../services/data-refresh.service';
 import { PollExportService } from '../../services/poll-export.service';
 import { AnimeDto, CharacterDto, PollDto, PollCreateDto } from '../../services/api.types';
 import { PollGroupFormComponent, CharOption, createGroupForm } from '../poll-group-form/poll-group-form.component';
+import { CrudModalComponent } from '../../shared/crud-modal/crud-modal.component';
+import { ConfirmModalComponent } from '../../shared/confirm-modal/confirm-modal.component';
 
 @Component({
   selector: 'app-poll-management',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, TableModule, InputTextModule, IconFieldModule, InputIconModule, SelectModule, PollGroupFormComponent],
+  imports: [CommonModule, ReactiveFormsModule, TableModule, InputTextModule, IconFieldModule, InputIconModule, SelectModule, PollGroupFormComponent, CrudModalComponent, ConfirmModalComponent],
   template: `
     <div class="section">
-
-      @if (showForm()) {
-        <form class="form-card" [formGroup]="meta" (ngSubmit)="save()">
-          <h4 class="form-title">{{ editing() ? 'Edit Poll' : 'New Poll' }}</h4>
-          <div class="form-grid">
-            <label class="field span-2">
-              <span>Question *</span>
-              <input class="input" formControlName="question" placeholder="Who would win?" />
-              @if (submitted && meta.get('question')?.errors?.['required']) {
-                <small class="error-msg">Question is required</small>
-              }
-            </label>
-            <label class="field">
-              <span>Anime <span class="optional">(optional)</span></span>
-              <p-select
-                [options]="animeList()"
-                formControlName="anime"
-                optionLabel="name"
-                optionValue="name"
-                [filter]="true"
-                filterBy="name"
-                [editable]="true"
-                [showClear]="true"
-                placeholder="Select or type…"
-                appendTo="body" />
-            </label>
-          </div>
-
-          <span class="field-label">Fighters *
-            <small class="optional">({{ fighterCount }}/10, min 2)</small>
-          </span>
-
-          <app-poll-group-form
-            [group]="fightersGroup"
-            [charOptions]="charOptions()"
-            [showLabel]="false"
-            [showPeriod]="false"
-            [canRemove]="false"
-            [submitted]="submitted"
-            candidatePlaceholder="Select fighter…"
-            candidateLabel="Fighter" />
-
-          @if (error()) { <div class="error-msg">{{ error() }}</div> }
-          @if (dupError()) {
-            <div class="dup-banner">⚠ {{ dupError() }}
-              <button type="button" class="dup-close" (click)="dupError.set(null)">✕</button>
-            </div>
-          }
-          <div class="form-actions">
-            <button class="btn-primary" type="submit" [disabled]="saving()">
-              {{ saving() ? 'Saving…' : (editing() ? 'Update' : 'Create') }}
-            </button>
-            <button class="btn-ghost" type="button" (click)="cancelEdit()">Cancel</button>
-          </div>
-        </form>
-      }
 
       <p-table
         #dt
@@ -108,8 +54,8 @@ import { PollGroupFormComponent, CharOption, createGroupForm } from '../poll-gro
                       (click)="delAll()">
                 Remove All
               </button>
-              <button class="btn-primary" type="button" (click)="toggleForm()">
-                {{ showForm() ? '✕ Cancel' : '+ New Poll' }}
+              <button class="btn-primary" type="button" (click)="openNew()">
+                + New Poll
               </button>
             </div>
           </div>
@@ -176,15 +122,79 @@ import { PollGroupFormComponent, CharOption, createGroupForm } from '../poll-gro
           <tr><td colspan="5">No polls found.</td></tr>
         </ng-template>
       </p-table>
+
+      <!-- Form modal -->
+      @if (showForm()) {
+        <app-crud-modal [title]="editing() ? 'Edit Poll' : 'New Poll'" (closeRequest)="onCloseRequest()">
+          <form [formGroup]="meta" (ngSubmit)="requestSave()">
+            <div class="form-grid">
+              <label class="field span-2">
+                <span>Question *</span>
+                <input class="input" formControlName="question" placeholder="Who would win?" />
+                @if (submitted && meta.get('question')?.errors?.['required']) {
+                  <small class="error-msg">Question is required</small>
+                }
+              </label>
+              <label class="field">
+                <span>Anime <span class="optional">(optional)</span></span>
+                <p-select
+                  [options]="animeList()"
+                  formControlName="anime"
+                  optionLabel="name"
+                  optionValue="name"
+                  [filter]="true"
+                  filterBy="name"
+                  [editable]="true"
+                  [showClear]="true"
+                  placeholder="Select or type…"
+                  appendTo="body" />
+              </label>
+            </div>
+
+            <span class="field-label">Fighters *
+              <small class="optional">({{ fighterCount }}/10, min 2)</small>
+            </span>
+
+            <app-poll-group-form
+              [group]="fightersGroup"
+              [charOptions]="charOptions()"
+              [showLabel]="false"
+              [showPeriod]="false"
+              [canRemove]="false"
+              [submitted]="submitted"
+              candidatePlaceholder="Select fighter…"
+              candidateLabel="Fighter" />
+
+            @if (error()) { <div class="error-msg">{{ error() }}</div> }
+            @if (dupError()) {
+              <div class="dup-banner">⚠ {{ dupError() }}
+                <button type="button" class="dup-close" (click)="dupError.set(null)">✕</button>
+              </div>
+            }
+            <div class="form-actions">
+              <button class="btn-ghost" type="button" (click)="onCloseRequest()">Cancel</button>
+              <button class="btn-primary" type="submit" [disabled]="saving()">
+                {{ saving() ? 'Saving…' : (editing() ? 'Update' : 'Create') }}
+              </button>
+            </div>
+          </form>
+        </app-crud-modal>
+      }
+
+      <!-- Confirm modal -->
+      @if (showConfirm()) {
+        <app-confirm-modal
+          [title]="confirmTitle()"
+          [message]="confirmMsg()"
+          [danger]="isDanger()"
+          (confirmed)="onConfirmed()"
+          (cancelled)="onCancelled()" />
+      }
     </div>
   `,
   styles: [`
     :host { display: block; }
     .section { display: flex; flex-direction: column; gap: 1rem; }
-    .form-card { background: var(--rz-surface); border: 1px solid var(--rz-border);
-                  border-radius: var(--rz-radius-md); padding: 1rem; display: flex;
-                  flex-direction: column; gap: 0.75rem; }
-    .form-title { margin: 0; font-size: 0.9rem; font-weight: 700; }
     .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; }
     .span-2 { grid-column: span 2; }
     .field { display: flex; flex-direction: column; gap: 0.3rem; font-size: 0.8rem; color: var(--rz-ink-muted); }
@@ -197,7 +207,7 @@ import { PollGroupFormComponent, CharOption, createGroupForm } from '../poll-gro
     .dup-banner { display: flex; align-items: center; gap: 0.5rem; background: var(--rz-danger-bg);
                    color: var(--rz-danger); border-radius: var(--rz-radius-sm); padding: 0.5rem 0.75rem; font-size: 0.8rem; }
     .dup-close { background: none; border: none; cursor: pointer; color: var(--rz-danger); font-size: 1rem; padding: 0; }
-    .form-actions { display: flex; gap: 0.5rem; }
+    .form-actions { display: flex; gap: 0.5rem; justify-content: flex-end; margin-top: 0.25rem; }
     .table-caption { display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; flex-wrap: wrap; }
     .caption-actions { display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap; }
     .row-check { width: 15px; height: 15px; cursor: pointer; accent-color: var(--rz-primary); }
@@ -237,15 +247,15 @@ export class PollManagementComponent implements OnInit {
   private readonly refresh = inject(DataRefreshService);
   private readonly export  = inject(PollExportService);
 
-  readonly polls    = signal<PollDto[]>([]);
-  readonly chars    = signal<CharacterDto[]>([]);
+  readonly polls     = signal<PollDto[]>([]);
+  readonly chars     = signal<CharacterDto[]>([]);
   readonly animeList = signal<AnimeDto[]>([]);
-  readonly loading  = signal(false);
-  readonly saving   = signal(false);
-  readonly showForm = signal(false);
-  readonly editing  = signal<PollDto | null>(null);
-  readonly error    = signal<string | null>(null);
-  readonly dupError = signal<string | null>(null);
+  readonly loading   = signal(false);
+  readonly saving    = signal(false);
+  readonly showForm  = signal(false);
+  readonly editing   = signal<PollDto | null>(null);
+  readonly error     = signal<string | null>(null);
+  readonly dupError  = signal<string | null>(null);
   readonly selectedIds = signal(new Set<string>());
 
   readonly allSelected = computed(() =>
@@ -262,6 +272,21 @@ export class PollManagementComponent implements OnInit {
       imageUrl: c.imageUrl
     }))
   );
+
+  // ── Confirm modal state ──────────────────────────────────────────────────────
+  readonly showConfirm  = signal(false);
+  readonly confirmTitle = signal('');
+  readonly confirmMsg   = signal('');
+  readonly isDanger     = signal(true);
+  private confirmCb: () => void = () => {};
+
+  private askConfirm(title: string, msg: string, cb: () => void, danger = true): void {
+    this.confirmTitle.set(title); this.confirmMsg.set(msg);
+    this.isDanger.set(danger); this.confirmCb = cb;
+    this.showConfirm.set(true);
+  }
+  onConfirmed(): void { this.confirmCb(); this.showConfirm.set(false); }
+  onCancelled(): void { this.showConfirm.set(false); }
 
   submitted = false;
 
@@ -302,8 +327,14 @@ export class PollManagementComponent implements OnInit {
     }
   }
 
-  toggleForm(): void {
-    if (this.showForm()) { this.cancelEdit(); } else { this.showForm.set(true); }
+  openNew(): void {
+    this.editing.set(null);
+    this.meta.reset({ anime: '', question: '' });
+    this.fightersGroup = createGroupForm({ showPeriod: false });
+    this.submitted = false;
+    this.error.set(null);
+    this.dupError.set(null);
+    this.showForm.set(true);
   }
 
   startEdit(p: PollDto): void {
@@ -316,22 +347,30 @@ export class PollManagementComponent implements OnInit {
     while (ids.length < 2) ids.push('');
     ids.forEach(id => cArr.push(new FormControl(id)));
     this.submitted = false;
-    this.showForm.set(true);
     this.error.set(null);
     this.dupError.set(null);
+    this.showForm.set(true);
   }
 
-  cancelEdit(): void {
+  onCloseRequest(): void {
+    const dirty = this.meta.dirty || this.fightersGroup.dirty;
+    if (dirty) {
+      this.askConfirm('Discard changes?', 'You have unsaved changes. Discard them?',
+        () => this.closeForm(), false);
+    } else { this.closeForm(); }
+  }
+
+  closeForm(): void {
+    this.showForm.set(false);
     this.editing.set(null);
     this.meta.reset({ anime: '', question: '' });
     this.fightersGroup = createGroupForm({ showPeriod: false });
     this.submitted = false;
-    this.showForm.set(false);
     this.error.set(null);
     this.dupError.set(null);
   }
 
-  save(): void {
+  requestSave(): void {
     this.submitted = true;
     this.error.set(null);
     this.dupError.set(null);
@@ -341,11 +380,22 @@ export class PollManagementComponent implements OnInit {
     if (filled.length < 2) { this.error.set('Select at least 2 fighters'); return; }
     if (new Set(filled).size < filled.length) { this.error.set('Fighters must be different'); return; }
 
+    const editId = this.editing()?.id;
+    this.askConfirm(
+      editId ? 'Save changes?' : 'Create poll?',
+      editId ? 'Save the changes to this poll?' : 'Create this new poll?',
+      () => this.doSave(), false
+    );
+  }
+
+  private doSave(): void {
     this.saving.set(true);
     const editId = this.editing()?.id;
+    const cArr = this.fightersGroup.get('candidates') as FormArray;
+    const filled = cArr.controls.map(c => c.value as string).filter(id => id);
     const dto: PollCreateDto = {
-      anime:     this.meta.get('anime')?.value ?? '',
-      question:  this.meta.get('question')?.value ?? '',
+      anime:      this.meta.get('anime')?.value ?? '',
+      question:   this.meta.get('question')?.value ?? '',
       fighterIds: filled
     };
     const req$ = editId
@@ -356,7 +406,7 @@ export class PollManagementComponent implements OnInit {
       next: () => {
         this.toast.success(editId ? 'Poll updated' : 'Poll created');
         this.saving.set(false);
-        this.cancelEdit();
+        this.closeForm();
         this.load();
         this.refresh.notify();
       },
@@ -371,7 +421,11 @@ export class PollManagementComponent implements OnInit {
   download(poll: PollDto): void { this.export.downloadPoll(poll).catch(e => this.toast.error(this.msg(e))); }
 
   del(id: string): void {
-    if (!confirm('Delete this poll and all its votes?')) return;
+    this.askConfirm('Delete poll?', 'This will delete the poll and all its votes. This action cannot be undone.',
+      () => this.doDelete(id));
+  }
+
+  private doDelete(id: string): void {
     this.api.adminDeletePoll(id).subscribe({
       next: () => {
         this.toast.success('Poll deleted');
@@ -385,21 +439,20 @@ export class PollManagementComponent implements OnInit {
   delSelected(): void {
     const ids = [...this.selectedIds()];
     if (!ids.length) return;
-    if (!confirm(`Delete ${ids.length} selected polls and all their votes?`)) return;
-    this.bulkDelete(ids, id => this.api.adminDeletePoll(id)).subscribe(deleted => {
-      this.toast.success(`Deleted ${deleted.length}${deleted.length < ids.length ? '/' + ids.length + ' (some failed)' : ''} polls`);
-      this.selectedIds.set(new Set());
-      this.load();
-      this.refresh.notify();
-    });
+    this.askConfirm(`Delete ${ids.length} polls?`, 'This will delete the selected polls and all their votes. This action cannot be undone.',
+      () => this.doBulkDelete(ids));
   }
 
   delAll(): void {
     const items = this.polls();
     if (!items.length) return;
-    if (!confirm(`Delete all ${items.length} polls and all their votes? This cannot be undone.`)) return;
-    this.bulkDelete(items.map(p => p.id), id => this.api.adminDeletePoll(id)).subscribe(deleted => {
-      this.toast.success(`Deleted ${deleted.length}${deleted.length < items.length ? '/' + items.length + ' (some failed)' : ''} polls`);
+    this.askConfirm(`Delete all ${items.length} polls?`, 'This will delete all polls and their votes. This action cannot be undone.',
+      () => this.doBulkDelete(items.map(p => p.id)));
+  }
+
+  private doBulkDelete(ids: string[]): void {
+    this.bulkDelete(ids, id => this.api.adminDeletePoll(id)).subscribe(deleted => {
+      this.toast.success(`Deleted ${deleted.length}${deleted.length < ids.length ? '/' + ids.length + ' (some failed)' : ''} polls`);
       this.selectedIds.set(new Set());
       this.load();
       this.refresh.notify();

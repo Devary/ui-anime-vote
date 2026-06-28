@@ -13,55 +13,15 @@ import { ToastService } from '../../services/toast.service';
 import { DataRefreshService } from '../../services/data-refresh.service';
 import { AnimeDto, CharacterDto, CharacterCreateDto } from '../../services/api.types';
 import { ImageUploadComponent } from '../../shared/image-upload/image-upload.component';
+import { CrudModalComponent } from '../../shared/crud-modal/crud-modal.component';
+import { ConfirmModalComponent } from '../../shared/confirm-modal/confirm-modal.component';
 
 @Component({
   selector: 'app-character-management',
   standalone: true,
-  imports: [CommonModule, FormsModule, TableModule, InputTextModule, IconFieldModule, InputIconModule, SelectModule, ImageUploadComponent],
+  imports: [CommonModule, FormsModule, TableModule, InputTextModule, IconFieldModule, InputIconModule, SelectModule, ImageUploadComponent, CrudModalComponent, ConfirmModalComponent],
   template: `
     <div class="section">
-
-      @if (showForm()) {
-        <form class="form-card" (ngSubmit)="save()">
-          <h4 class="form-title">{{ editing() ? 'Edit Character' : 'New Character' }}</h4>
-          <div class="form-grid">
-            <label class="field">
-              <span>Name *</span>
-              <input class="input" [(ngModel)]="form.name" name="cname" placeholder="e.g. Naruto Uzumaki" required />
-            </label>
-            <label class="field">
-              <span>Title / Role</span>
-              <input class="input" [(ngModel)]="form.title" name="ctitle" placeholder="e.g. Hokage" />
-            </label>
-            <label class="field">
-              <span>Anime</span>
-              <p-select
-                [options]="animeList()"
-                [(ngModel)]="form.anime"
-                optionLabel="name"
-                optionValue="name"
-                [filter]="true"
-                filterBy="name"
-                [editable]="true"
-                [showClear]="true"
-                placeholder="Select or type anime…"
-                name="canime"
-                appendTo="body" />
-            </label>
-          </div>
-          <label class="field">
-            <span>Image</span>
-            <app-image-upload [(imageUrl)]="form.imageUrl"></app-image-upload>
-          </label>
-          @if (error()) { <div class="error-msg">{{ error() }}</div> }
-          <div class="form-actions">
-            <button class="btn-primary" type="submit" [disabled]="saving()">
-              {{ saving() ? 'Saving…' : (editing() ? 'Update' : 'Create') }}
-            </button>
-            <button class="btn-ghost" type="button" (click)="cancelEdit()">Cancel</button>
-          </div>
-        </form>
-      }
 
       <p-table
         #dt
@@ -93,8 +53,8 @@ import { ImageUploadComponent } from '../../shared/image-upload/image-upload.com
                       (click)="delAll()">
                 Remove All
               </button>
-              <button class="btn-primary" type="button" (click)="toggleForm()">
-                {{ showForm() ? '✕ Cancel' : '+ Add Character' }}
+              <button class="btn-primary" type="button" (click)="openNew()">
+                + Add Character
               </button>
             </div>
           </div>
@@ -161,21 +121,74 @@ import { ImageUploadComponent } from '../../shared/image-upload/image-upload.com
         </ng-template>
 
       </p-table>
+
+      <!-- Form modal -->
+      @if (showForm()) {
+        <app-crud-modal [title]="editing() ? 'Edit Character' : 'New Character'" (closeRequest)="onCloseRequest()">
+          <form (ngSubmit)="requestSave()">
+            <div class="form-grid">
+              <label class="field">
+                <span>Name *</span>
+                <input class="input" [(ngModel)]="form.name" name="cname" placeholder="e.g. Naruto Uzumaki"
+                       (ngModelChange)="markDirty()" required />
+              </label>
+              <label class="field">
+                <span>Title / Role</span>
+                <input class="input" [(ngModel)]="form.title" name="ctitle" placeholder="e.g. Hokage"
+                       (ngModelChange)="markDirty()" />
+              </label>
+              <label class="field">
+                <span>Anime</span>
+                <p-select
+                  [options]="animeList()"
+                  [(ngModel)]="form.anime"
+                  optionLabel="name"
+                  optionValue="name"
+                  [filter]="true"
+                  filterBy="name"
+                  [editable]="true"
+                  [showClear]="true"
+                  placeholder="Select or type anime…"
+                  name="canime"
+                  (onChange)="markDirty()"
+                  appendTo="body" />
+              </label>
+            </div>
+            <label class="field">
+              <span>Image</span>
+              <app-image-upload [(imageUrl)]="form.imageUrl" (imageUrlChange)="markDirty()"></app-image-upload>
+            </label>
+            @if (error()) { <div class="error-msg">{{ error() }}</div> }
+            <div class="form-actions">
+              <button class="btn-ghost" type="button" (click)="onCloseRequest()">Cancel</button>
+              <button class="btn-primary" type="submit" [disabled]="saving()">
+                {{ saving() ? 'Saving…' : (editing() ? 'Update' : 'Create') }}
+              </button>
+            </div>
+          </form>
+        </app-crud-modal>
+      }
+
+      <!-- Confirm modal -->
+      @if (showConfirm()) {
+        <app-confirm-modal
+          [title]="confirmTitle()"
+          [message]="confirmMsg()"
+          [danger]="isDanger()"
+          (confirmed)="onConfirmed()"
+          (cancelled)="onCancelled()" />
+      }
     </div>
   `,
   styles: [`
     :host { display: block; }
     .section { display: flex; flex-direction: column; gap: 1rem; }
-    .form-card { background: var(--rz-surface); border: 1px solid var(--rz-border);
-                  border-radius: var(--rz-radius-md); padding: 1rem; display: flex;
-                  flex-direction: column; gap: 0.75rem; }
-    .form-title { margin: 0; font-size: 0.9rem; font-weight: 700; color: var(--rz-ink); }
     .form-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 0.5rem; }
     .field { display: flex; flex-direction: column; gap: 0.3rem; font-size: 0.8rem; color: var(--rz-ink-muted); }
     .input { padding: 0.4rem 0.6rem; border: 1px solid var(--rz-border); border-radius: var(--rz-radius-sm);
               background: var(--rz-glass-bg); color: var(--rz-ink); font-size: 0.82rem; }
     .input:focus { outline: none; border-color: var(--rz-primary); }
-    .form-actions { display: flex; gap: 0.5rem; }
+    .form-actions { display: flex; gap: 0.5rem; justify-content: flex-end; margin-top: 0.25rem; }
     .error-msg { color: var(--rz-danger); font-size: 0.8rem; }
     .table-caption { display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; flex-wrap: wrap; }
     .caption-actions { display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap; }
@@ -215,13 +228,13 @@ export class CharacterManagementComponent implements OnInit {
   private readonly toast   = inject(ToastService);
   private readonly refresh = inject(DataRefreshService);
 
-  readonly chars = signal<CharacterDto[]>([]);
+  readonly chars     = signal<CharacterDto[]>([]);
   readonly animeList = signal<AnimeDto[]>([]);
-  readonly loading = signal(false);
-  readonly saving = signal(false);
-  readonly showForm = signal(false);
-  readonly editing = signal<CharacterDto | null>(null);
-  readonly error = signal<string | null>(null);
+  readonly loading   = signal(false);
+  readonly saving    = signal(false);
+  readonly showForm  = signal(false);
+  readonly editing   = signal<CharacterDto | null>(null);
+  readonly error     = signal<string | null>(null);
   readonly selectedIds = signal(new Set<string>());
 
   readonly allSelected = computed(() =>
@@ -230,6 +243,25 @@ export class CharacterManagementComponent implements OnInit {
   readonly someSelected = computed(() =>
     this.selectedIds().size > 0 && this.selectedIds().size < this.chars().length
   );
+
+  // ── Confirm modal state ──────────────────────────────────────────────────────
+  readonly showConfirm  = signal(false);
+  readonly confirmTitle = signal('');
+  readonly confirmMsg   = signal('');
+  readonly isDanger     = signal(true);
+  private confirmCb: () => void = () => {};
+
+  private askConfirm(title: string, msg: string, cb: () => void, danger = true): void {
+    this.confirmTitle.set(title); this.confirmMsg.set(msg);
+    this.isDanger.set(danger); this.confirmCb = cb;
+    this.showConfirm.set(true);
+  }
+  onConfirmed(): void { this.confirmCb(); this.showConfirm.set(false); }
+  onCancelled(): void { this.showConfirm.set(false); }
+
+  // ── Dirty tracking ───────────────────────────────────────────────────────────
+  readonly isDirty = signal(false);
+  markDirty(): void { this.isDirty.set(true); }
 
   form: CharacterCreateDto = { name: '', title: '', anime: '', imageUrl: null };
 
@@ -258,28 +290,50 @@ export class CharacterManagementComponent implements OnInit {
     }
   }
 
-  toggleForm(): void {
-    if (this.showForm()) { this.cancelEdit(); } else { this.showForm.set(true); }
+  openNew(): void {
+    this.editing.set(null);
+    this.form = { name: '', title: '', anime: '', imageUrl: null };
+    this.error.set(null);
+    this.isDirty.set(false);
+    this.showForm.set(true);
   }
 
   startEdit(c: CharacterDto): void {
     this.editing.set(c);
     this.form = { name: c.name, title: c.title ?? '', anime: c.anime ?? '', imageUrl: c.imageUrl ?? null };
+    this.error.set(null);
+    this.isDirty.set(false);
     this.showForm.set(true);
-    this.error.set(null);
   }
 
-  cancelEdit(): void {
-    this.editing.set(null);
-    this.form = { name: '', title: '', anime: '', imageUrl: null };
+  onCloseRequest(): void {
+    if (this.isDirty()) {
+      this.askConfirm('Discard changes?', 'You have unsaved changes. Discard them?',
+        () => this.closeForm(), false);
+    } else { this.closeForm(); }
+  }
+
+  closeForm(): void {
     this.showForm.set(false);
+    this.editing.set(null);
+    this.isDirty.set(false);
     this.error.set(null);
+    this.form = { name: '', title: '', anime: '', imageUrl: null };
   }
 
-  save(): void {
-    this.error.set(null);
+  requestSave(): void {
     if (!this.form.name?.trim()) { this.error.set('Name is required'); return; }
+    const editId = this.editing()?.id;
+    this.askConfirm(
+      editId ? 'Save changes?' : 'Create character?',
+      editId ? 'Save the changes to this character?' : 'Create this new character?',
+      () => this.doSave(), false
+    );
+  }
+
+  private doSave(): void {
     this.saving.set(true);
+    this.error.set(null);
     const editId = this.editing()?.id;
     const req$ = editId
       ? this.api.adminUpdateCharacter(editId, this.form)
@@ -289,7 +343,7 @@ export class CharacterManagementComponent implements OnInit {
       next: () => {
         this.toast.success(editId ? 'Character updated' : 'Character created');
         this.saving.set(false);
-        this.cancelEdit();
+        this.closeForm();
         this.load();
         this.refresh.notify();
       },
@@ -298,7 +352,11 @@ export class CharacterManagementComponent implements OnInit {
   }
 
   del(id: string): void {
-    if (!confirm('Delete this character? This may affect existing polls.')) return;
+    this.askConfirm('Delete character?', 'This action cannot be undone. This may affect existing polls.',
+      () => this.doDelete(id));
+  }
+
+  private doDelete(id: string): void {
     this.api.adminDeleteCharacter(id).subscribe({
       next: () => {
         this.toast.success('Character deleted');
@@ -312,21 +370,20 @@ export class CharacterManagementComponent implements OnInit {
   delSelected(): void {
     const ids = [...this.selectedIds()];
     if (!ids.length) return;
-    if (!confirm(`Delete ${ids.length} selected characters? This may affect existing polls.`)) return;
-    this.bulkDelete(ids, id => this.api.adminDeleteCharacter(id)).subscribe(deleted => {
-      this.toast.success(`Deleted ${deleted.length}${deleted.length < ids.length ? '/' + ids.length + ' (some failed)' : ''} characters`);
-      this.selectedIds.set(new Set());
-      this.load();
-      this.refresh.notify();
-    });
+    this.askConfirm(`Delete ${ids.length} characters?`, 'This action cannot be undone. This may affect existing polls.',
+      () => this.doBulkDelete(ids));
   }
 
   delAll(): void {
     const items = this.chars();
     if (!items.length) return;
-    if (!confirm(`Delete all ${items.length} characters? This may affect existing polls.`)) return;
-    this.bulkDelete(items.map(c => c.id), id => this.api.adminDeleteCharacter(id)).subscribe(deleted => {
-      this.toast.success(`Deleted ${deleted.length}${deleted.length < items.length ? '/' + items.length + ' (some failed)' : ''} characters`);
+    this.askConfirm(`Delete all ${items.length} characters?`, 'This action cannot be undone. This may affect existing polls.',
+      () => this.doBulkDelete(items.map(c => c.id)));
+  }
+
+  private doBulkDelete(ids: string[]): void {
+    this.bulkDelete(ids, id => this.api.adminDeleteCharacter(id)).subscribe(deleted => {
+      this.toast.success(`Deleted ${deleted.length}${deleted.length < ids.length ? '/' + ids.length + ' (some failed)' : ''} characters`);
       this.selectedIds.set(new Set());
       this.load();
       this.refresh.notify();

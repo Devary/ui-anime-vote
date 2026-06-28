@@ -11,13 +11,15 @@ import { AnimeApiService } from '../../services/anime-api.service';
 import { ToastService } from '../../services/toast.service';
 import { DataRefreshService } from '../../services/data-refresh.service';
 import { UserDto, RoleDto, AdminUserUpdateDto, RoleCreateDto } from '../../services/api.types';
+import { CrudModalComponent } from '../../shared/crud-modal/crud-modal.component';
+import { ConfirmModalComponent } from '../../shared/confirm-modal/confirm-modal.component';
 
 type SubTab = 'users' | 'roles';
 
 @Component({
   selector: 'app-user-management',
   standalone: true,
-  imports: [CommonModule, FormsModule, TableModule, InputTextModule, IconFieldModule, InputIconModule],
+  imports: [CommonModule, FormsModule, TableModule, InputTextModule, IconFieldModule, InputIconModule, CrudModalComponent, ConfirmModalComponent],
   template: `
     <div class="section">
 
@@ -29,42 +31,6 @@ type SubTab = 'users' | 'roles';
 
       <!-- ── USERS ──────────────────────────────────────────────────────────── -->
       @if (subTab() === 'users') {
-
-        @if (editingUser()) {
-          <div class="edit-card">
-            <h4 class="edit-title">Edit user: {{ editingUser()!.username }}</h4>
-            <div class="edit-grid">
-              <label class="field">
-                <span>Email</span>
-                <input class="input" type="email" [(ngModel)]="editEmail" />
-              </label>
-              <label class="field">
-                <span>Profile picture URL</span>
-                <input class="input" type="text" [(ngModel)]="editPicture" placeholder="https://…" />
-              </label>
-            </div>
-            <div class="roles-assign">
-              <span class="roles-label">Roles</span>
-              <div class="roles-checkboxes">
-                @for (role of allRoles(); track role.id) {
-                  <label class="role-check-item">
-                    <input type="checkbox"
-                           [checked]="editRoleIds.has(role.id)"
-                           (change)="toggleEditRole(role.id)" />
-                    <span class="role-pill">{{ role.name }}</span>
-                  </label>
-                }
-              </div>
-            </div>
-            @if (editError()) { <div class="error-msg">{{ editError() }}</div> }
-            <div class="edit-actions">
-              <button class="btn-primary" (click)="saveUser()" [disabled]="saving()">
-                {{ saving() ? 'Saving…' : 'Save' }}
-              </button>
-              <button class="btn-ghost" (click)="cancelEdit()">Cancel</button>
-            </div>
-          </div>
-        }
 
         <p-table
           #dt
@@ -154,29 +120,9 @@ type SubTab = 'users' | 'roles';
       <!-- ── ROLES ──────────────────────────────────────────────────────────── -->
       @if (subTab() === 'roles') {
         <div class="roles-section">
-
-          <div class="roles-create-card">
-            <h4 class="edit-title">Add role</h4>
-            <div class="edit-grid">
-              <label class="field">
-                <span>ID (uppercase) *</span>
-                <input class="input" [(ngModel)]="newRoleId" placeholder="BETA" />
-              </label>
-              <label class="field">
-                <span>Display name *</span>
-                <input class="input" [(ngModel)]="newRoleName" placeholder="Beta Tester" />
-              </label>
-              <label class="field span-2">
-                <span>Description</span>
-                <input class="input" [(ngModel)]="newRoleDesc" placeholder="Optional description" />
-              </label>
-            </div>
-            @if (roleError()) { <div class="error-msg">{{ roleError() }}</div> }
-            <button class="btn-primary" (click)="createRole()" [disabled]="savingRole()">
-              {{ savingRole() ? 'Creating…' : '+ Create Role' }}
-            </button>
+          <div style="display:flex;justify-content:flex-end;">
+            <button class="btn-primary" type="button" (click)="openNewRole()">+ Add Role</button>
           </div>
-
           <div class="roles-list">
             @for (role of allRoles(); track role.id) {
               <div class="role-row">
@@ -196,6 +142,88 @@ type SubTab = 'users' | 'roles';
           </div>
         </div>
       }
+
+      <!-- Edit user modal -->
+      @if (showUserForm()) {
+        <app-crud-modal [title]="'Edit user: ' + (editingUser()?.username ?? '')" (closeRequest)="onUserCloseRequest()">
+          <form (ngSubmit)="requestSaveUser()">
+            <div class="edit-grid">
+              <label class="field">
+                <span>Email</span>
+                <input class="input" type="email" [(ngModel)]="editEmail" name="uemail"
+                       (ngModelChange)="markUserDirty()" />
+              </label>
+              <label class="field">
+                <span>Profile picture URL</span>
+                <input class="input" type="text" [(ngModel)]="editPicture" name="upic"
+                       placeholder="https://…" (ngModelChange)="markUserDirty()" />
+              </label>
+            </div>
+            <div class="roles-assign">
+              <span class="roles-label">Roles</span>
+              <div class="roles-checkboxes">
+                @for (role of allRoles(); track role.id) {
+                  <label class="role-check-item">
+                    <input type="checkbox"
+                           [checked]="editRoleIds.has(role.id)"
+                           (change)="toggleEditRole(role.id)" />
+                    <span class="role-pill">{{ role.name }}</span>
+                  </label>
+                }
+              </div>
+            </div>
+            @if (editError()) { <div class="error-msg">{{ editError() }}</div> }
+            <div class="edit-actions">
+              <button class="btn-ghost" type="button" (click)="onUserCloseRequest()">Cancel</button>
+              <button class="btn-primary" type="submit" [disabled]="saving()">
+                {{ saving() ? 'Saving…' : 'Save' }}
+              </button>
+            </div>
+          </form>
+        </app-crud-modal>
+      }
+
+      <!-- Create role modal -->
+      @if (showRoleForm()) {
+        <app-crud-modal title="Add Role" (closeRequest)="onRoleCloseRequest()">
+          <form (ngSubmit)="requestCreateRole()">
+            <div class="edit-grid">
+              <label class="field">
+                <span>ID (uppercase) *</span>
+                <input class="input" [(ngModel)]="newRoleId" name="rid" placeholder="BETA"
+                       (ngModelChange)="markRoleDirty()" />
+              </label>
+              <label class="field">
+                <span>Display name *</span>
+                <input class="input" [(ngModel)]="newRoleName" name="rname" placeholder="Beta Tester"
+                       (ngModelChange)="markRoleDirty()" />
+              </label>
+              <label class="field span-2">
+                <span>Description</span>
+                <input class="input" [(ngModel)]="newRoleDesc" name="rdesc" placeholder="Optional description"
+                       (ngModelChange)="markRoleDirty()" />
+              </label>
+            </div>
+            @if (roleError()) { <div class="error-msg">{{ roleError() }}</div> }
+            <div class="edit-actions">
+              <button class="btn-ghost" type="button" (click)="onRoleCloseRequest()">Cancel</button>
+              <button class="btn-primary" type="submit" [disabled]="savingRole()">
+                {{ savingRole() ? 'Creating…' : '+ Create Role' }}
+              </button>
+            </div>
+          </form>
+        </app-crud-modal>
+      }
+
+      <!-- Confirm modal -->
+      @if (showConfirm()) {
+        <app-confirm-modal
+          [title]="confirmTitle()"
+          [message]="confirmMsg()"
+          [danger]="isDanger()"
+          (confirmed)="onConfirmed()"
+          (cancelled)="onCancelled()" />
+      }
     </div>
   `,
   styles: [`
@@ -207,10 +235,6 @@ type SubTab = 'users' | 'roles';
                 background: transparent; color: var(--rz-ink-muted); font-size: 0.8rem; cursor: pointer; }
     .sub-tab.active { background: var(--rz-primary); color: #fff; border-color: var(--rz-primary); }
 
-    .edit-card, .roles-create-card { background: var(--rz-surface); border: 1px solid var(--rz-border);
-                  border-radius: var(--rz-radius-md); padding: 1rem; display: flex;
-                  flex-direction: column; gap: 0.75rem; }
-    .edit-title { margin: 0; font-size: 0.9rem; font-weight: 700; }
     .edit-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; }
     .span-2 { grid-column: span 2; }
     .field { display: flex; flex-direction: column; gap: 0.3rem; font-size: 0.8rem; color: var(--rz-ink-muted); }
@@ -223,7 +247,7 @@ type SubTab = 'users' | 'roles';
     .roles-checkboxes { display: flex; flex-wrap: wrap; gap: 0.5rem; }
     .role-check-item { display: flex; align-items: center; gap: 0.35rem; cursor: pointer; font-size: 0.8rem; }
 
-    .edit-actions { display: flex; gap: 0.5rem; }
+    .edit-actions { display: flex; gap: 0.5rem; justify-content: flex-end; margin-top: 0.25rem; }
 
     .table-caption { display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; flex-wrap: wrap; }
     .caption-actions { display: flex; gap: 0.5rem; }
@@ -298,19 +322,42 @@ export class UserManagementComponent implements OnInit {
   readonly allSelected = computed(() => this.users().length > 0 && this.selectedIds().size === this.users().length);
   readonly someSelected = computed(() => this.selectedIds().size > 0 && this.selectedIds().size < this.users().length);
 
-  // ── Edit user ──────────────────────────────────────────────────────────────
-  readonly editingUser = signal<UserDto | null>(null);
-  readonly editError   = signal<string | null>(null);
+  // ── Edit user modal ────────────────────────────────────────────────────────
+  readonly showUserForm  = signal(false);
+  readonly editingUser   = signal<UserDto | null>(null);
+  readonly editError     = signal<string | null>(null);
+  readonly isUserDirty   = signal(false);
   editEmail   = '';
   editPicture = '';
   editRoleIds = new Set<string>();
 
-  // ── Roles ──────────────────────────────────────────────────────────────────
-  readonly savingRole = signal(false);
-  readonly roleError  = signal<string | null>(null);
+  markUserDirty(): void { this.isUserDirty.set(true); }
+
+  // ── Roles form modal ───────────────────────────────────────────────────────
+  readonly showRoleForm  = signal(false);
+  readonly savingRole    = signal(false);
+  readonly roleError     = signal<string | null>(null);
+  readonly isRoleDirty   = signal(false);
   newRoleId   = '';
   newRoleName = '';
   newRoleDesc = '';
+
+  markRoleDirty(): void { this.isRoleDirty.set(true); }
+
+  // ── Confirm modal state ──────────────────────────────────────────────────────
+  readonly showConfirm  = signal(false);
+  readonly confirmTitle = signal('');
+  readonly confirmMsg   = signal('');
+  readonly isDanger     = signal(true);
+  private confirmCb: () => void = () => {};
+
+  private askConfirm(title: string, msg: string, cb: () => void, danger = true): void {
+    this.confirmTitle.set(title); this.confirmMsg.set(msg);
+    this.isDanger.set(danger); this.confirmCb = cb;
+    this.showConfirm.set(true);
+  }
+  onConfirmed(): void { this.confirmCb(); this.showConfirm.set(false); }
+  onCancelled(): void { this.showConfirm.set(false); }
 
   ngOnInit(): void {
     this.load();
@@ -339,7 +386,7 @@ export class UserManagementComponent implements OnInit {
     else { this.selectedIds.set(new Set(this.users().map(u => u.id))); }
   }
 
-  // ── User CRUD ──────────────────────────────────────────────────────────────
+  // ── User edit modal ────────────────────────────────────────────────────────
 
   startEdit(u: UserDto): void {
     this.editingUser.set(u);
@@ -347,17 +394,39 @@ export class UserManagementComponent implements OnInit {
     this.editPicture = u.profilePicture ?? '';
     this.editRoleIds = new Set(u.roles.map(r => r.id));
     this.editError.set(null);
+    this.isUserDirty.set(false);
+    this.showUserForm.set(true);
   }
 
-  cancelEdit(): void { this.editingUser.set(null); this.editError.set(null); }
+  onUserCloseRequest(): void {
+    if (this.isUserDirty()) {
+      this.askConfirm('Discard changes?', 'You have unsaved changes. Discard them?',
+        () => this.closeUserForm(), false);
+    } else { this.closeUserForm(); }
+  }
+
+  closeUserForm(): void {
+    this.showUserForm.set(false);
+    this.editingUser.set(null);
+    this.editError.set(null);
+    this.isUserDirty.set(false);
+  }
 
   toggleEditRole(roleId: string): void {
     const s = new Set(this.editRoleIds);
     s.has(roleId) ? s.delete(roleId) : s.add(roleId);
     this.editRoleIds = s;
+    this.isUserDirty.set(true);
   }
 
-  saveUser(): void {
+  requestSaveUser(): void {
+    const u = this.editingUser();
+    if (!u) return;
+    this.askConfirm('Save changes?', 'Save the changes to this user?',
+      () => this.doSaveUser(), false);
+  }
+
+  private doSaveUser(): void {
     const u = this.editingUser();
     if (!u) return;
     this.saving.set(true);
@@ -370,7 +439,7 @@ export class UserManagementComponent implements OnInit {
     this.api.adminUpdateUser(u.id, dto).subscribe({
       next: () => {
         this.saving.set(false);
-        this.cancelEdit();
+        this.closeUserForm();
         this.toast.success('User updated');
         this.load();
       },
@@ -379,7 +448,11 @@ export class UserManagementComponent implements OnInit {
   }
 
   delUser(id: string): void {
-    if (!confirm('Delete this user and all their votes?')) return;
+    this.askConfirm('Delete user?', 'This will delete the user and all their votes. This action cannot be undone.',
+      () => this.doDeleteUser(id));
+  }
+
+  private doDeleteUser(id: string): void {
     this.api.adminDeleteUser(id).subscribe({
       next: () => {
         this.toast.success('User deleted');
@@ -392,7 +465,11 @@ export class UserManagementComponent implements OnInit {
   delSelected(): void {
     const ids = [...this.selectedIds()];
     if (!ids.length) return;
-    if (!confirm(`Delete ${ids.length} selected users and all their votes?`)) return;
+    this.askConfirm(`Delete ${ids.length} users?`, 'This will delete the selected users and all their votes. This action cannot be undone.',
+      () => this.doBulkDeleteUsers(ids));
+  }
+
+  private doBulkDeleteUsers(ids: string[]): void {
     forkJoin(ids.map(id => this.api.adminDeleteUser(id).pipe(
       map(() => id as string | null), catchError(() => of(null))
     ))).subscribe(results => {
@@ -403,20 +480,45 @@ export class UserManagementComponent implements OnInit {
     });
   }
 
-  // ── Roles CRUD ─────────────────────────────────────────────────────────────
+  // ── Role create modal ──────────────────────────────────────────────────────
 
-  createRole(): void {
+  openNewRole(): void {
+    this.newRoleId = ''; this.newRoleName = ''; this.newRoleDesc = '';
+    this.roleError.set(null);
+    this.isRoleDirty.set(false);
+    this.showRoleForm.set(true);
+  }
+
+  onRoleCloseRequest(): void {
+    if (this.isRoleDirty()) {
+      this.askConfirm('Discard changes?', 'You have unsaved changes. Discard them?',
+        () => this.closeRoleForm(), false);
+    } else { this.closeRoleForm(); }
+  }
+
+  closeRoleForm(): void {
+    this.showRoleForm.set(false);
+    this.roleError.set(null);
+    this.isRoleDirty.set(false);
+  }
+
+  requestCreateRole(): void {
     if (!this.newRoleId.trim() || !this.newRoleName.trim()) {
       this.roleError.set('ID and name are required'); return;
     }
+    this.askConfirm('Create role?', `Create role "${this.newRoleId.trim()}"?`,
+      () => this.doCreateRole(), false);
+  }
+
+  private doCreateRole(): void {
     this.savingRole.set(true);
     this.roleError.set(null);
     const dto: RoleCreateDto = { id: this.newRoleId.trim(), name: this.newRoleName.trim(), description: this.newRoleDesc };
     this.api.adminCreateRole(dto).subscribe({
       next: role => {
-        this.newRoleId = ''; this.newRoleName = ''; this.newRoleDesc = '';
         this.savingRole.set(false);
         this.toast.success(`Role "${role.id}" created`);
+        this.closeRoleForm();
         this.load();
       },
       error: e => { this.savingRole.set(false); this.roleError.set(this.msg(e)); }
@@ -424,7 +526,11 @@ export class UserManagementComponent implements OnInit {
   }
 
   delRole(id: string): void {
-    if (!confirm(`Delete role "${id}"? It will be removed from all users.`)) return;
+    this.askConfirm(`Delete role "${id}"?`, 'It will be removed from all users. This action cannot be undone.',
+      () => this.doDeleteRole(id));
+  }
+
+  private doDeleteRole(id: string): void {
     this.api.adminDeleteRole(id).subscribe({
       next: () => {
         this.toast.success(`Role "${id}" deleted`);
