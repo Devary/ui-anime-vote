@@ -90,7 +90,9 @@ export class MultiPollCardComponent implements OnInit, OnDestroy {
     );
   }
 
-  private groupTotal(group: MultiPollGroup): number {
+  readonly COLORS = SEGMENT_COLORS;
+
+  groupTotal(group: MultiPollGroup): number {
     return group.candidates.reduce((s, c) => s + this.voteStore.getCount(c.id), 0);
   }
 
@@ -138,86 +140,6 @@ export class MultiPollCardComponent implements OnInit, OnDestroy {
       };
     })
   );
-
-  // ── Bracket result view ───────────────────────────────────────────────────
-
-  readonly bracketNodes = computed<TreeNode[]>(() => {
-    if (!this.isBracket()) return [];
-    const poll   = this.poll();
-    const groups = poll.groups;
-    const byId   = new Map(groups.map(g => [g.id, g]));
-    const myVoteForPoll = this.voteStore.getMyVote(poll.id);
-
-    const buildNode = (group: MultiPollGroup): TreeNode => {
-      const gt       = this.groupTotal(group);
-      const status   = this.groupStatuses().get(group.id)!;
-      const myVote   = this.myGroupVote(group.id);
-      const gw       = group.resolved && group.candidates.length > 0 ? this.groupWinner(group) : null;
-
-      const candidateNodes: TreeNode[] = group.candidates.map((c, ci) => ({
-        type: 'candidate',
-        data: {
-          charId: c.id, image: c.image, name: c.name,
-          votes:    this.voteStore.getCount(c.id),
-          pct:      gt > 0 ? ((this.voteStore.getCount(c.id) / gt) * 100).toFixed(2) : '0.00',
-          color:    SEGMENT_COLORS[ci % SEGMENT_COLORS.length],
-          isMyVote: myVote === c.id,
-          isWinner: gw?.id === c.id,
-        },
-      } as TreeNode));
-
-      return {
-        expanded: true,
-        type:     status === 'tbd' ? 'tbd-group'
-                : !group.resolved   ? 'tbd-group'
-                : 'group-winner',
-        data: {
-          image:    gw?.image,
-          name:     gw?.name ?? '?',
-          label:    group.label,
-          level:    group.level,
-          status,
-          isMyVote: myVote !== null && myVote === gw?.id,
-        },
-        children: candidateNodes,
-      };
-    };
-
-    // Find the highest-level group(s) as roots
-    const maxLevel = Math.max(...groups.map(g => g.level));
-    const roots    = groups.filter(g => g.level === maxLevel);
-
-    // Recursively attach feeder groups as children
-    const buildTree = (group: MultiPollGroup): TreeNode => {
-      const node = buildNode(group);
-      if (group.feederGroupIds?.length) {
-        node.children = group.feederGroupIds
-          .map(fid => byId.get(fid))
-          .filter(Boolean)
-          .map(g => buildTree(g!));
-      } else {
-        node.children = group.candidates.map((c, ci) => {
-          const gt = this.groupTotal(group);
-          return {
-            type: 'candidate',
-            data: {
-              charId: c.id, image: c.image, name: c.name,
-              votes:    this.voteStore.getCount(c.id),
-              pct:      gt > 0 ? ((this.voteStore.getCount(c.id) / gt) * 100).toFixed(2) : '0.00',
-              color:    SEGMENT_COLORS[ci % SEGMENT_COLORS.length],
-              isMyVote: this.myGroupVote(group.id) === c.id,
-              isWinner: this.groupWinner(group)?.id === c.id,
-            },
-          } as TreeNode;
-        });
-      }
-      return node;
-    };
-
-    return roots.length === 1
-      ? [buildTree(roots[0])]
-      : roots.map(r => buildTree(r));
-  });
 
   // ── Actions ───────────────────────────────────────────────────────────────
 

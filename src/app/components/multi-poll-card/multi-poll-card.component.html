@@ -57,7 +57,7 @@
                     }
                   </div>
                 } @else {
-                  <!-- Resolved: show candidates -->
+                  <!-- Resolved: show candidates with vote buttons -->
                   <div class="bracket-candidates">
                     @for (c of group.candidates; track c.id; let ci = $index) {
                       <div class="bracket-candidate"
@@ -82,6 +82,16 @@
                       </div>
                     }
                   </div>
+                  @if (hasVotedInGroup(group.id)) {
+                    <div class="bracket-bar">
+                      @for (c of group.candidates; track c.id; let ci = $index) {
+                        <div class="bracket-bar-seg"
+                             [style.background]="COLORS[ci % COLORS.length]"
+                             [style.width]="(groupTotal(group) > 0 ? voteStore.getCount(c.id) / groupTotal(group) * 100 : 100 / group.candidates.length).toFixed(1) + '%'">
+                        </div>
+                      }
+                    </div>
+                  }
                 }
 
               </div>
@@ -90,53 +100,6 @@
         </div>
       }
     </div>
-
-    <!-- Bracket result org-chart (after any vote) -->
-    @if (voted()) {
-      <div class="org-wrap">
-        <p-organization-chart [value]="bracketNodes()" [collapsible]="true">
-
-          <ng-template let-node pTemplate="group-winner">
-            <div class="node-group-winner" [class.is-my-vote]="node.data.isMyVote">
-              @if (node.data.image) {
-                <div class="group-winner-photo-wrap">
-                  <img class="group-winner-img" [src]="node.data.image" [alt]="node.data.name"
-                       onerror="this.onerror=null;this.src='https://placehold.co/90x90/fbbf24/000?text=W'" />
-                  <span class="group-crown">🏆</span>
-                </div>
-              }
-              <div class="group-winner-name">{{ node.data.name }}</div>
-              <div class="group-winner-label">{{ node.data.label }}</div>
-              @if (node.data.level > 0) { <span class="level-pip">Lv {{ node.data.level }}</span> }
-            </div>
-          </ng-template>
-
-          <ng-template let-node pTemplate="tbd-group">
-            <div class="node-tbd">
-              <div class="tbd-avatar-sm">?</div>
-              <div class="node-tbd-label">{{ node.data.label }}</div>
-              @if (node.data.level > 0) { <span class="level-pip">Lv {{ node.data.level }}</span> }
-            </div>
-          </ng-template>
-
-          <ng-template let-node pTemplate="candidate">
-            <div class="node-candidate"
-                 [class.is-my-vote]="node.data.isMyVote"
-                 [class.is-winner]="node.data.isWinner">
-              <div class="candidate-photo-wrap">
-                <img class="candidate-result-img" [src]="node.data.image" [alt]="node.data.name"
-                     onerror="this.onerror=null;this.src='https://placehold.co/80x80/1565C0/fff?text=?'" />
-                @if (node.data.isMyVote) { <span class="my-vote-dot">✓</span> }
-              </div>
-              <div class="cn-name">{{ node.data.name }}</div>
-              <div class="cn-pct" [style.color]="node.data.color">{{ node.data.pct }}%</div>
-              <div class="cn-votes">{{ node.data.votes | number }} votes</div>
-            </div>
-          </ng-template>
-
-        </p-organization-chart>
-      </div>
-    }
 
   } @else {
 
