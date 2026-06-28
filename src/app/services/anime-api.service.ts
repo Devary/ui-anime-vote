@@ -5,7 +5,7 @@ import {
   PollResultDto, MultiPollResultDto, HistoryItemDto,
   RegisterRequest, LoginRequest, RefreshRequest, LoginResponse,
   PollCreateDto, PollDto, MultiPollCreateDto, MultiPollAdminDto, CharacterDto,
-  AnimeDto, AnimeCreateDto, CharacterCreateDto, UploadResponse
+  AnimeDto, AnimeCreateDto, CharacterCreateDto, UploadResponse, ServerTimeDto
 } from './api.types';
 import { environment } from '../../environments/environment';
 
@@ -45,6 +45,10 @@ export class AnimeApiService {
     const params: Record<string, string> = {};
     if (date) params['date'] = date;
     return this.http.get<HistoryItemDto[]>(`${API}/history`, { params });
+  }
+
+  getServerTime(): Observable<ServerTimeDto> {
+    return this.http.get<ServerTimeDto>(`${API}/server-time`);
   }
 
   // ── Auth ──────────────────────────────────────────────────────────────────

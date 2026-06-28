@@ -10,6 +10,8 @@ export interface MultiPollGroupDto {
   id: string;
   label: string;
   groupOrder: number;
+  startDate?: string; // ISO-8601 UTC, null = legacy always-open
+  endDate?: string;
   candidates: CharacterDto[];
 }
 
@@ -108,6 +110,13 @@ export interface MultiPollCreateDto {
 export interface GroupCreateDto {
   label: string;
   characterIds: string[];
+  startNow: boolean;
+  startDate?: string | null; // ISO-8601, absent when startNow=true
+  endDate?: string | null;   // ISO-8601, required
+}
+
+export interface ServerTimeDto {
+  now: string; // ISO-8601
 }
 
 export interface MultiPollAdminDto {

@@ -177,7 +177,7 @@ export class AdminPanelComponent implements OnInit {
     return (mp.groups ?? []).reduce((s, g) => s + (g.candidates?.length ?? 0), 0);
   }
 
-  private emptyGroup(): GroupCreateDto { return { label: '', characterIds: [] }; }
+  private emptyGroup(): GroupCreateDto { return { label: '', characterIds: [], startNow: false }; }
 
   private msg(e: any): string {
     return e?.error?.message ?? e?.error ?? e?.message ?? 'Request failed';
