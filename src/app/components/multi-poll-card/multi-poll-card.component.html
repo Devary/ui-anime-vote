@@ -16,7 +16,7 @@
   <!-- ══ BRACKET TOURNAMENT VIEW ══════════════════════════════════════════════ -->
   @if (isBracket()) {
     <div class="bracket-container">
-      @for (levelRow of groupsByLevel(); track levelRow.level) {
+      @for (levelRow of groupsByLevel(); track levelRow.level; let li = $index) {
         <div class="bracket-level">
           <div class="bracket-level-label">
             @if (levelRow.level === 0) { Quarter-Finals }
@@ -98,6 +98,18 @@
             }
           </div>
         </div>
+
+        @if (li < groupsByLevel().length - 1) {
+          <div class="bracket-connector-row">
+            @for (branch of bracketConnectors()[li]; track $index) {
+              <div class="bracket-connector-branch"
+                   [style.width]="branch.widthPct + '%'"
+                   [style.--child-pct]="branch.childPct + '%'">
+                <div class="connector-stem"></div>
+              </div>
+            }
+          </div>
+        }
       }
     </div>
 

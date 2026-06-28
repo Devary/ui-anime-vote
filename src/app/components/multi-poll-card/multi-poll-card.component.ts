@@ -141,6 +141,26 @@ export class MultiPollCardComponent implements OnInit, OnDestroy {
     })
   );
 
+  // ── Bracket connectors ────────────────────────────────────────────────────
+  // Returns one array of branches per connector row (one row per adjacent level pair).
+  // Branch: widthPct = fraction of total bottom-level width; childPct = fork arm position.
+  readonly bracketConnectors = computed(() => {
+    if (!this.isBracket()) return [];
+    const levels = this.groupsByLevel(); // descending: GF first, QF last
+
+    return levels.slice(0, -1).map((levelRow, i) => {
+      const nextLevel = levels[i + 1];
+      const totalInNext = nextLevel.groups.length;
+
+      return levelRow.groups.map(parentGroup => {
+        const n       = parentGroup.feederGroupIds?.length ?? 0;
+        const widthPct  = totalInNext > 0 && n > 0 ? (n / totalInNext) * 100 : 0;
+        const childPct  = n > 0 ? (1 / (2 * n)) * 100 : 50; // 25% for n=2
+        return { widthPct, childPct };
+      });
+    });
+  });
+
   // ── Actions ───────────────────────────────────────────────────────────────
 
   onClickCandidate(charId: string, group: MultiPollGroup): void {
