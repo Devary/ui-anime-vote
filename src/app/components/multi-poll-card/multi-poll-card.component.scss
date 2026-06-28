@@ -560,10 +560,9 @@
 }
 
 .bracket-groups-row {
-  display:         flex;
-  flex-wrap:       wrap;
-  gap:             0.75rem;
-  justify-content: center;
+  display: flex;
+  gap:     4px;
+  width:   100%;
 }
 
 .bracket-group-card {
@@ -571,8 +570,7 @@
   border:        1px solid var(--rz-glass-border);
   border-radius: var(--rz-radius-md);
   padding:       0.6rem 0.75rem;
-  min-width:     160px;
-  max-width:     280px;
+  min-width:     0;
   flex:          1;
   display:       flex;
   flex-direction: column;
@@ -768,40 +766,28 @@
 .bracket-connector-branch {
   position:    relative;
   flex-shrink: 0;
+}
 
-  // Center stem: parent card bottom → down to the fork
-  .connector-stem {
-    position:  absolute;
-    top:       0;
-    left:      50%;
-    transform: translateX(-50%);
-    width:     2px;
-    height:    44%;
-    background: rgba(255, 255, 255, 0.18);
-  }
+// Vertical stem from parent card top → down to fork (top 44% of connector row)
+.conn-stem {
+  position:  absolute;
+  top:       0;
+  left:      50%;
+  transform: translateX(-50%);
+  width:     2px;
+  height:    44%;
+  background: rgba(255, 255, 255, 0.18);
+}
 
-  // Horizontal fork at 44% connecting left and right arms
-  &::before {
-    content:    '';
-    position:   absolute;
-    top:        44%;
-    left:       var(--child-pct, 25%);
-    right:      var(--child-pct, 25%);
-    height:     2px;
-    background: rgba(255, 255, 255, 0.18);
-  }
-
-  // Vertical arms from fork down to child card tops
-  &::after {
-    content:      '';
-    position:     absolute;
-    top:          44%;
-    bottom:       0;
-    left:         var(--child-pct, 25%);
-    right:        var(--child-pct, 25%);
-    border-left:  2px solid rgba(255, 255, 255, 0.18);
-    border-right: 2px solid rgba(255, 255, 255, 0.18);
-  }
+// Inverted-U shape: horizontal bar at fork + two vertical arms going to children
+// left/right are bound via Angular [style.left.%] and [style.right.%]
+.conn-fork {
+  position:     absolute;
+  top:          44%;
+  bottom:       0;
+  border-top:   2px solid rgba(255, 255, 255, 0.18);
+  border-left:  2px solid rgba(255, 255, 255, 0.18);
+  border-right: 2px solid rgba(255, 255, 255, 0.18);
 }
 
 .bracket-bar {

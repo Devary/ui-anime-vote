@@ -102,10 +102,11 @@
         @if (li < groupsByLevel().length - 1) {
           <div class="bracket-connector-row">
             @for (branch of bracketConnectors()[li]; track $index) {
-              <div class="bracket-connector-branch"
-                   [style.width]="branch.widthPct + '%'"
-                   [style.--child-pct]="branch.childPct + '%'">
-                <div class="connector-stem"></div>
+              <div class="bracket-connector-branch" [style.width.%]="branch.widthPct">
+                <div class="conn-stem"></div>
+                <div class="conn-fork"
+                     [style.left.%]="branch.childPct"
+                     [style.right.%]="branch.childPct"></div>
               </div>
             }
           </div>
