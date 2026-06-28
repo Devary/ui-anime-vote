@@ -533,3 +533,269 @@
   border-radius: 50%;
   flex-shrink:   0;
 }
+
+// ══════════════════════════════════════════════════════════════════════════════
+// BRACKET / TOURNAMENT VIEW
+// ══════════════════════════════════════════════════════════════════════════════
+.bracket-container {
+  display:        flex;
+  flex-direction: column;
+  gap:            1rem;
+  width:          100%;
+}
+
+.bracket-level {
+  display:        flex;
+  flex-direction: column;
+  gap:            0.4rem;
+}
+
+.bracket-level-label {
+  font-size:      0.58rem;
+  font-weight:    900;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color:          var(--rz-ink-faint);
+  text-align:     center;
+}
+
+.bracket-groups-row {
+  display:         flex;
+  flex-wrap:       wrap;
+  gap:             0.75rem;
+  justify-content: center;
+}
+
+.bracket-group-card {
+  background:    var(--rz-glass-bg);
+  border:        1px solid var(--rz-glass-border);
+  border-radius: var(--rz-radius-md);
+  padding:       0.6rem 0.75rem;
+  min-width:     160px;
+  max-width:     280px;
+  flex:          1;
+  display:       flex;
+  flex-direction: column;
+  gap:           0.5rem;
+  transition:    border-color 0.2s;
+
+  &.group-tbd {
+    border-color: rgba(245, 158, 11, 0.35);
+    background:   rgba(245, 158, 11, 0.04);
+  }
+
+  &.group-ended {
+    border-color: rgba(74, 222, 128, 0.25);
+  }
+
+  &.group-upcoming {
+    opacity: 0.65;
+  }
+}
+
+.bracket-group-header {
+  display:        flex;
+  flex-wrap:      wrap;
+  align-items:    center;
+  gap:            0.35rem;
+  justify-content: space-between;
+}
+
+.bracket-group-label {
+  font-size:      0.65rem;
+  font-weight:    800;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color:          var(--rz-ink-muted);
+}
+
+.badge-ended {
+  font-size:      0.55rem;
+  font-weight:    800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color:          #4ade80;
+  background:     rgba(74, 222, 128, 0.12);
+  border:         1px solid rgba(74, 222, 128, 0.25);
+  border-radius:  var(--rz-radius-full);
+  padding:        0.1rem 0.4rem;
+}
+
+.badge-upcoming {
+  font-size:      0.55rem;
+  font-weight:    800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color:          #a78bfa;
+  background:     rgba(167, 139, 250, 0.12);
+  border:         1px solid rgba(167, 139, 250, 0.25);
+  border-radius:  var(--rz-radius-full);
+  padding:        0.1rem 0.4rem;
+}
+
+.badge-tbd {
+  font-size:      0.55rem;
+  font-weight:    800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color:          #fbbf24;
+  background:     rgba(251, 191, 36, 0.12);
+  border:         1px solid rgba(251, 191, 36, 0.30);
+  border-radius:  var(--rz-radius-full);
+  padding:        0.1rem 0.4rem;
+}
+
+// TBD placeholder slots
+.tbd-slots {
+  display:         flex;
+  gap:             0.5rem;
+  justify-content: center;
+}
+
+.tbd-slot {
+  display:        flex;
+  flex-direction: column;
+  align-items:    center;
+  gap:            0.25rem;
+}
+
+.tbd-avatar {
+  width:           48px;
+  height:          48px;
+  border-radius:   50%;
+  background:      rgba(251, 191, 36, 0.1);
+  border:          2px dashed rgba(251, 191, 36, 0.4);
+  display:         flex;
+  align-items:     center;
+  justify-content: center;
+  font-size:       1.3rem;
+  color:           rgba(251, 191, 36, 0.5);
+  font-weight:     900;
+}
+
+.tbd-slot-label {
+  font-size:   0.58rem;
+  font-weight: 700;
+  color:       rgba(251, 191, 36, 0.5);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+// Bracket candidate buttons
+.bracket-candidates {
+  display:         flex;
+  flex-wrap:       wrap;
+  gap:             0.5rem;
+  justify-content: center;
+}
+
+.bracket-candidate {
+  display:        flex;
+  flex-direction: column;
+  align-items:    center;
+  gap:            0.25rem;
+
+  &.is-voted .bracket-cand-photo {
+    border-color: var(--rz-primary);
+    box-shadow:   0 0 0 3px rgba(21,101,192,0.35);
+  }
+}
+
+.bracket-cand-btn {
+  position:      relative;
+  background:    none;
+  border:        none;
+  cursor:        pointer;
+  padding:       0;
+  border-radius: 50%;
+
+  &:disabled { cursor: default; }
+  &:not(:disabled):hover .bracket-cand-photo { transform: scale(1.06); }
+}
+
+.bracket-cand-photo {
+  width:           56px;
+  height:          56px;
+  border-radius:   50%;
+  object-fit:      cover;
+  object-position: top center;
+  border:          2px solid var(--rz-glass-border);
+  display:         block;
+  background:      var(--rz-surface-hover);
+  transition:      transform 0.15s, border-color 0.2s, box-shadow 0.2s;
+}
+
+.voted-check {
+  position:        absolute;
+  bottom:          0;
+  right:           0;
+  width:           18px;
+  height:          18px;
+  border-radius:   50%;
+  background:      var(--rz-primary);
+  color:           #fff;
+  font-size:       0.65rem;
+  font-weight:     900;
+  display:         flex;
+  align-items:     center;
+  justify-content: center;
+  border:          2px solid var(--rz-surface);
+}
+
+.bracket-cand-name {
+  font-size:   0.6rem;
+  font-weight: 700;
+  color:       var(--rz-ink);
+  text-align:  center;
+  max-width:   64px;
+  line-height: 1.2;
+}
+
+.bracket-cand-votes {
+  font-size:  0.55rem;
+  color:      var(--rz-ink-faint);
+  text-align: center;
+}
+
+// Level pip badge on org-chart nodes
+.level-pip {
+  font-size:      0.5rem;
+  font-weight:    800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color:          #a78bfa;
+  background:     rgba(167,139,250,0.12);
+  border-radius:  var(--rz-radius-full);
+  padding:        0.1rem 0.35rem;
+}
+
+// TBD node in org-chart
+.node-tbd {
+  display:        flex;
+  flex-direction: column;
+  align-items:    center;
+  gap:            0.2rem;
+  padding:        0.3rem 0.5rem;
+}
+
+.tbd-avatar-sm {
+  width:           48px;
+  height:          48px;
+  border-radius:   50%;
+  background:      rgba(251,191,36,0.1);
+  border:          2px dashed rgba(251,191,36,0.4);
+  display:         flex;
+  align-items:     center;
+  justify-content: center;
+  font-size:       1.2rem;
+  color:           rgba(251,191,36,0.5);
+  font-weight:     900;
+}
+
+.node-tbd-label {
+  font-size:      0.58rem;
+  font-weight:    700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color:          rgba(251,191,36,0.6);
+}

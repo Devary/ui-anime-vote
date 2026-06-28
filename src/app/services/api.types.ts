@@ -10,7 +10,10 @@ export interface MultiPollGroupDto {
   id: string;
   label: string;
   groupOrder: number;
-  startDate?: string; // ISO-8601 UTC, null = legacy always-open
+  level: number;           // 0 = base candidates; 1+ = bracket level
+  feederGroupIds: string[]; // ids of groups whose winners compete here (level 1+)
+  resolved: boolean;        // false = waiting for feeder winners
+  startDate?: string;
   endDate?: string;
   candidates: CharacterDto[];
 }
@@ -33,6 +36,9 @@ export interface PollResultDto {
 export interface GroupResultDto {
   id: string;
   label: string;
+  level: number;
+  feederGroupIds: string[];
+  resolved: boolean;
   groupTotal: number;
   candidates: {
     charId: string;
@@ -52,7 +58,8 @@ export interface MultiPollResultDto {
   };
   groups: GroupResultDto[];
   overallWinnerCharId: string | null;
-  myVoteCharId: string | null;
+  /** groupId → charId the user voted for */
+  myVotesByGroup: { [groupId: string]: string };
 }
 
 export interface HistoryItemDto {

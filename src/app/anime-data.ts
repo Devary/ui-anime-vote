@@ -18,9 +18,12 @@ export interface Poll {
 export interface MultiPollGroup {
   id: string;
   label: string;
+  level: number;           // 0 = base; 1+ = bracket round
+  feederGroupIds: string[]; // ids of groups whose winners face off here (level 1+)
+  resolved: boolean;        // false = waiting for feeder group winners to be determined
   candidates: Character[];
-  startDate?: string; // ISO-8601, optional — shows countdown when present
-  endDate?: string;   // ISO-8601, optional
+  startDate?: string;
+  endDate?: string;
 }
 
 export interface MultiPoll {
@@ -201,8 +204,8 @@ export const MULTI_POLLS: MultiPoll[] = [
     anime:    'One Piece',
     question: 'Who is the strongest Pirate Emperor?',
     groups: [
-      { id: 'g1', label: 'Alliance',  candidates: [C['luffy'],  C['shanks'],     C['whitebeard']] },
-      { id: 'g2', label: 'Villains',  candidates: [C['kaido'],  C['blackbeard'], C['bigmom']]     },
+      { id: 'g1', level: 0, feederGroupIds: [], resolved: true, label: 'Alliance',  candidates: [C['luffy'],  C['shanks'],     C['whitebeard']] },
+      { id: 'g2', level: 0, feederGroupIds: [], resolved: true, label: 'Villains',  candidates: [C['kaido'],  C['blackbeard'], C['bigmom']]     },
     ],
   },
   {
@@ -211,8 +214,8 @@ export const MULTI_POLLS: MultiPoll[] = [
     anime:    'Naruto',
     question: 'Who is the greatest shinobi of all time?',
     groups: [
-      { id: 'g1', label: 'Uchiha Clan',      candidates: [C['madara'], C['itachi'], C['sasuke'], C['obito']]   },
-      { id: 'g2', label: 'Senju & Uzumaki',  candidates: [C['naruto'], C['minato'], C['pain'],   C['hashirama']] },
+      { id: 'g1', level: 0, feederGroupIds: [], resolved: true, label: 'Uchiha Clan',      candidates: [C['madara'], C['itachi'], C['sasuke'], C['obito']]   },
+      { id: 'g2', level: 0, feederGroupIds: [], resolved: true, label: 'Senju & Uzumaki',  candidates: [C['naruto'], C['minato'], C['pain'],   C['hashirama']] },
     ],
   },
   {
@@ -221,8 +224,8 @@ export const MULTI_POLLS: MultiPoll[] = [
     anime:    'Dragon Ball Z',
     question: 'Who would win the Tournament of Power?',
     groups: [
-      { id: 'g1', label: 'Universe 7', candidates: [C['goku'],  C['vegeta'], C['gohan']] },
-      { id: 'g2', label: 'Rivals',     candidates: [C['jiren'], C['broly'],  C['beerus']] },
+      { id: 'g1', level: 0, feederGroupIds: [], resolved: true, label: 'Universe 7', candidates: [C['goku'],  C['vegeta'], C['gohan']] },
+      { id: 'g2', level: 0, feederGroupIds: [], resolved: true, label: 'Rivals',     candidates: [C['jiren'], C['broly'],  C['beerus']] },
     ],
   },
   {
@@ -231,8 +234,8 @@ export const MULTI_POLLS: MultiPoll[] = [
     anime:    'All Anime',
     question: 'Who is the GOAT anime protagonist?',
     groups: [
-      { id: 'g1', label: 'Big Three', candidates: [C['luffy'],  C['naruto'], C['ichigo']] },
-      { id: 'g2', label: 'New Gen',   candidates: [C['deku'],   C['eren'],   C['tanjiro']] },
+      { id: 'g1', level: 0, feederGroupIds: [], resolved: true, label: 'Big Three', candidates: [C['luffy'],  C['naruto'], C['ichigo']] },
+      { id: 'g2', level: 0, feederGroupIds: [], resolved: true, label: 'New Gen',   candidates: [C['deku'],   C['eren'],   C['tanjiro']] },
     ],
   },
   {
@@ -241,8 +244,8 @@ export const MULTI_POLLS: MultiPoll[] = [
     anime:    'All Anime',
     question: 'Who is the greatest anime villain ever?',
     groups: [
-      { id: 'g1', label: 'Classic Era', candidates: [C['madara'], C['aizen'],  C['frieza']] },
-      { id: 'g2', label: 'Modern Era',  candidates: [C['muzan'],  C['kaido'],  C['sukuna']] },
+      { id: 'g1', level: 0, feederGroupIds: [], resolved: true, label: 'Classic Era', candidates: [C['madara'], C['aizen'],  C['frieza']] },
+      { id: 'g2', level: 0, feederGroupIds: [], resolved: true, label: 'Modern Era',  candidates: [C['muzan'],  C['kaido'],  C['sukuna']] },
     ],
   },
   {
@@ -251,8 +254,8 @@ export const MULTI_POLLS: MultiPoll[] = [
     anime:    'Hunter x Hunter',
     question: 'Best Hunter x Hunter fighter?',
     groups: [
-      { id: 'g1', label: 'Heroes',   candidates: [C['gon'],    C['killua'],  C['netero']] },
-      { id: 'g2', label: 'Villains', candidates: [C['hisoka'], C['meruem'],  C['chrollo']] },
+      { id: 'g1', level: 0, feederGroupIds: [], resolved: true, label: 'Heroes',   candidates: [C['gon'],    C['killua'],  C['netero']] },
+      { id: 'g2', level: 0, feederGroupIds: [], resolved: true, label: 'Villains', candidates: [C['hisoka'], C['meruem'],  C['chrollo']] },
     ],
   },
   {
@@ -261,8 +264,8 @@ export const MULTI_POLLS: MultiPoll[] = [
     anime:    'Bleach',
     question: 'Who reigns supreme in the Soul Society?',
     groups: [
-      { id: 'g1', label: 'Soul Reapers', candidates: [C['ichigo'],  C['byakuya'], C['zaraki']] },
-      { id: 'g2', label: 'Enemies',      candidates: [C['aizen'],   C['yhwach']] },
+      { id: 'g1', level: 0, feederGroupIds: [], resolved: true, label: 'Soul Reapers', candidates: [C['ichigo'],  C['byakuya'], C['zaraki']] },
+      { id: 'g2', level: 0, feederGroupIds: [], resolved: true, label: 'Enemies',      candidates: [C['aizen'],   C['yhwach']] },
     ],
   },
   {
@@ -271,8 +274,8 @@ export const MULTI_POLLS: MultiPoll[] = [
     anime:    'Attack on Titan',
     question: 'Who decides the fate of humanity?',
     groups: [
-      { id: 'g1', label: 'Survey Corps', candidates: [C['eren'],  C['levi'],   C['mikasa'], C['armin']] },
-      { id: 'g2', label: 'Warriors',     candidates: [C['zeke'],  C['reiner']] },
+      { id: 'g1', level: 0, feederGroupIds: [], resolved: true, label: 'Survey Corps', candidates: [C['eren'],  C['levi'],   C['mikasa'], C['armin']] },
+      { id: 'g2', level: 0, feederGroupIds: [], resolved: true, label: 'Warriors',     candidates: [C['zeke'],  C['reiner']] },
     ],
   },
   {
@@ -281,8 +284,8 @@ export const MULTI_POLLS: MultiPoll[] = [
     anime:    'Jujutsu Kaisen',
     question: 'Who is the ultimate cursed energy user?',
     groups: [
-      { id: 'g1', label: 'Special Grade',  candidates: [C['gojo'],   C['yuta']] },
-      { id: 'g2', label: 'Cursed Spirits', candidates: [C['sukuna'], C['megumi'], C['yuji']] },
+      { id: 'g1', level: 0, feederGroupIds: [], resolved: true, label: 'Special Grade',  candidates: [C['gojo'],   C['yuta']] },
+      { id: 'g2', level: 0, feederGroupIds: [], resolved: true, label: 'Cursed Spirits', candidates: [C['sukuna'], C['megumi'], C['yuji']] },
     ],
   },
   {
@@ -291,9 +294,9 @@ export const MULTI_POLLS: MultiPoll[] = [
     anime:    'All Anime',
     question: 'Who is the ultimate anime champion?',
     groups: [
-      { id: 'g1', label: 'Manga Kings', candidates: [C['goku'],   C['luffy'],   C['naruto']] },
-      { id: 'g2', label: 'Dark Lords',  candidates: [C['madara'], C['aizen'],   C['muzan']]  },
-      { id: 'g3', label: 'Wild Cards',  candidates: [C['gojo'],   C['meruem'],  C['eren']]   },
+      { id: 'g1', level: 0, feederGroupIds: [], resolved: true, label: 'Manga Kings', candidates: [C['goku'],   C['luffy'],   C['naruto']] },
+      { id: 'g2', level: 0, feederGroupIds: [], resolved: true, label: 'Dark Lords',  candidates: [C['madara'], C['aizen'],   C['muzan']]  },
+      { id: 'g3', level: 0, feederGroupIds: [], resolved: true, label: 'Wild Cards',  candidates: [C['gojo'],   C['meruem'],  C['eren']]   },
     ],
   },
 ];
