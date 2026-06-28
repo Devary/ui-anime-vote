@@ -127,8 +127,31 @@ export class App implements OnInit {
     }, 600);
   }
 
-  next(): void { this._index.update(i => (i + 1) % Math.max(1, this.allPolls().length)); }
-  prev(): void { this._index.update(i => (i - 1 + Math.max(1, this.allPolls().length)) % Math.max(1, this.allPolls().length)); }
+  next(): void {
+    const polls = this.allPolls();
+    const total = polls.length;
+    if (total === 0) return;
+    const cur     = this._index();
+    const myVotes = this.voteStore.myVotes();
+    for (let step = 1; step <= total; step++) {
+      const idx = (cur + step) % total;
+      if (!myVotes[polls[idx].id]) { this._index.set(idx); return; }
+    }
+    this._index.set((cur + 1) % total); // all voted — advance normally
+  }
+
+  prev(): void {
+    const polls = this.allPolls();
+    const total = polls.length;
+    if (total === 0) return;
+    const cur     = this._index();
+    const myVotes = this.voteStore.myVotes();
+    for (let step = 1; step <= total; step++) {
+      const idx = (cur - step + total) % total;
+      if (!myVotes[polls[idx].id]) { this._index.set(idx); return; }
+    }
+    this._index.set((cur - 1 + total) % total); // all voted — go back normally
+  }
 
   ngOnInit(): void {
     this.voteStore.loadTodayVotes();
