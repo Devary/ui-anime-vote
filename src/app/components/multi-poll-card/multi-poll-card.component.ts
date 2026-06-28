@@ -128,7 +128,17 @@ export class MultiPollCardComponent {
     });
   });
 
-  onClickCandidate(charId: string): void {
-    if (!this.voted()) this.castVote.emit(charId);
+  groupStatus(group: MultiPollGroup): 'open' | 'upcoming' | 'ended' {
+    if (!group.startDate) return 'open'; // legacy — always open
+    const now  = Date.now();
+    const start = new Date(group.startDate).getTime();
+    const end   = group.endDate ? new Date(group.endDate).getTime() : Infinity;
+    if (now < start) return 'upcoming';
+    if (now > end)   return 'ended';
+    return 'open';
+  }
+
+  onClickCandidate(charId: string, group: MultiPollGroup): void {
+    if (!this.voted() && this.groupStatus(group) === 'open') this.castVote.emit(charId);
   }
 }

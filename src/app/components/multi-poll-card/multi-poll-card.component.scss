@@ -102,6 +102,31 @@
   padding:        0.15rem 0.7rem;
 }
 
+.group-locked {
+  opacity: 0.55;
+  pointer-events: none; // extra safety, button[disabled] handles clicks
+}
+
+.group-status-badge {
+  font-size:      0.6rem;
+  font-weight:    800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  border-radius:  var(--rz-radius-full);
+  padding:        0.15rem 0.6rem;
+
+  &.upcoming {
+    color:      #7c3aed;
+    background: rgba(124, 58, 237, 0.12);
+    border:     1px solid rgba(124, 58, 237, 0.25);
+  }
+  &.ended {
+    color:      var(--rz-ink-faint);
+    background: var(--rz-surface-hover);
+    border:     1px solid var(--rz-border);
+  }
+}
+
 .candidates-row {
   display:         flex;
   flex-wrap:       wrap;
