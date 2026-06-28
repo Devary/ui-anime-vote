@@ -1,4 +1,4 @@
-import { Component, OnInit, ViewChild, inject, signal } from '@angular/core';
+import { Component, OnInit, ViewChild, inject, signal, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Table, TableModule } from 'primeng/table';
@@ -6,6 +6,8 @@ import { InputTextModule } from 'primeng/inputtext';
 import { IconFieldModule } from 'primeng/iconfield';
 import { InputIconModule } from 'primeng/inputicon';
 import { SelectModule } from 'primeng/select';
+import { forkJoin, of } from 'rxjs';
+import { map, catchError } from 'rxjs/operators';
 import { AnimeApiService } from '../../services/anime-api.service';
 import { ToastService } from '../../services/toast.service';
 import { AnimeDto, CharacterDto, CharacterCreateDto } from '../../services/api.types';
@@ -79,14 +81,32 @@ import { ImageUploadComponent } from '../../shared/image-upload/image-upload.com
                      (input)="dt.filterGlobal($any($event.target).value, 'contains')"
                      placeholder="Search characters…" />
             </p-iconfield>
-            <button class="btn-primary" type="button" (click)="toggleForm()">
-              {{ showForm() ? '✕ Cancel' : '+ Add Character' }}
-            </button>
+            <div class="caption-actions">
+              <button class="btn-danger" type="button"
+                      [disabled]="!selectedIds().size"
+                      (click)="delSelected()">
+                Remove Selected{{ selectedIds().size ? ' (' + selectedIds().size + ')' : '' }}
+              </button>
+              <button class="btn-danger" type="button"
+                      [disabled]="!chars().length"
+                      (click)="delAll()">
+                Remove All
+              </button>
+              <button class="btn-primary" type="button" (click)="toggleForm()">
+                {{ showForm() ? '✕ Cancel' : '+ Add Character' }}
+              </button>
+            </div>
           </div>
         </ng-template>
 
         <ng-template pTemplate="header">
           <tr>
+            <th style="width:3rem">
+              <input type="checkbox" class="row-check"
+                     [checked]="allSelected()"
+                     [indeterminate]="someSelected()"
+                     (change)="toggleAll()" />
+            </th>
             <th style="width:60px">Image</th>
             <th pSortableColumn="name">
               Name
@@ -108,7 +128,12 @@ import { ImageUploadComponent } from '../../shared/image-upload/image-upload.com
         </ng-template>
 
         <ng-template pTemplate="body" let-c>
-          <tr>
+          <tr [class.row-selected]="selectedIds().has(c.id)">
+            <td>
+              <input type="checkbox" class="row-check"
+                     [checked]="selectedIds().has(c.id)"
+                     (change)="toggleRow(c.id)" />
+            </td>
             <td>
               @if (c.imageUrl) {
                 <img class="thumb" [src]="c.imageUrl" [alt]="c.name" (error)="onImgErr($event)" />
@@ -131,7 +156,7 @@ import { ImageUploadComponent } from '../../shared/image-upload/image-upload.com
         </ng-template>
 
         <ng-template pTemplate="emptymessage">
-          <tr><td colspan="5">No characters found.</td></tr>
+          <tr><td colspan="6">No characters found.</td></tr>
         </ng-template>
 
       </p-table>
@@ -152,6 +177,9 @@ import { ImageUploadComponent } from '../../shared/image-upload/image-upload.com
     .form-actions { display: flex; gap: 0.5rem; }
     .error-msg { color: var(--rz-danger); font-size: 0.8rem; }
     .table-caption { display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; flex-wrap: wrap; }
+    .caption-actions { display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap; }
+    .row-check { width: 15px; height: 15px; cursor: pointer; accent-color: var(--rz-primary); }
+    .row-selected td { background: rgba(21, 101, 192, 0.08); }
     .thumb { width: 40px; height: 40px; object-fit: cover; border-radius: var(--rz-radius-sm); }
     .no-img { width: 40px; height: 40px; background: var(--rz-surface-hover);
                border-radius: var(--rz-radius-sm); display: flex; align-items: center;
@@ -167,6 +195,11 @@ import { ImageUploadComponent } from '../../shared/image-upload/image-upload.com
                   border: 1px solid var(--rz-border); background: transparent; color: var(--rz-ink);
                   font-size: 0.8rem; cursor: pointer; }
     .btn-ghost:hover { background: var(--rz-surface-hover); }
+    .btn-danger { padding: 0.4rem 1rem; border-radius: var(--rz-radius-sm);
+                   border: 1px solid var(--rz-danger); background: var(--rz-danger-bg);
+                   color: var(--rz-danger); font-size: 0.8rem; font-weight: 600; cursor: pointer; }
+    .btn-danger:hover:not(:disabled) { background: var(--rz-danger); color: #fff; }
+    .btn-danger:disabled { opacity: 0.4; cursor: default; }
     .btn-icon { background: none; border: none; cursor: pointer; font-size: 0.9rem; padding: 0.3rem 0.4rem;
                  border-radius: var(--rz-radius-sm); color: var(--rz-ink-muted); }
     .btn-icon:hover { background: var(--rz-surface-hover); color: var(--rz-ink); }
@@ -187,6 +220,14 @@ export class CharacterManagementComponent implements OnInit {
   readonly showForm = signal(false);
   readonly editing = signal<CharacterDto | null>(null);
   readonly error = signal<string | null>(null);
+  readonly selectedIds = signal(new Set<string>());
+
+  readonly allSelected = computed(() =>
+    this.chars().length > 0 && this.selectedIds().size === this.chars().length
+  );
+  readonly someSelected = computed(() =>
+    this.selectedIds().size > 0 && this.selectedIds().size < this.chars().length
+  );
 
   form: CharacterCreateDto = { name: '', title: '', anime: '', imageUrl: null };
 
@@ -201,6 +242,18 @@ export class CharacterManagementComponent implements OnInit {
       next: list => { this.chars.set(list); this.loading.set(false); },
       error: e => { this.toast.error(this.msg(e)); this.loading.set(false); }
     });
+  }
+
+  toggleRow(id: string): void {
+    this.selectedIds.update(s => { const n = new Set(s); n.has(id) ? n.delete(id) : n.add(id); return n; });
+  }
+
+  toggleAll(): void {
+    if (this.allSelected()) {
+      this.selectedIds.set(new Set());
+    } else {
+      this.selectedIds.set(new Set(this.chars().map(c => c.id)));
+    }
   }
 
   toggleForm(): void {
@@ -249,9 +302,42 @@ export class CharacterManagementComponent implements OnInit {
   del(id: string): void {
     if (!confirm('Delete this character? This may affect existing polls.')) return;
     this.api.adminDeleteCharacter(id).subscribe({
-      next: () => { this.chars.update(l => l.filter(c => c.id !== id)); this.toast.success('Character deleted'); },
+      next: () => {
+        this.chars.update(l => l.filter(c => c.id !== id));
+        this.selectedIds.update(s => { const n = new Set(s); n.delete(id); return n; });
+        this.toast.success('Character deleted');
+      },
       error: e => this.toast.error(this.msg(e))
     });
+  }
+
+  delSelected(): void {
+    const ids = [...this.selectedIds()];
+    if (!ids.length) return;
+    if (!confirm(`Delete ${ids.length} selected characters? This may affect existing polls.`)) return;
+    this.bulkDelete(ids, id => this.api.adminDeleteCharacter(id)).subscribe(deleted => {
+      this.chars.update(l => l.filter(c => !deleted.includes(c.id)));
+      this.selectedIds.update(s => { const n = new Set(s); deleted.forEach(id => n.delete(id)); return n; });
+      this.toast.success(`Deleted ${deleted.length}${deleted.length < ids.length ? '/' + ids.length + ' (some failed)' : ''} characters`);
+    });
+  }
+
+  delAll(): void {
+    const items = this.chars();
+    if (!items.length) return;
+    if (!confirm(`Delete all ${items.length} characters? This may affect existing polls.`)) return;
+    this.bulkDelete(items.map(c => c.id), id => this.api.adminDeleteCharacter(id)).subscribe(deleted => {
+      this.chars.update(l => l.filter(c => !deleted.includes(c.id)));
+      this.selectedIds.set(new Set());
+      this.toast.success(`Deleted ${deleted.length}${deleted.length < items.length ? '/' + items.length + ' (some failed)' : ''} characters`);
+    });
+  }
+
+  private bulkDelete(ids: string[], fn: (id: string) => any) {
+    return forkJoin(ids.map(id => (fn(id) as any).pipe(
+      map(() => id as string | null),
+      catchError(() => of(null))
+    ))).pipe(map(results => results.filter((r): r is string => r !== null)));
   }
 
   onImgErr(event: Event): void { (event.target as HTMLImageElement).style.display = 'none'; }

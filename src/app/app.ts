@@ -89,6 +89,9 @@ export class App implements OnInit {
     return { id: dto.id, type: 'multi', anime: dto.anime ?? '', question: dto.question,
              groups: (dto.groups ?? []).map(g => ({
                id: g.id, label: g.label,
+               level: g.level ?? 0,
+               feederGroupIds: g.feederGroupIds ?? [],
+               resolved: g.resolved ?? true,
                startDate: g.startDate, endDate: g.endDate,
                candidates: (g.candidates ?? []).map(c => this.mapChar(c))
              })) };

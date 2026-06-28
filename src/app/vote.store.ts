@@ -12,13 +12,15 @@ export class VoteStore {
   private readonly api   = inject(AnimeApiService);
   private readonly toast = inject(ToastService);
 
-  private readonly _votes      = signal<VoteMap>({});
-  private readonly _myVotes    = signal<MyVoteMap>({});
-  private readonly _timestamps = signal<TimestampMap>({});
+  private readonly _votes         = signal<VoteMap>({});
+  private readonly _myVotes       = signal<MyVoteMap>({}); // pollId → charId (last/any)
+  private readonly _myGroupVotes  = signal<MyVoteMap>({}); // groupId → charId
+  private readonly _timestamps    = signal<TimestampMap>({});
 
-  readonly votes      = this._votes.asReadonly();
-  readonly myVotes    = this._myVotes.asReadonly();
-  readonly timestamps = this._timestamps.asReadonly();
+  readonly votes         = this._votes.asReadonly();
+  readonly myVotes       = this._myVotes.asReadonly();
+  readonly myGroupVotes  = this._myGroupVotes.asReadonly();
+  readonly timestamps    = this._timestamps.asReadonly();
 
   // ── Bootstrap ─────────────────────────────────────────────────────────────
 
@@ -73,9 +75,19 @@ export class VoteStore {
 
   // ── Multi-poll actions ────────────────────────────────────────────────────
 
+  /** Standard single-level multi-poll vote (backward compat) */
   voteMulti(characterId: string, pollId: string): void {
+    this.voteMultiGroup(characterId, pollId, '');
+  }
+
+  /** Per-group vote — used by bracket multi-polls */
+  voteMultiGroup(characterId: string, pollId: string, groupId: string): void {
     this._votes.set({ ...this._votes(), [characterId]: (this._votes()[characterId] ?? 0) + 1 });
-    this._myVotes.set({ ...this._myVotes(), [pollId]: characterId });
+    if (groupId) this._myGroupVotes.set({ ...this._myGroupVotes(), [groupId]: characterId });
+    // Mark the poll as voted for navigation (first vote wins)
+    if (!this._myVotes()[pollId]) {
+      this._myVotes.set({ ...this._myVotes(), [pollId]: characterId });
+    }
     this._timestamps.set({ ...this._timestamps(), [pollId]: Date.now() });
 
     this.api.castMultiVote(pollId, characterId).subscribe({
@@ -108,9 +120,7 @@ export class VoteStore {
 
   private applyPollResult(res: PollResultDto): void {
     const v = { ...this._votes() };
-    for (const fr of res.fighterResults) {
-      v[fr.charId] = fr.votes;
-    }
+    for (const fr of res.fighterResults) v[fr.charId] = fr.votes;
     this._votes.set(v);
     if (res.myVoteCharId) {
       this._myVotes.set({ ...this._myVotes(), [res.poll.id]: res.myVoteCharId });
@@ -119,14 +129,16 @@ export class VoteStore {
 
   private applyMultiPollResult(res: MultiPollResultDto): void {
     const v = { ...this._votes() };
-    for (const group of res.groups) {
-      for (const cand of group.candidates) {
-        v[cand.charId] = cand.votes;
-      }
-    }
+    for (const group of res.groups) for (const c of group.candidates) v[c.charId] = c.votes;
     this._votes.set(v);
-    if (res.myVoteCharId) {
-      this._myVotes.set({ ...this._myVotes(), [res.poll.id]: res.myVoteCharId });
+
+    if (res.myVotesByGroup && Object.keys(res.myVotesByGroup).length > 0) {
+      this._myGroupVotes.set({ ...this._myGroupVotes(), ...res.myVotesByGroup });
+      // Update overall poll vote for nav detection
+      const firstVote = Object.values(res.myVotesByGroup)[0];
+      if (firstVote && !this._myVotes()[res.poll.id]) {
+        this._myVotes.set({ ...this._myVotes(), [res.poll.id]: firstVote });
+      }
     }
   }
 
@@ -147,5 +159,6 @@ export class VoteStore {
 
   hasVoted(id1: string, id2: string): boolean { return this.getPollTotal(id1, id2) > 0; }
 
-  getMyVote(pollId: string): string | null { return this._myVotes()[pollId] ?? null; }
+  getMyVote(pollId: string): string | null       { return this._myVotes()[pollId]      ?? null; }
+  getMyGroupVote(groupId: string): string | null  { return this._myGroupVotes()[groupId] ?? null; }
 }

@@ -6,6 +6,8 @@ import { InputTextModule } from 'primeng/inputtext';
 import { IconFieldModule } from 'primeng/iconfield';
 import { InputIconModule } from 'primeng/inputicon';
 import { SelectModule } from 'primeng/select';
+import { forkJoin, of } from 'rxjs';
+import { map, catchError } from 'rxjs/operators';
 import { AnimeApiService } from '../../services/anime-api.service';
 import { ToastService } from '../../services/toast.service';
 import { PollExportService } from '../../services/poll-export.service';
@@ -94,14 +96,32 @@ import { PollGroupFormComponent, CharOption, createGroupForm } from '../poll-gro
                      (input)="dt.filterGlobal($any($event.target).value, 'contains')"
                      placeholder="Search polls…" />
             </p-iconfield>
-            <button class="btn-primary" type="button" (click)="toggleForm()">
-              {{ showForm() ? '✕ Cancel' : '+ New Poll' }}
-            </button>
+            <div class="caption-actions">
+              <button class="btn-danger" type="button"
+                      [disabled]="!selectedIds().size"
+                      (click)="delSelected()">
+                Remove Selected{{ selectedIds().size ? ' (' + selectedIds().size + ')' : '' }}
+              </button>
+              <button class="btn-danger" type="button"
+                      [disabled]="!polls().length"
+                      (click)="delAll()">
+                Remove All
+              </button>
+              <button class="btn-primary" type="button" (click)="toggleForm()">
+                {{ showForm() ? '✕ Cancel' : '+ New Poll' }}
+              </button>
+            </div>
           </div>
         </ng-template>
 
         <ng-template pTemplate="header">
           <tr>
+            <th style="width:3rem">
+              <input type="checkbox" class="row-check"
+                     [checked]="allSelected()"
+                     [indeterminate]="someSelected()"
+                     (change)="toggleAll()" />
+            </th>
             <th pSortableColumn="anime">
               Anime <p-sortIcon field="anime" />
               <p-columnFilter type="text" field="anime" display="menu" />
@@ -116,7 +136,12 @@ import { PollGroupFormComponent, CharOption, createGroupForm } from '../poll-gro
         </ng-template>
 
         <ng-template pTemplate="body" let-poll>
-          <tr>
+          <tr [class.row-selected]="selectedIds().has(poll.id)">
+            <td>
+              <input type="checkbox" class="row-check"
+                     [checked]="selectedIds().has(poll.id)"
+                     (change)="toggleRow(poll.id)" />
+            </td>
             <td class="muted-cell">{{ poll.anime || '—' }}</td>
             <td class="name-cell">{{ poll.question }}</td>
             <td>
@@ -147,7 +172,7 @@ import { PollGroupFormComponent, CharOption, createGroupForm } from '../poll-gro
         </ng-template>
 
         <ng-template pTemplate="emptymessage">
-          <tr><td colspan="4">No polls found.</td></tr>
+          <tr><td colspan="5">No polls found.</td></tr>
         </ng-template>
       </p-table>
     </div>
@@ -173,6 +198,9 @@ import { PollGroupFormComponent, CharOption, createGroupForm } from '../poll-gro
     .dup-close { background: none; border: none; cursor: pointer; color: var(--rz-danger); font-size: 1rem; padding: 0; }
     .form-actions { display: flex; gap: 0.5rem; }
     .table-caption { display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; flex-wrap: wrap; }
+    .caption-actions { display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap; }
+    .row-check { width: 15px; height: 15px; cursor: pointer; accent-color: var(--rz-primary); }
+    .row-selected td { background: rgba(21, 101, 192, 0.08); }
     .fighters-cell { display: flex; align-items: center; gap: 0.4rem; flex-wrap: wrap; }
     .vs-sep { font-size: 0.65rem; font-weight: 700; color: var(--rz-ink-faint); text-transform: uppercase; padding: 0 0.1rem; }
     .char-cell { display: flex; align-items: center; gap: 0.3rem; }
@@ -188,6 +216,11 @@ import { PollGroupFormComponent, CharOption, createGroupForm } from '../poll-gro
                   border: 1px solid var(--rz-border); background: transparent; color: var(--rz-ink);
                   font-size: 0.8rem; cursor: pointer; }
     .btn-ghost:hover { background: var(--rz-surface-hover); }
+    .btn-danger { padding: 0.4rem 1rem; border-radius: var(--rz-radius-sm);
+                   border: 1px solid var(--rz-danger); background: var(--rz-danger-bg);
+                   color: var(--rz-danger); font-size: 0.8rem; font-weight: 600; cursor: pointer; }
+    .btn-danger:hover:not(:disabled) { background: var(--rz-danger); color: #fff; }
+    .btn-danger:disabled { opacity: 0.4; cursor: default; }
     .btn-icon { background: none; border: none; cursor: pointer; font-size: 0.9rem; padding: 0.3rem 0.4rem;
                  border-radius: var(--rz-radius-sm); color: var(--rz-ink-muted); }
     .btn-icon:hover { background: var(--rz-surface-hover); color: var(--rz-ink); }
@@ -211,6 +244,14 @@ export class PollManagementComponent implements OnInit {
   readonly editing  = signal<PollDto | null>(null);
   readonly error    = signal<string | null>(null);
   readonly dupError = signal<string | null>(null);
+  readonly selectedIds = signal(new Set<string>());
+
+  readonly allSelected = computed(() =>
+    this.polls().length > 0 && this.selectedIds().size === this.polls().length
+  );
+  readonly someSelected = computed(() =>
+    this.selectedIds().size > 0 && this.selectedIds().size < this.polls().length
+  );
 
   readonly charOptions = computed<CharOption[]>(() =>
     this.chars().map(c => ({
@@ -222,13 +263,11 @@ export class PollManagementComponent implements OnInit {
 
   submitted = false;
 
-  // Meta form (anime + question); fighters are inside fightersGroup
   meta = new FormGroup({
     anime:    new FormControl(''),
     question: new FormControl('', Validators.required)
   });
 
-  // Single group form (no label, no period) — candidates = fighters
   fightersGroup = createGroupForm({ showPeriod: false });
 
   get fighterCount(): number {
@@ -247,6 +286,18 @@ export class PollManagementComponent implements OnInit {
       next: list => { this.polls.set(list); this.loading.set(false); },
       error: e => { this.toast.error(this.msg(e)); this.loading.set(false); }
     });
+  }
+
+  toggleRow(id: string): void {
+    this.selectedIds.update(s => { const n = new Set(s); n.has(id) ? n.delete(id) : n.add(id); return n; });
+  }
+
+  toggleAll(): void {
+    if (this.allSelected()) {
+      this.selectedIds.set(new Set());
+    } else {
+      this.selectedIds.set(new Set(this.polls().map(p => p.id)));
+    }
   }
 
   toggleForm(): void {
@@ -324,9 +375,42 @@ export class PollManagementComponent implements OnInit {
   del(id: string): void {
     if (!confirm('Delete this poll and all its votes?')) return;
     this.api.adminDeletePoll(id).subscribe({
-      next: () => { this.polls.update(l => l.filter(p => p.id !== id)); this.toast.success('Poll deleted'); },
+      next: () => {
+        this.polls.update(l => l.filter(p => p.id !== id));
+        this.selectedIds.update(s => { const n = new Set(s); n.delete(id); return n; });
+        this.toast.success('Poll deleted');
+      },
       error: e => this.toast.error(this.msg(e))
     });
+  }
+
+  delSelected(): void {
+    const ids = [...this.selectedIds()];
+    if (!ids.length) return;
+    if (!confirm(`Delete ${ids.length} selected polls and all their votes?`)) return;
+    this.bulkDelete(ids, id => this.api.adminDeletePoll(id)).subscribe(deleted => {
+      this.polls.update(l => l.filter(p => !deleted.includes(p.id)));
+      this.selectedIds.update(s => { const n = new Set(s); deleted.forEach(id => n.delete(id)); return n; });
+      this.toast.success(`Deleted ${deleted.length}${deleted.length < ids.length ? '/' + ids.length + ' (some failed)' : ''} polls`);
+    });
+  }
+
+  delAll(): void {
+    const items = this.polls();
+    if (!items.length) return;
+    if (!confirm(`Delete all ${items.length} polls and all their votes? This cannot be undone.`)) return;
+    this.bulkDelete(items.map(p => p.id), id => this.api.adminDeletePoll(id)).subscribe(deleted => {
+      this.polls.update(l => l.filter(p => !deleted.includes(p.id)));
+      this.selectedIds.set(new Set());
+      this.toast.success(`Deleted ${deleted.length}${deleted.length < items.length ? '/' + items.length + ' (some failed)' : ''} polls`);
+    });
+  }
+
+  private bulkDelete(ids: string[], fn: (id: string) => any) {
+    return forkJoin(ids.map(id => (fn(id) as any).pipe(
+      map(() => id as string | null),
+      catchError(() => of(null))
+    ))).pipe(map(results => results.filter((r): r is string => r !== null)));
   }
 
   onImgErr(event: Event): void { (event.target as HTMLImageElement).style.display = 'none'; }

@@ -6,6 +6,8 @@ import { InputTextModule } from 'primeng/inputtext';
 import { IconFieldModule } from 'primeng/iconfield';
 import { InputIconModule } from 'primeng/inputicon';
 import { SelectModule } from 'primeng/select';
+import { forkJoin, of } from 'rxjs';
+import { map, catchError } from 'rxjs/operators';
 import { AnimeApiService } from '../../services/anime-api.service';
 import { ToastService } from '../../services/toast.service';
 import { PollExportService } from '../../services/poll-export.service';
@@ -112,14 +114,32 @@ import { PollGroupFormComponent, CharOption, createGroupForm, groupPeriodValidat
                      (input)="dt.filterGlobal($any($event.target).value, 'contains')"
                      placeholder="Search multi-polls…" />
             </p-iconfield>
-            <button class="btn-primary" type="button" (click)="toggleForm()">
-              {{ showForm() ? '✕ Cancel' : '+ New Multi-Poll' }}
-            </button>
+            <div class="caption-actions">
+              <button class="btn-danger" type="button"
+                      [disabled]="!selectedIds().size"
+                      (click)="delSelected()">
+                Remove Selected{{ selectedIds().size ? ' (' + selectedIds().size + ')' : '' }}
+              </button>
+              <button class="btn-danger" type="button"
+                      [disabled]="!multiPolls().length"
+                      (click)="delAll()">
+                Remove All
+              </button>
+              <button class="btn-primary" type="button" (click)="toggleForm()">
+                {{ showForm() ? '✕ Cancel' : '+ New Multi-Poll' }}
+              </button>
+            </div>
           </div>
         </ng-template>
 
         <ng-template pTemplate="header">
           <tr>
+            <th style="width:3rem">
+              <input type="checkbox" class="row-check"
+                     [checked]="allSelected()"
+                     [indeterminate]="someSelected()"
+                     (change)="toggleAll()" />
+            </th>
             <th pSortableColumn="anime">
               Anime <p-sortIcon field="anime" />
               <p-columnFilter type="text" field="anime" display="menu" />
@@ -135,7 +155,12 @@ import { PollGroupFormComponent, CharOption, createGroupForm, groupPeriodValidat
         </ng-template>
 
         <ng-template pTemplate="body" let-mp>
-          <tr>
+          <tr [class.row-selected]="selectedIds().has(mp.id)">
+            <td>
+              <input type="checkbox" class="row-check"
+                     [checked]="selectedIds().has(mp.id)"
+                     (change)="toggleRow(mp.id)" />
+            </td>
             <td class="muted-cell">{{ mp.anime || '—' }}</td>
             <td class="name-cell">{{ mp.question }}</td>
             <td class="center-cell">{{ mp.groups?.length ?? 0 }}</td>
@@ -155,7 +180,7 @@ import { PollGroupFormComponent, CharOption, createGroupForm, groupPeriodValidat
         </ng-template>
 
         <ng-template pTemplate="emptymessage">
-          <tr><td colspan="5">No multi-polls found.</td></tr>
+          <tr><td colspan="6">No multi-polls found.</td></tr>
         </ng-template>
       </p-table>
     </div>
@@ -185,6 +210,9 @@ import { PollGroupFormComponent, CharOption, createGroupForm, groupPeriodValidat
     .dup-close { background: none; border: none; cursor: pointer; color: var(--rz-danger); font-size: 1rem; padding: 0; }
     .form-actions { display: flex; gap: 0.5rem; }
     .table-caption { display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; flex-wrap: wrap; }
+    .caption-actions { display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap; }
+    .row-check { width: 15px; height: 15px; cursor: pointer; accent-color: var(--rz-primary); }
+    .row-selected td { background: rgba(21, 101, 192, 0.08); }
     .name-cell { font-weight: 600; }
     .muted-cell { color: var(--rz-ink-muted); }
     .center-cell { text-align: center; color: var(--rz-ink-muted); }
@@ -201,6 +229,11 @@ import { PollGroupFormComponent, CharOption, createGroupForm, groupPeriodValidat
                      border: 1px solid var(--rz-border); background: transparent; color: var(--rz-ink);
                      font-size: 0.78rem; cursor: pointer; }
     .btn-ghost-sm:hover { background: var(--rz-surface-hover); }
+    .btn-danger { padding: 0.4rem 1rem; border-radius: var(--rz-radius-sm);
+                   border: 1px solid var(--rz-danger); background: var(--rz-danger-bg);
+                   color: var(--rz-danger); font-size: 0.8rem; font-weight: 600; cursor: pointer; }
+    .btn-danger:hover:not(:disabled) { background: var(--rz-danger); color: #fff; }
+    .btn-danger:disabled { opacity: 0.4; cursor: default; }
     .btn-icon { background: none; border: none; cursor: pointer; font-size: 0.9rem; padding: 0.3rem 0.4rem;
                  border-radius: var(--rz-radius-sm); color: var(--rz-ink-muted); }
     .btn-icon:hover { background: var(--rz-surface-hover); color: var(--rz-ink); }
@@ -224,6 +257,14 @@ export class MultiPollManagementComponent implements OnInit {
   readonly editing    = signal<MultiPollAdminDto | null>(null);
   readonly error      = signal<string | null>(null);
   readonly dupError   = signal<string | null>(null);
+  readonly selectedIds = signal(new Set<string>());
+
+  readonly allSelected = computed(() =>
+    this.multiPolls().length > 0 && this.selectedIds().size === this.multiPolls().length
+  );
+  readonly someSelected = computed(() =>
+    this.selectedIds().size > 0 && this.selectedIds().size < this.multiPolls().length
+  );
 
   readonly charOptions = computed<CharOption[]>(() =>
     this.chars().map(c => ({
@@ -237,7 +278,7 @@ export class MultiPollManagementComponent implements OnInit {
   submitted = false;
   form!: FormGroup;
 
-  // ── Cross-group validators (container responsibility) ──────────────────────
+  // ── Cross-group validators ─────────────────────────────────────────────────
 
   private readonly atLeastOneNowValidator: ValidatorFn = (arr: AbstractControl): ValidationErrors | null => {
     const fa = arr as FormArray;
@@ -299,6 +340,20 @@ export class MultiPollManagementComponent implements OnInit {
     });
   }
 
+  // ── Selection ──────────────────────────────────────────────────────────────
+
+  toggleRow(id: string): void {
+    this.selectedIds.update(s => { const n = new Set(s); n.has(id) ? n.delete(id) : n.add(id); return n; });
+  }
+
+  toggleAll(): void {
+    if (this.allSelected()) {
+      this.selectedIds.set(new Set());
+    } else {
+      this.selectedIds.set(new Set(this.multiPolls().map(mp => mp.id)));
+    }
+  }
+
   // ── UI actions ─────────────────────────────────────────────────────────────
 
   toggleForm(): void {
@@ -349,7 +404,6 @@ export class MultiPollManagementComponent implements OnInit {
     this.dupError.set(null);
     const isEdit = !!this.editing();
 
-    // Candidate validation
     for (let i = 0; i < this.groupsArray.length; i++) {
       const gf     = this.getGroupForm(i);
       const cArr   = gf.get('candidates') as FormArray;
@@ -362,7 +416,6 @@ export class MultiPollManagementComponent implements OnInit {
       }
     }
 
-    // Date validation (create only) — form invalid check covers both per-group and cross-group
     if (!isEdit && this.form.invalid) return;
 
     const questionVal: string = this.form.get('question')?.value ?? '';
@@ -427,9 +480,42 @@ export class MultiPollManagementComponent implements OnInit {
   del(id: string): void {
     if (!confirm('Delete this multi-poll and all its votes?')) return;
     this.api.adminDeleteMultiPoll(id).subscribe({
-      next: () => { this.multiPolls.update(l => l.filter(mp => mp.id !== id)); this.toast.success('Multi-poll deleted'); },
+      next: () => {
+        this.multiPolls.update(l => l.filter(mp => mp.id !== id));
+        this.selectedIds.update(s => { const n = new Set(s); n.delete(id); return n; });
+        this.toast.success('Multi-poll deleted');
+      },
       error: e => this.toast.error(this.msg(e))
     });
+  }
+
+  delSelected(): void {
+    const ids = [...this.selectedIds()];
+    if (!ids.length) return;
+    if (!confirm(`Delete ${ids.length} selected multi-polls and all their votes?`)) return;
+    this.bulkDelete(ids, id => this.api.adminDeleteMultiPoll(id)).subscribe(deleted => {
+      this.multiPolls.update(l => l.filter(mp => !deleted.includes(mp.id)));
+      this.selectedIds.update(s => { const n = new Set(s); deleted.forEach(id => n.delete(id)); return n; });
+      this.toast.success(`Deleted ${deleted.length}${deleted.length < ids.length ? '/' + ids.length + ' (some failed)' : ''} multi-polls`);
+    });
+  }
+
+  delAll(): void {
+    const items = this.multiPolls();
+    if (!items.length) return;
+    if (!confirm(`Delete all ${items.length} multi-polls and all their votes? This cannot be undone.`)) return;
+    this.bulkDelete(items.map(mp => mp.id), id => this.api.adminDeleteMultiPoll(id)).subscribe(deleted => {
+      this.multiPolls.update(l => l.filter(mp => !deleted.includes(mp.id)));
+      this.selectedIds.set(new Set());
+      this.toast.success(`Deleted ${deleted.length}${deleted.length < items.length ? '/' + items.length + ' (some failed)' : ''} multi-polls`);
+    });
+  }
+
+  private bulkDelete(ids: string[], fn: (id: string) => any) {
+    return forkJoin(ids.map(id => (fn(id) as any).pipe(
+      map(() => id as string | null),
+      catchError(() => of(null))
+    ))).pipe(map(results => results.filter((r): r is string => r !== null)));
   }
 
   totalCandidates(mp: MultiPollAdminDto): number {
