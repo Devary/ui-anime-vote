@@ -1,8 +1,8 @@
-import { Component, computed, inject, output, signal } from '@angular/core';
+import { Component, computed, inject, input, output, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { VoteStore } from '../../vote.store';
-import { ALL_POLLS, AnyPoll, Poll, MultiPoll, Character } from '../../anime-data';
+import { AnyPoll, Poll, MultiPoll, Character } from '../../anime-data';
 import { VoteDetailModalComponent } from '../vote-detail-modal/vote-detail-modal.component';
 import { MultiPollDetailModalComponent } from '../multi-poll-detail-modal/multi-poll-detail-modal.component';
 
@@ -14,6 +14,7 @@ import { MultiPollDetailModalComponent } from '../multi-poll-detail-modal/multi-
   styleUrl:    './vote-history.component.scss'
 })
 export class VoteHistoryComponent {
+  readonly allPolls     = input.required<AnyPoll[]>();
   readonly closeHistory = output<void>();
 
   private readonly voteStore = inject(VoteStore);
@@ -32,7 +33,7 @@ export class VoteHistoryComponent {
     const myVotes  = this.voteStore.myVotes();
     const stamps   = this.voteStore.timestamps();
     const todayStr = new Date().toDateString();
-    return ALL_POLLS.filter(p =>
+    return this.allPolls().filter(p =>
       myVotes[p.id] != null &&
       stamps[p.id]  != null &&
       new Date(stamps[p.id]).toDateString() === todayStr

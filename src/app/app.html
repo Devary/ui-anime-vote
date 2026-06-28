@@ -52,7 +52,7 @@
 
 <!-- Vote history drawer -->
 @if (showHistory()) {
-  <app-vote-history (closeHistory)="closeHistory()" />
+  <app-vote-history [allPolls]="allPolls()" (closeHistory)="closeHistory()" />
 }
 
 <!-- Auth modal -->
