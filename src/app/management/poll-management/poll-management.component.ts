@@ -319,7 +319,7 @@ export class PollManagementComponent implements OnInit {
     });
   }
 
-  download(poll: PollDto): void { this.export.downloadPoll(poll); }
+  download(poll: PollDto): void { this.export.downloadPoll(poll).catch(e => this.toast.error(this.msg(e))); }
 
   del(id: string): void {
     if (!confirm('Delete this poll and all its votes?')) return;

@@ -422,7 +422,7 @@ export class MultiPollManagementComponent implements OnInit {
     });
   }
 
-  download(mp: MultiPollAdminDto): void { this.export.downloadMultiPoll(mp); }
+  download(mp: MultiPollAdminDto): void { this.export.downloadMultiPoll(mp).catch(e => this.toast.error(this.msg(e))); }
 
   del(id: string): void {
     if (!confirm('Delete this multi-poll and all its votes?')) return;
