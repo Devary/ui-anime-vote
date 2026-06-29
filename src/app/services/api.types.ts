@@ -74,6 +74,7 @@ export interface HistoryItemDto {
   question: string;
   myVoteCharId: string;
   myVoteCharName: string;
+  myVoteCharImageUrl: string | null;
   votedAt: string;
 }
 
