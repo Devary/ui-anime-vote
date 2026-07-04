@@ -101,12 +101,20 @@ export class VoteStore {
     });
   }
 
-  changeMultiVote(pollId: string, oldCharId: string, newCharId: string): void {
+  changeMultiVote(pollId: string, groupId: string, oldCharId: string, newCharId: string): void {
     const v = { ...this._votes() };
     v[oldCharId] = Math.max(0, (v[oldCharId] ?? 0) - 1);
     v[newCharId] = (v[newCharId] ?? 0) + 1;
     this._votes.set(v);
     this._myVotes.set({ ...this._myVotes(), [pollId]: newCharId });
+    if (groupId) {
+      const gc = { ...this._groupCounts() };
+      const oldKey = `${groupId}|${oldCharId}`, newKey = `${groupId}|${newCharId}`;
+      gc[oldKey] = Math.max(0, (gc[oldKey] ?? 0) - 1);
+      gc[newKey] = (gc[newKey] ?? 0) + 1;
+      this._groupCounts.set(gc);
+      this._myGroupVotes.set({ ...this._myGroupVotes(), [groupId]: newCharId });
+    }
 
     this.api.changeMultiVote(pollId, newCharId).subscribe({
       next: res => { this.applyMultiPollResult(res); this.toast.info('Vote changed!'); },

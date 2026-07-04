@@ -69,6 +69,12 @@ export class PollCardComponent {
   });
 
   onClickFighter(id: string): void {
-    if (!this.voted()) this.castVote.emit(id);
+    const current = this.myVoteId();
+    if (!current) {
+      this.castVote.emit(id);
+    } else if (current !== id) {
+      // one vote per poll, switchable at any time (polls have no end date)
+      this.voteStore.changeVote(this.poll().id, current, id);
+    }
   }
 }

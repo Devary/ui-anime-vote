@@ -94,8 +94,10 @@ export class MultiPollDetailModalComponent implements OnInit {
   );
 
   switchVote(newCharId: string): void {
-    const myVote = this.myVoteCharId();
+    const group = this.poll().groups.find(g => g.candidates.some(c => c.id === newCharId));
+    if (!group) return;
+    const myVote = this.voteStore.getMyGroupVote(group.id) ?? this.myVoteCharId();
     if (!myVote || myVote === newCharId) return;
-    this.voteStore.changeMultiVote(this.poll().id, myVote, newCharId);
+    this.voteStore.changeMultiVote(this.poll().id, group.id, myVote, newCharId);
   }
 }

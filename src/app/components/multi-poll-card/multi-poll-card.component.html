@@ -60,8 +60,8 @@
                [class.is-winner]="node.data.isWinner">
             <button class="candidate-btn"
                     (click)="onClickCandidate(node.data.id, simpleGroup())"
-                    [disabled]="groupStatuses().get(simpleGroup().id) !== 'open' || hasVotedInGroup(simpleGroup().id)"
-                    [title]="'Vote for ' + node.data.name">
+                    [disabled]="groupStatuses().get(simpleGroup().id) !== 'open' || node.data.isMyVote"
+                    [title]="(hasVotedInGroup(simpleGroup().id) ? 'Switch vote to ' : 'Vote for ') + node.data.name">
               <img [src]="node.data.image" [alt]="node.data.name"
                    onerror="this.onerror=null;this.src='https://placehold.co/120x120/1565C0/fff?text=?'" />
               @if (node.data.isMyVote) { <span class="bkt-check">✓</span> }
@@ -216,7 +216,7 @@
         <button class="sheet-row"
                 [class.is-my-vote]="myGroupVote(g.id) === c.id"
                 [class.is-winner]="g.winnerCharId === c.id"
-                [disabled]="groupStatuses().get(g.id) !== 'open' || hasVotedInGroup(g.id)"
+                [disabled]="groupStatuses().get(g.id) !== 'open' || myGroupVote(g.id) === c.id"
                 (click)="onClickCandidate(c.id, g)">
           @if (showResults(g)) {
             <span class="row-fill"
@@ -230,7 +230,7 @@
             @if (showResults(g)) {
               {{ countOf(c, g) | number }} · {{ pctOf(c, g).toFixed(1) }}%
             } @else if (groupStatuses().get(g.id) === 'open') {
-              Tap to vote
+              {{ hasVotedInGroup(g.id) ? 'Tap to switch' : 'Tap to vote' }}
             }
           </span>
           @if (g.winnerCharId === c.id) { <span class="row-crown">🏆</span> }
@@ -239,7 +239,7 @@
       }
 
       @if (hasVotedInGroup(g.id) && groupStatuses().get(g.id) === 'open') {
-        <div class="sheet-note">You voted in this match — results update live</div>
+        <div class="sheet-note">You voted in this match — tap another candidate to switch while it's open</div>
       }
     </div>
 

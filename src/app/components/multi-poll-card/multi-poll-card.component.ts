@@ -243,7 +243,12 @@ export class MultiPollCardComponent implements OnInit, OnDestroy {
   onClickCandidate(charId: string, group: MultiPollGroup): void {
     const status = this.groupStatuses().get(group.id);
     if (status !== 'open') return;
-    if (this.hasVotedInGroup(group.id)) return;
-    this.voteStore.voteMultiGroup(charId, this.poll().id, group.id);
+    const current = this.myGroupVote(group.id);
+    if (!current) {
+      this.voteStore.voteMultiGroup(charId, this.poll().id, group.id);
+    } else if (current !== charId) {
+      // one vote per group, switchable while the group is still open
+      this.voteStore.changeMultiVote(this.poll().id, group.id, current, charId);
+    }
   }
 }

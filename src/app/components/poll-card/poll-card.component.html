@@ -43,8 +43,8 @@
              [class.is-leader]="node.data.isLeader">
           <button class="fighter-btn"
                   (click)="onClickFighter(node.data.id)"
-                  [disabled]="voted()"
-                  [title]="'Vote for ' + node.data.name">
+                  [disabled]="node.data.isMyVote"
+                  [title]="(voted() ? 'Switch vote to ' : 'Vote for ') + node.data.name">
             <img [src]="node.data.image" [alt]="node.data.name"
                  onerror="this.onerror=null;this.src='https://placehold.co/120x120/1565C0/fff?text=?'" />
             @if (node.data.isMyVote) { <span class="bkt-check">✓</span> }
