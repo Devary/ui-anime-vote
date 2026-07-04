@@ -13,6 +13,7 @@ export class VoteStore {
   private readonly toast = inject(ToastService);
 
   private readonly _votes         = signal<VoteMap>({});
+  private readonly _groupCounts   = signal<VoteMap>({}); // `${groupId}|${charId}` → votes (a char can sit in several bracket levels)
   private readonly _myVotes       = signal<MyVoteMap>({}); // pollId → charId (last/any)
   private readonly _myGroupVotes  = signal<MyVoteMap>({}); // groupId → charId
   private readonly _timestamps    = signal<TimestampMap>({});
@@ -83,7 +84,11 @@ export class VoteStore {
   /** Per-group vote — used by bracket multi-polls */
   voteMultiGroup(characterId: string, pollId: string, groupId: string): void {
     this._votes.set({ ...this._votes(), [characterId]: (this._votes()[characterId] ?? 0) + 1 });
-    if (groupId) this._myGroupVotes.set({ ...this._myGroupVotes(), [groupId]: characterId });
+    if (groupId) {
+      this._myGroupVotes.set({ ...this._myGroupVotes(), [groupId]: characterId });
+      const key = `${groupId}|${characterId}`;
+      this._groupCounts.set({ ...this._groupCounts(), [key]: (this._groupCounts()[key] ?? 0) + 1 });
+    }
     // Mark the poll as voted for navigation (first vote wins)
     if (!this._myVotes()[pollId]) {
       this._myVotes.set({ ...this._myVotes(), [pollId]: characterId });
@@ -129,8 +134,15 @@ export class VoteStore {
 
   private applyMultiPollResult(res: MultiPollResultDto): void {
     const v = { ...this._votes() };
-    for (const group of res.groups) for (const c of group.candidates) v[c.charId] = c.votes;
+    const gc = { ...this._groupCounts() };
+    for (const group of res.groups) {
+      for (const c of group.candidates) {
+        v[c.charId] = c.votes;
+        gc[`${group.id}|${c.charId}`] = c.votes;
+      }
+    }
     this._votes.set(v);
+    this._groupCounts.set(gc);
 
     if (res.myVotesByGroup && Object.keys(res.myVotesByGroup).length > 0) {
       this._myGroupVotes.set({ ...this._myGroupVotes(), ...res.myVotesByGroup });
@@ -149,6 +161,11 @@ export class VoteStore {
   // ── Getters ───────────────────────────────────────────────────────────────
 
   getCount(characterId: string): number { return this._votes()[characterId] ?? 0; }
+
+  /** Votes for a character within one specific group — safe when the same char sits in several bracket levels. */
+  getGroupCount(groupId: string, characterId: string): number {
+    return this._groupCounts()[`${groupId}|${characterId}`] ?? 0;
+  }
 
   getPollTotal(id1: string, id2: string): number { return this.getCount(id1) + this.getCount(id2); }
 

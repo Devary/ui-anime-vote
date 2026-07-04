@@ -110,6 +110,7 @@ export class App implements OnInit {
                feederGroupIds: g.feederGroupIds ?? [],
                resolved: g.resolved ?? true,
                startDate: g.startDate, endDate: g.endDate,
+               winnerCharId: g.winnerCharId ?? null,
                candidates: (g.candidates ?? []).map(c => this.mapChar(c))
              })) };
   }

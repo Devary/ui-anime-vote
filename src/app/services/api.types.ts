@@ -21,6 +21,8 @@ export interface MultiPollGroupDto {
   startDate?: string;
   endDate?: string;
   candidates: CharacterDto[];
+  /** winner once the group's voting period ended; null while open, on tie, or no votes */
+  winnerCharId?: string | null;
 }
 
 export interface FighterResultDto {
@@ -45,6 +47,7 @@ export interface GroupResultDto {
   feederGroupIds: string[];
   resolved: boolean;
   groupTotal: number;
+  winnerCharId?: string | null;
   candidates: {
     charId: string;
     name: string;

@@ -24,6 +24,7 @@ export interface MultiPollGroup {
   candidates: Character[];
   startDate?: string;
   endDate?: string;
+  winnerCharId?: string | null; // set once the group ended (null on tie / no votes)
 }
 
 export interface MultiPoll {

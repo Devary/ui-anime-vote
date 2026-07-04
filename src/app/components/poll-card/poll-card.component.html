@@ -10,70 +10,112 @@
     <span class="anime-tag">{{ poll().anime }}</span>
     @if (voted()) { <span class="badge-voted">Voted</span> }
   </div>
+  <h2 class="poll-question">{{ poll().question }}</h2>
 
-  <div class="poll-card-outer">
-    <div class="bracket-group-card" [class.group-ended]="voted()">
+  <div class="bracket-board">
+    <div class="match-tree">
 
-      <div class="bracket-group-header">
-        <span class="bracket-group-label">{{ poll().question }}</span>
+      <!-- Fighter 1 -->
+      <button class="entrant"
+              [class.is-my-vote]="myVoteId() === poll().fighter1.id"
+              [class.is-winner]="leader()?.id === poll().fighter1.id"
+              [disabled]="voted()"
+              (click)="onClickFighter(poll().fighter1.id)"
+              [title]="'Vote for ' + poll().fighter1.name">
+        <span class="entrant-avatar">
+          <img [src]="poll().fighter1.image" [alt]="poll().fighter1.name"
+               onerror="this.onerror=null;this.src='https://placehold.co/120x120/1565C0/fff?text=?'" />
+          @if (myVoteId() === poll().fighter1.id) { <span class="bkt-check">✓</span> }
+        </span>
+        <span class="entrant-name">{{ poll().fighter1.name }}</span>
+        <span class="entrant-title">{{ poll().fighter1.title }}</span>
+        @if (voted()) {
+          <span class="entrant-votes" [style.color]="COLORS[0]">
+            {{ voteStore.getCount(poll().fighter1.id) | number }} · {{ pct(poll().fighter1).toFixed(1) }}%
+          </span>
+        }
+      </button>
+
+      <div class="conn"></div>
+
+      <!-- Center: Final node -->
+      <div class="bkt-center">
+        <div class="final-wrap">
+          @if (leader(); as champ) {
+            <div class="champion">
+              <div class="champ-avatar">
+                <img [src]="champ.image" [alt]="champ.name"
+                     onerror="this.onerror=null;this.src='https://placehold.co/110x110/eab308/000?text=W'" />
+                <span class="champ-crown">👑</span>
+              </div>
+              <div class="champ-name">{{ champ.name }}</div>
+            </div>
+          } @else {
+            <div class="final-label">Final</div>
+          }
+          <div class="bkt-match final">
+            @if (voted()) {
+              <div class="bkt-avatar" [class.is-winner]="leader()?.id === poll().fighter1.id">
+                <img [src]="poll().fighter1.image" [alt]="poll().fighter1.name"
+                     onerror="this.onerror=null;this.src='https://placehold.co/80x80/1565C0/fff?text=?'" />
+              </div>
+              <div class="bkt-avatar" [class.is-winner]="leader()?.id === poll().fighter2.id">
+                <img [src]="poll().fighter2.image" [alt]="poll().fighter2.name"
+                     onerror="this.onerror=null;this.src='https://placehold.co/80x80/c62828/fff?text=?'" />
+              </div>
+            } @else {
+              <div class="bkt-shield" title="Vote to decide">
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="M12 2l8 3v6c0 5-3.4 9.4-8 11-4.6-1.6-8-6-8-11V5l8-3z" />
+                </svg>
+              </div>
+              <div class="bkt-shield" title="Vote to decide">
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="M12 2l8 3v6c0 5-3.4 9.4-8 11-4.6-1.6-8-6-8-11V5l8-3z" />
+                </svg>
+              </div>
+            }
+          </div>
+        </div>
       </div>
 
-      <div class="bracket-candidates">
+      <div class="conn"></div>
 
-        <!-- Fighter 1 -->
-        <div class="bracket-candidate" [class.is-voted]="myVoteId() === poll().fighter1.id">
-          <button class="bracket-cand-btn"
-                  (click)="onClickFighter(poll().fighter1.id)"
-                  [disabled]="voted()"
-                  [title]="'Vote for ' + poll().fighter1.name">
-            <img class="bracket-cand-photo"
-                 [src]="poll().fighter1.image" [alt]="poll().fighter1.name"
-                 onerror="this.onerror=null;this.src='https://placehold.co/120x120/1565C0/fff?text=?'" />
-            @if (myVoteId() === poll().fighter1.id) { <span class="voted-check">✓</span> }
-          </button>
-          <div class="bracket-cand-name">{{ poll().fighter1.name }}</div>
-          <div class="bracket-cand-title">{{ poll().fighter1.title }}</div>
-          @if (voted()) {
-            <div class="bracket-cand-votes">{{ voteStore.getCount(poll().fighter1.id) | number }} votes</div>
-          }
-        </div>
-
-        <div class="vs-divider">VS</div>
-
-        <!-- Fighter 2 -->
-        <div class="bracket-candidate" [class.is-voted]="myVoteId() === poll().fighter2.id">
-          <button class="bracket-cand-btn"
-                  (click)="onClickFighter(poll().fighter2.id)"
-                  [disabled]="voted()"
-                  [title]="'Vote for ' + poll().fighter2.name">
-            <img class="bracket-cand-photo"
-                 [src]="poll().fighter2.image" [alt]="poll().fighter2.name"
-                 onerror="this.onerror=null;this.src='https://placehold.co/120x120/c62828/fff?text=?'" />
-            @if (myVoteId() === poll().fighter2.id) { <span class="voted-check">✓</span> }
-          </button>
-          <div class="bracket-cand-name">{{ poll().fighter2.name }}</div>
-          <div class="bracket-cand-title">{{ poll().fighter2.title }}</div>
-          @if (voted()) {
-            <div class="bracket-cand-votes">{{ voteStore.getCount(poll().fighter2.id) | number }} votes</div>
-          }
-        </div>
-
-      </div>
-
-      @if (voted()) {
-        <div class="bracket-bar">
-          <div class="bracket-bar-seg"
-               [style.background]="COLORS[0]"
-               [style.width]="(totalVotes() > 0 ? voteStore.getCount(poll().fighter1.id) / totalVotes() * 100 : 50).toFixed(1) + '%'">
-          </div>
-          <div class="bracket-bar-seg"
-               [style.background]="COLORS[1]"
-               [style.width]="(totalVotes() > 0 ? voteStore.getCount(poll().fighter2.id) / totalVotes() * 100 : 50).toFixed(1) + '%'">
-          </div>
-        </div>
-      }
+      <!-- Fighter 2 -->
+      <button class="entrant"
+              [class.is-my-vote]="myVoteId() === poll().fighter2.id"
+              [class.is-winner]="leader()?.id === poll().fighter2.id"
+              [disabled]="voted()"
+              (click)="onClickFighter(poll().fighter2.id)"
+              [title]="'Vote for ' + poll().fighter2.name">
+        <span class="entrant-avatar">
+          <img [src]="poll().fighter2.image" [alt]="poll().fighter2.name"
+               onerror="this.onerror=null;this.src='https://placehold.co/120x120/c62828/fff?text=?'" />
+          @if (myVoteId() === poll().fighter2.id) { <span class="bkt-check">✓</span> }
+        </span>
+        <span class="entrant-name">{{ poll().fighter2.name }}</span>
+        <span class="entrant-title">{{ poll().fighter2.title }}</span>
+        @if (voted()) {
+          <span class="entrant-votes" [style.color]="COLORS[1]">
+            {{ voteStore.getCount(poll().fighter2.id) | number }} · {{ pct(poll().fighter2).toFixed(1) }}%
+          </span>
+        }
+      </button>
 
     </div>
+
+    @if (voted()) {
+      <div class="result-bar">
+        <div class="result-seg"
+             [style.background]="COLORS[0]"
+             [style.width.%]="pct(poll().fighter1)"></div>
+        <div class="result-seg"
+             [style.background]="COLORS[1]"
+             [style.width.%]="pct(poll().fighter2)"></div>
+      </div>
+    } @else {
+      <div class="board-hint">Tap a fighter to cast your vote</div>
+    }
   </div>
 
 </div>

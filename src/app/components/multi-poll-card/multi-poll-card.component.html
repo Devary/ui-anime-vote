@@ -10,103 +10,165 @@
   <!-- Header -->
   <div class="poll-meta">
     <span class="anime-tag">{{ poll().anime }}</span>
-    <span class="multi-badge">TOURNAMENT</span>
+    <span class="multi-badge">{{ rootNode().group ? 'KNOCKOUT' : 'MULTI' }}</span>
   </div>
+  <h2 class="poll-question">{{ poll().question }}</h2>
 
-  <!-- Bracket view -->
-  <div class="bracket-container">
-    @for (levelRow of groupsByLevel(); track levelRow.level; let li = $index) {
-      <div class="bracket-level">
-        <div class="bracket-level-label">
-          @if (li === 0) { Grand Final }
-          @else if (levelRow.level === 0) { Quarter-Finals }
-          @else { Semi-Finals }
-        </div>
-        <div class="bracket-groups-row">
-          @for (group of levelRow.groups; track group.id) {
-            <div class="bracket-group-card"
-                 [class.group-tbd]="groupStatuses().get(group.id) === 'tbd'"
-                 [class.group-ended]="groupStatuses().get(group.id) === 'ended'"
-                 [class.group-upcoming]="groupStatuses().get(group.id) === 'upcoming'">
+  <!-- Knockout board -->
+  <div class="bracket-board">
+    <div class="bkt-tree">
 
-              <div class="bracket-group-header">
-                <span class="bracket-group-label">{{ group.label }}</span>
-                @if (group.endDate && groupStatuses().get(group.id) !== 'tbd') {
-                  <app-countdown [endDate]="group.endDate" [startDate]="group.startDate" />
-                }
-                @if (groupStatuses().get(group.id) === 'ended') {
-                  <span class="badge-ended">Ended</span>
-                }
-                @if (groupStatuses().get(group.id) === 'upcoming') {
-                  <span class="badge-upcoming">Coming soon</span>
-                }
-                @if (groupStatuses().get(group.id) === 'tbd') {
-                  <span class="badge-tbd">Awaiting results</span>
-                }
-              </div>
-
-              @if (groupStatuses().get(group.id) === 'tbd') {
-                <div class="tbd-slots">
-                  @for (fid of group.feederGroupIds; track fid) {
-                    <div class="tbd-slot">
-                      <div class="tbd-avatar">?</div>
-                      <span class="tbd-slot-label">TBD</span>
-                    </div>
-                  }
-                </div>
-              } @else {
-                <div class="bracket-candidates">
-                  @for (c of group.candidates; track c.id; let ci = $index) {
-                    <div class="bracket-candidate"
-                         [class.is-voted]="myGroupVote(group.id) === c.id"
-                         [class.is-winner]="groupStatuses().get(group.id) === 'ended' && ci === 0">
-                      <button class="bracket-cand-btn"
-                              (click)="onClickCandidate(c.id, group)"
-                              [disabled]="groupStatuses().get(group.id) !== 'open' || hasVotedInGroup(group.id)">
-                        <img class="bracket-cand-photo"
-                             [src]="c.image" [alt]="c.name"
-                             onerror="this.onerror=null;this.src='https://placehold.co/80x80/1565C0/fff?text=?'" />
-                        @if (myGroupVote(group.id) === c.id) {
-                          <span class="voted-check">✓</span>
-                        }
-                      </button>
-                      <div class="bracket-cand-name">{{ c.name }}</div>
-                      @if (hasVotedInGroup(group.id)) {
-                        <div class="bracket-cand-votes">{{ voteStore.getCount(c.id) | number }} votes</div>
-                      }
-                    </div>
-                  }
-                </div>
-                @if (hasVotedInGroup(group.id)) {
-                  <div class="bracket-bar">
-                    @for (c of group.candidates; track c.id; let ci = $index) {
-                      <div class="bracket-bar-seg"
-                           [style.background]="COLORS[ci % COLORS.length]"
-                           [style.width]="(groupTotal(group) > 0 ? voteStore.getCount(c.id) / groupTotal(group) * 100 : 100 / group.candidates.length).toFixed(1) + '%'">
-                      </div>
-                    }
-                  </div>
-                }
-              }
-
-            </div>
-          }
-        </div>
-      </div>
-
-      @if (li < groupsByLevel().length - 1) {
-        <div class="bracket-connector-row">
-          @for (branch of bracketConnectors()[li]; track $index) {
-            <div class="bracket-connector-branch" [style.width.%]="branch.widthPct">
-              <div class="conn-stem"></div>
-              <div class="conn-fork"
-                   [style.left.%]="branch.childPct"
-                   [style.right.%]="branch.childPct"></div>
+      @if (leftChildren().length) {
+        <div class="bkt-children pane">
+          @for (child of leftChildren(); track child.group?.id ?? $index) {
+            <div class="bkt-child">
+              <ng-container *ngTemplateOutlet="nodeTpl; context: { $implicit: child, side: 'left' }" />
             </div>
           }
         </div>
       }
-    }
+
+      <div class="bkt-center"
+           [class.has-left]="leftChildren().length"
+           [class.has-right]="rightChildren().length">
+        <div class="final-wrap">
+          @if (champion(); as champ) {
+            <div class="champion">
+              <div class="champ-avatar">
+                <img [src]="champ.image" [alt]="champ.name"
+                     onerror="this.onerror=null;this.src='https://placehold.co/110x110/eab308/000?text=W'" />
+                <span class="champ-crown">👑</span>
+              </div>
+              <div class="champ-name">{{ champ.name }}</div>
+            </div>
+          } @else {
+            <div class="final-label">{{ centerLabel() }}</div>
+          }
+          <div class="bkt-match final"
+               [class.clickable]="isOpenable(rootNode())"
+               (click)="openGroup(rootNode())">
+            @for (slot of slotsOf(rootNode()); track $index) {
+              <ng-container *ngTemplateOutlet="slotTpl; context: { $implicit: slot }" />
+            }
+          </div>
+        </div>
+      </div>
+
+      @if (rightChildren().length) {
+        <div class="bkt-children pane mirror">
+          @for (child of rightChildren(); track child.group?.id ?? $index) {
+            <div class="bkt-child">
+              <ng-container *ngTemplateOutlet="nodeTpl; context: { $implicit: child, side: 'right' }" />
+            </div>
+          }
+        </div>
+      }
+
+    </div>
   </div>
 
+  <div class="board-hint">Tap a match to vote or see results</div>
+
 </div>
+
+<!-- ── Recursive knockout node ─────────────────────────────────────────────── -->
+<ng-template #nodeTpl let-node let-side="side">
+  <div class="bkt-node"
+       [class.mirror]="side === 'right'"
+       [class.has-children]="node.children.length > 0">
+
+    @if (node.children.length) {
+      <div class="bkt-children">
+        @for (child of node.children; track child.group?.id ?? $index) {
+          <div class="bkt-child">
+            <ng-container *ngTemplateOutlet="nodeTpl; context: { $implicit: child, side: side }" />
+          </div>
+        }
+      </div>
+    }
+
+    <div class="bkt-match"
+         [class.clickable]="isOpenable(node)"
+         [class.match-open]="node.group && groupStatuses().get(node.group.id) === 'open'"
+         [class.match-tbd]="node.group && groupStatuses().get(node.group.id) === 'tbd'"
+         [title]="node.group?.label ?? ''"
+         (click)="openGroup(node)">
+      @for (slot of slotsOf(node); track $index) {
+        <ng-container *ngTemplateOutlet="slotTpl; context: { $implicit: slot }" />
+      }
+    </div>
+
+  </div>
+</ng-template>
+
+<!-- ── One participant slot (avatar or TBD shield) ─────────────────────────── -->
+<ng-template #slotTpl let-slot>
+  @if (slot.char) {
+    <div class="bkt-avatar"
+         [class.is-winner]="slot.isWinner"
+         [class.is-my-vote]="slot.isMyVote"
+         [title]="slot.char.name">
+      <img [src]="slot.char.image" [alt]="slot.char.name"
+           onerror="this.onerror=null;this.src='https://placehold.co/80x80/1565C0/fff?text=?'" />
+      @if (slot.isMyVote) { <span class="bkt-check">✓</span> }
+    </div>
+  } @else {
+    <div class="bkt-shield" title="To be decided">
+      <svg viewBox="0 0 24 24" aria-hidden="true">
+        <path d="M12 2l8 3v6c0 5-3.4 9.4-8 11-4.6-1.6-8-6-8-11V5l8-3z" />
+      </svg>
+    </div>
+  }
+</ng-template>
+
+<!-- ── Vote sheet ──────────────────────────────────────────────────────────── -->
+@if (selectedGroup(); as g) {
+  <div class="sheet-backdrop" (click)="closeSheet()"></div>
+  <div class="vote-sheet" role="dialog" aria-modal="true">
+
+    <div class="sheet-header">
+      <span class="sheet-label">{{ g.label }}</span>
+      @switch (groupStatuses().get(g.id)) {
+        @case ('ended')    { <span class="badge-ended">Ended</span> }
+        @case ('upcoming') { <span class="badge-upcoming">Coming soon</span> }
+        @case ('open') {
+          @if (g.endDate) { <app-countdown [endDate]="g.endDate" [startDate]="g.startDate" /> }
+        }
+      }
+      <button class="sheet-close" (click)="closeSheet()" aria-label="Close">✕</button>
+    </div>
+
+    <div class="sheet-body">
+      @for (c of g.candidates; track c.id; let ci = $index) {
+        <button class="sheet-row"
+                [class.is-my-vote]="myGroupVote(g.id) === c.id"
+                [class.is-winner]="g.winnerCharId === c.id"
+                [disabled]="groupStatuses().get(g.id) !== 'open' || hasVotedInGroup(g.id)"
+                (click)="onClickCandidate(c.id, g)">
+          @if (showResults(g)) {
+            <span class="row-fill"
+                  [style.background]="COLORS[ci % COLORS.length]"
+                  [style.width.%]="pctOf(c, g)"></span>
+          }
+          <img class="row-avatar" [src]="c.image" [alt]="c.name"
+               onerror="this.onerror=null;this.src='https://placehold.co/60x60/1565C0/fff?text=?'" />
+          <span class="row-name">{{ c.name }}</span>
+          <span class="row-meta">
+            @if (showResults(g)) {
+              {{ countOf(c, g) | number }} · {{ pctOf(c, g).toFixed(1) }}%
+            } @else if (groupStatuses().get(g.id) === 'open') {
+              Tap to vote
+            }
+          </span>
+          @if (g.winnerCharId === c.id) { <span class="row-crown">🏆</span> }
+          @if (myGroupVote(g.id) === c.id) { <span class="row-check">✓</span> }
+        </button>
+      }
+
+      @if (hasVotedInGroup(g.id) && groupStatuses().get(g.id) === 'open') {
+        <div class="sheet-note">You voted in this match — results update live</div>
+      }
+    </div>
+
+  </div>
+}
