@@ -14,6 +14,77 @@
   </div>
   <h2 class="poll-question">{{ poll().question }}</h2>
 
+  @if (isSimple()) {
+    <!-- Single group → simple org chart -->
+    <div class="simple-board">
+      <div class="simple-header">
+        <span class="simple-label">{{ simpleGroup().label }}</span>
+        @switch (groupStatuses().get(simpleGroup().id)) {
+          @case ('ended')    { <span class="badge-ended">Ended</span> }
+          @case ('upcoming') { <span class="badge-upcoming">Coming soon</span> }
+          @case ('open') {
+            @if (simpleGroup().endDate; as end) {
+              <app-countdown [endDate]="end" [startDate]="simpleGroup().startDate" />
+            }
+          }
+        }
+      </div>
+
+      <p-organization-chart [value]="orgNodes()" [collapsible]="false">
+
+        <!-- Winner (root) -->
+        <ng-template let-node pTemplate="winner">
+          <div class="winner-node">
+            @if (node.data) {
+              <div class="champ-avatar">
+                <img [src]="node.data.image" [alt]="node.data.name"
+                     onerror="this.onerror=null;this.src='https://placehold.co/110x110/eab308/000?text=W'" />
+                <span class="champ-crown">👑</span>
+              </div>
+              <div class="champ-name">{{ node.data.name }}</div>
+            } @else {
+              <div class="bkt-shield" title="To be decided">
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="M12 2l8 3v6c0 5-3.4 9.4-8 11-4.6-1.6-8-6-8-11V5l8-3z" />
+                </svg>
+              </div>
+              <div class="final-label">Winner</div>
+            }
+          </div>
+        </ng-template>
+
+        <!-- Candidate (leaf) -->
+        <ng-template let-node pTemplate="candidate">
+          <div class="candidate-node"
+               [class.is-my-vote]="node.data.isMyVote"
+               [class.is-winner]="node.data.isWinner">
+            <button class="candidate-btn"
+                    (click)="onClickCandidate(node.data.id, simpleGroup())"
+                    [disabled]="groupStatuses().get(simpleGroup().id) !== 'open' || hasVotedInGroup(simpleGroup().id)"
+                    [title]="'Vote for ' + node.data.name">
+              <img [src]="node.data.image" [alt]="node.data.name"
+                   onerror="this.onerror=null;this.src='https://placehold.co/120x120/1565C0/fff?text=?'" />
+              @if (node.data.isMyVote) { <span class="bkt-check">✓</span> }
+              @if (node.data.isWinner) { <span class="candidate-crown">🏆</span> }
+            </button>
+            <div class="candidate-name">{{ node.data.name }}</div>
+            <div class="candidate-title">{{ node.data.title }}</div>
+            @if (node.data.showResults) {
+              <div class="candidate-votes" [style.color]="node.data.color">
+                {{ node.data.votes | number }} · {{ node.data.pct.toFixed(1) }}%
+              </div>
+            }
+          </div>
+        </ng-template>
+
+      </p-organization-chart>
+
+      @if (groupStatuses().get(simpleGroup().id) === 'open' && !hasVotedInGroup(simpleGroup().id)) {
+        <div class="board-hint in-board">Tap a candidate to cast your vote</div>
+      }
+    </div>
+  } @else {
+
   <!-- Knockout board -->
   <div class="bracket-board">
     <div class="bkt-tree">
@@ -68,6 +139,8 @@
   </div>
 
   <div class="board-hint">Tap a match to vote or see results</div>
+
+  }
 
 </div>
 

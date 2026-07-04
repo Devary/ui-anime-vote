@@ -1,5 +1,7 @@
 import { Component, OnInit, OnDestroy, computed, effect, inject, input, signal, untracked } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { OrganizationChartModule } from 'primeng/organizationchart';
+import { TreeNode } from 'primeng/api';
 import { Character, MultiPoll, MultiPollGroup } from '../../anime-data';
 import { VoteStore } from '../../vote.store';
 import { CountdownComponent } from '../countdown/countdown.component';
@@ -24,7 +26,7 @@ export interface BracketSlot {
 @Component({
   selector:    'app-multi-poll-card',
   standalone:  true,
-  imports:     [CommonModule, CountdownComponent],
+  imports:     [CommonModule, CountdownComponent, OrganizationChartModule],
   templateUrl: './multi-poll-card.component.html',
   styleUrl:    './multi-poll-card.component.scss',
 })
@@ -78,6 +80,40 @@ export class MultiPollCardComponent implements OnInit, OnDestroy {
       statuses.set(g.id, now < start ? 'upcoming' : now > end ? 'ended' : 'open');
     }
     return statuses;
+  });
+
+  // ── Simple mode (single group → PrimeNG org chart, no symmetric tree) ─────
+
+  readonly isSimple = computed(() => this.poll().groups.length === 1);
+
+  readonly simpleGroup = computed(() => this.poll().groups[0]);
+
+  readonly orgNodes = computed<TreeNode[]>(() => {
+    if (!this.isSimple()) return [];
+    const g = this.simpleGroup();
+    const winner = g.winnerCharId ? this.charById().get(g.winnerCharId) ?? null : null;
+    const myVote = this.voteStore.getMyGroupVote(g.id);
+    const showResults = this.showResults(g);
+    return [{
+      expanded: true,
+      type:     'winner',
+      data:     winner ? { image: winner.image, name: winner.name } : null,
+      children: g.candidates.map((c, ci) => ({
+        type: 'candidate',
+        data: {
+          id:       c.id,
+          image:    c.image,
+          name:     c.name,
+          title:    c.title,
+          color:    SEGMENT_COLORS[ci % SEGMENT_COLORS.length],
+          votes:    this.countOf(c, g),
+          pct:      this.pctOf(c, g),
+          isMyVote: myVote === c.id,
+          isWinner: g.winnerCharId === c.id,
+          showResults,
+        },
+      })),
+    }];
   });
 
   // ── Knockout tree ─────────────────────────────────────────────────────────

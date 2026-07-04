@@ -1,12 +1,14 @@
 import { Component, computed, inject, input, output } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { OrganizationChartModule } from 'primeng/organizationchart';
+import { TreeNode } from 'primeng/api';
 import { Character, Poll } from '../../anime-data';
 import { VoteStore } from '../../vote.store';
 
 @Component({
   selector: 'app-poll-card',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, OrganizationChartModule],
   templateUrl: './poll-card.component.html',
   styleUrl: './poll-card.component.scss'
 })
@@ -38,6 +40,32 @@ export class PollCardComponent {
     const c2 = this.voteStore.getCount(p.fighter2.id);
     if (c1 === c2) return null;
     return c1 > c2 ? p.fighter1 : p.fighter2;
+  });
+
+  readonly orgNodes = computed<TreeNode[]>(() => {
+    const p      = this.poll();
+    const leader = this.leader();
+    const voted  = this.voted();
+    return [{
+      expanded: true,
+      type:     'winner',
+      data:     leader ? { image: leader.image, name: leader.name } : null,
+      children: [p.fighter1, p.fighter2].map((f, i) => ({
+        type: 'fighter',
+        data: {
+          id:       f.id,
+          image:    f.image,
+          name:     f.name,
+          title:    f.title,
+          color:    this.COLORS[i],
+          votes:    this.voteStore.getCount(f.id),
+          pct:      this.pct(f),
+          isMyVote: this.myVoteId() === f.id,
+          isLeader: leader?.id === f.id,
+          voted,
+        },
+      })),
+    }];
   });
 
   onClickFighter(id: string): void {

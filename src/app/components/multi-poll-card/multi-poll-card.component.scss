@@ -102,6 +102,159 @@
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
+// SIMPLE BOARD (single group → PrimeNG org chart)
+// ══════════════════════════════════════════════════════════════════════════════
+.simple-board {
+  width:           100%;
+  max-width:       40rem;
+  background:      color-mix(in srgb, var(--rz-surface) 90%, transparent);
+  border:          1px solid var(--rz-border);
+  border-radius:   var(--rz-radius-lg);
+  padding:         1.2rem 1rem;
+  backdrop-filter: blur(var(--rz-glass-blur));
+  box-shadow:      var(--rz-glass-shadow);
+  display:         flex;
+  flex-direction:  column;
+  align-items:     center;
+  gap:             0.6rem;
+  overflow-x:      auto;
+}
+
+.simple-header {
+  display:     flex;
+  align-items: center;
+  gap:         0.5rem;
+}
+
+.simple-label {
+  font-size:   0.85rem;
+  font-weight: 800;
+  color:       var(--rz-ink);
+}
+
+:host ::ng-deep {
+  .p-organizationchart { background: transparent; padding: 0; }
+
+  .p-organizationchart-connector-left.p-organizationchart-connector-top {
+    border-top:   2px solid var(--bkt-line) !important;
+    border-right: 2px solid var(--bkt-line) !important;
+  }
+  .p-organizationchart-connector-right.p-organizationchart-connector-top {
+    border-top:  2px solid var(--bkt-line) !important;
+    border-left: 2px solid var(--bkt-line) !important;
+  }
+  .p-organizationchart-connector-down {
+    background: var(--bkt-line) !important;
+    width:      2px  !important;
+    height:     16px !important;
+    margin:     0 auto;
+  }
+  .p-organizationchart-node-content {
+    border: none !important; background: transparent !important;
+    padding: 0 !important; box-shadow: none !important; border-radius: 0 !important;
+  }
+  .p-organizationchart-node-toggle-button { display: none !important; }
+}
+
+.winner-node {
+  display:        flex;
+  flex-direction: column;
+  align-items:    center;
+  gap:            0.25rem;
+  padding:        0.5rem 0.8rem;
+  border:         1px solid var(--bkt-gold);
+  border-radius:  0.85rem;
+  background:     var(--bkt-gold-soft);
+  box-shadow:     0 0 22px rgba(234, 179, 8, 0.18);
+
+  // reuse the gold label/champion styles, un-anchored from the bracket's absolute layout
+  .final-label,
+  .champion {
+    position:  static;
+    transform: none;
+    margin:    0;
+  }
+}
+
+.candidate-node {
+  display:        flex;
+  flex-direction: column;
+  align-items:    center;
+  gap:            0.2rem;
+  max-width:      8.5rem;
+  padding:        0.3rem 0.4rem;
+  color:          var(--rz-ink);
+}
+
+.candidate-btn {
+  position:      relative;
+  width:         4.2rem;
+  height:        4.2rem;
+  padding:       0;
+  border:        none;
+  background:    transparent;
+  cursor:        pointer;
+  border-radius: 50%;
+
+  img {
+    display:         block;
+    width:           100%;
+    height:          100%;
+    border-radius:   50%;
+    object-fit:      cover;
+    object-position: top center;
+    border:          3px solid var(--rz-border);
+    background:      #1a1a2e;
+    transition:      border-color 0.15s ease, transform 0.15s ease, box-shadow 0.15s ease;
+  }
+
+  &:disabled { cursor: default; }
+
+  &:not(:disabled):hover img {
+    border-color: var(--rz-primary);
+    transform:    scale(1.06);
+    box-shadow:   0 6px 20px rgba(0, 0, 0, 0.35);
+  }
+}
+
+.candidate-node.is-my-vote .candidate-btn img { border-color: var(--rz-primary); }
+.candidate-node.is-winner  .candidate-btn img {
+  border-color: var(--bkt-gold);
+  box-shadow:   0 0 0 3px rgba(234, 179, 8, 0.4);
+}
+
+.candidate-crown {
+  position:  absolute;
+  top:       -0.4rem;
+  left:      -0.4rem;
+  font-size: 1rem;
+}
+
+.candidate-name {
+  font-size:   0.82rem;
+  font-weight: 800;
+  text-align:  center;
+}
+
+.candidate-title {
+  font-size:  0.65rem;
+  color:      var(--rz-ink-muted);
+  text-align: center;
+}
+
+.candidate-votes {
+  font-size:   0.72rem;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+
+.board-hint.in-board {
+  color:       var(--rz-ink-muted);
+  text-shadow: none;
+  padding-top: 0.3rem;
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
 // KNOCKOUT BOARD (SofaScore-style symmetric tree)
 // ══════════════════════════════════════════════════════════════════════════════
 .bracket-board {

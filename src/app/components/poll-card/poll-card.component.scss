@@ -102,169 +102,56 @@
   padding-top: 0.9rem;
 }
 
-// ── Match board ───────────────────────────────────────────────────────────────
-.bracket-board {
+// ── Org-chart board ───────────────────────────────────────────────────────────
+.poll-board {
   width:           100%;
-  max-width:       40rem;
+  max-width:       36rem;
   background:      color-mix(in srgb, var(--rz-surface) 90%, transparent);
   border:          1px solid var(--rz-border);
   border-radius:   var(--rz-radius-lg);
-  padding:         4.6rem 1.4rem 1.4rem;
+  padding:         1.4rem;
   backdrop-filter: blur(var(--rz-glass-blur));
   box-shadow:      var(--rz-glass-shadow);
-}
-
-.match-tree {
   display:         flex;
+  flex-direction:  column;
   align-items:     center;
-  justify-content: center;
 }
 
-.conn {
-  flex:       1;
-  max-width:  3.5rem;
-  height:     2px;
-  background: var(--bkt-line);
+:host ::ng-deep {
+  .p-organizationchart { background: transparent; padding: 0; }
+
+  .p-organizationchart-connector-left.p-organizationchart-connector-top {
+    border-top:   2px solid var(--bkt-line) !important;
+    border-right: 2px solid var(--bkt-line) !important;
+  }
+  .p-organizationchart-connector-right.p-organizationchart-connector-top {
+    border-top:  2px solid var(--bkt-line) !important;
+    border-left: 2px solid var(--bkt-line) !important;
+  }
+  .p-organizationchart-connector-down {
+    background: var(--bkt-line) !important;
+    width:      2px  !important;
+    height:     16px !important;
+    margin:     0 auto;
+  }
+  .p-organizationchart-node-content {
+    border: none !important; background: transparent !important;
+    padding: 0 !important; box-shadow: none !important; border-radius: 0 !important;
+  }
+  .p-organizationchart-node-toggle-button { display: none !important; }
 }
 
-// ── Entrants ──────────────────────────────────────────────────────────────────
-.entrant {
+// ── Winner (root) node ────────────────────────────────────────────────────────
+.winner-node {
   display:        flex;
   flex-direction: column;
   align-items:    center;
   gap:            0.25rem;
-  max-width:      9rem;
-  padding:        0.5rem;
-  border:         none;
-  background:     transparent;
-  color:          var(--rz-ink);
-  font:           inherit;
-  cursor:         pointer;
-
-  &:disabled { cursor: default; }
-
-  &:not(:disabled):hover .entrant-avatar img {
-    border-color: var(--rz-primary);
-    transform:    scale(1.06);
-    box-shadow:   0 6px 20px rgba(0, 0, 0, 0.35);
-  }
-}
-
-.entrant-avatar {
-  position: relative;
-  width:    4.6rem;
-  height:   4.6rem;
-
-  img {
-    display:         block;
-    width:           100%;
-    height:          100%;
-    border-radius:   50%;
-    object-fit:      cover;
-    object-position: top center;
-    border:          3px solid var(--rz-border);
-    background:      #1a1a2e;
-    transition:      border-color 0.15s ease, transform 0.15s ease, box-shadow 0.15s ease;
-  }
-}
-
-.entrant.is-my-vote .entrant-avatar img { border-color: var(--rz-primary); }
-.entrant.is-winner  .entrant-avatar img {
-  border-color: var(--bkt-gold);
-  box-shadow:   0 0 0 3px rgba(234, 179, 8, 0.4);
-}
-
-.bkt-check {
-  position:      absolute;
-  bottom:        0;
-  right:         0;
-  width:         1.2rem;
-  height:        1.2rem;
-  display:       grid;
-  place-items:   center;
-  font-size:     0.65rem;
-  font-weight:   900;
-  color:         #fff;
-  background:    var(--rz-primary);
-  border-radius: 50%;
-  box-shadow:    0 1px 4px rgba(0, 0, 0, 0.4);
-}
-
-.entrant-name {
-  font-size:   0.88rem;
-  font-weight: 800;
-  text-align:  center;
-}
-
-.entrant-title {
-  font-size:  0.68rem;
-  color:      var(--rz-ink-muted);
-  text-align: center;
-}
-
-.entrant-votes {
-  font-size:   0.75rem;
-  font-weight: 800;
-  font-variant-numeric: tabular-nums;
-}
-
-// ── Center Final node (matches multi-poll bracket styling) ───────────────────
-.bkt-center {
-  display:         flex;
-  flex-direction:  column;
-  align-items:     center;
-  justify-content: center;
-}
-
-.final-wrap { position: relative; }
-
-.final-label {
-  position:       absolute;
-  bottom:         100%;
-  left:           50%;
-  transform:      translateX(-50%);
-  margin-bottom:  0.45rem;
-  font-size:      0.8rem;
-  font-weight:    800;
-  letter-spacing: 0.08em;
-  color:          var(--bkt-gold);
-  text-shadow:    0 1px 8px rgba(0, 0, 0, 0.35);
-}
-
-.bkt-match {
-  display:        flex;
-  flex-direction: row;
-  gap:            0.4rem;
-  padding:        0.45rem;
+  padding:        0.5rem 0.8rem;
+  border:         1px solid var(--bkt-gold);
   border-radius:  0.85rem;
-
-  &.final {
-    border:     1px solid var(--bkt-gold);
-    background: var(--bkt-gold-soft);
-    box-shadow: 0 0 22px rgba(234, 179, 8, 0.18);
-  }
-}
-
-.bkt-avatar {
-  position: relative;
-  width:    3.1rem;
-  height:   3.1rem;
-
-  img {
-    display:         block;
-    width:           100%;
-    height:          100%;
-    border-radius:   50%;
-    object-fit:      cover;
-    object-position: top center;
-    border:          2px solid var(--rz-border);
-    background:      #1a1a2e;
-  }
-
-  &.is-winner img {
-    border-color: var(--bkt-gold);
-    box-shadow:   0 0 0 2px rgba(234, 179, 8, 0.45);
-  }
+  background:     var(--bkt-gold-soft);
+  box-shadow:     0 0 22px rgba(234, 179, 8, 0.18);
 }
 
 .bkt-shield {
@@ -280,22 +167,17 @@
   }
 }
 
-.champion {
-  position:       absolute;
-  bottom:         100%;
-  left:           50%;
-  transform:      translateX(-50%);
-  margin-bottom:  0.4rem;
-  display:        flex;
-  flex-direction: column;
-  align-items:    center;
-  gap:            0.15rem;
+.final-label {
+  font-size:      0.72rem;
+  font-weight:    800;
+  letter-spacing: 0.08em;
+  color:          var(--bkt-gold);
 }
 
 .champ-avatar {
   position: relative;
-  width:    3.4rem;
-  height:   3.4rem;
+  width:    4rem;
+  height:   4rem;
 
   img {
     width:           100%;
@@ -317,16 +199,98 @@
 }
 
 .champ-name {
-  font-size:   0.72rem;
+  font-size:   0.75rem;
   font-weight: 800;
   color:       var(--bkt-gold);
   white-space: nowrap;
-  text-shadow: 0 1px 6px rgba(0, 0, 0, 0.4);
+}
+
+// ── Fighter (leaf) node ───────────────────────────────────────────────────────
+.fighter-node {
+  display:        flex;
+  flex-direction: column;
+  align-items:    center;
+  gap:            0.25rem;
+  max-width:      9rem;
+  padding:        0.35rem 0.5rem;
+  color:          var(--rz-ink);
+}
+
+.fighter-btn {
+  position:      relative;
+  width:         4.6rem;
+  height:        4.6rem;
+  padding:       0;
+  border:        none;
+  background:    transparent;
+  cursor:        pointer;
+  border-radius: 50%;
+
+  img {
+    display:         block;
+    width:           100%;
+    height:          100%;
+    border-radius:   50%;
+    object-fit:      cover;
+    object-position: top center;
+    border:          3px solid var(--rz-border);
+    background:      #1a1a2e;
+    transition:      border-color 0.15s ease, transform 0.15s ease, box-shadow 0.15s ease;
+  }
+
+  &:disabled { cursor: default; }
+
+  &:not(:disabled):hover img {
+    border-color: var(--rz-primary);
+    transform:    scale(1.06);
+    box-shadow:   0 6px 20px rgba(0, 0, 0, 0.35);
+  }
+}
+
+.fighter-node.is-my-vote .fighter-btn img { border-color: var(--rz-primary); }
+.fighter-node.is-leader  .fighter-btn img {
+  border-color: var(--bkt-gold);
+  box-shadow:   0 0 0 3px rgba(234, 179, 8, 0.4);
+}
+
+.bkt-check {
+  position:      absolute;
+  bottom:        0;
+  right:         0;
+  width:         1.2rem;
+  height:        1.2rem;
+  display:       grid;
+  place-items:   center;
+  font-size:     0.65rem;
+  font-weight:   900;
+  color:         #fff;
+  background:    var(--rz-primary);
+  border-radius: 50%;
+  box-shadow:    0 1px 4px rgba(0, 0, 0, 0.4);
+}
+
+.fighter-name {
+  font-size:   0.88rem;
+  font-weight: 800;
+  text-align:  center;
+}
+
+.fighter-title {
+  font-size:  0.68rem;
+  color:      var(--rz-ink-muted);
+  text-align: center;
+}
+
+.fighter-votes {
+  font-size:   0.75rem;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
 }
 
 // ── Result bar ────────────────────────────────────────────────────────────────
 .result-bar {
   display:       flex;
+  width:         100%;
   height:        0.6rem;
   margin-top:    1rem;
   border-radius: var(--rz-radius-full);
@@ -339,13 +303,6 @@
 // ── Responsive ────────────────────────────────────────────────────────────────
 @media (max-width: 640px) {
   .poll-page { padding: 0.75rem 1.25rem; }
-
-  .bracket-board { padding: 4.2rem 0.8rem 1rem; }
-
-  .entrant-avatar { width: 3.6rem; height: 3.6rem; }
-
-  .bkt-avatar,
-  .bkt-shield { width: 2.6rem; height: 2.6rem; }
-
-  .conn { max-width: 1.6rem; }
+  .poll-board { padding: 1rem 0.8rem; }
+  .fighter-btn { width: 3.6rem; height: 3.6rem; }
 }
