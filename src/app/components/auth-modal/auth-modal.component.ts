@@ -1,5 +1,6 @@
 import { Component, inject, output, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { I18nService } from '../../i18n/i18n.service';
 import { FormsModule } from '@angular/forms';
 import { AuthService } from '../../services/auth.service';
 import { ToastService } from '../../services/toast.service';
@@ -14,6 +15,7 @@ type Tab = 'login' | 'register';
   styleUrl: './auth-modal.component.scss'
 })
 export class AuthModalComponent {
+  readonly i18n = inject(I18nService);
   readonly close = output<void>();
 
   private readonly auth  = inject(AuthService);

@@ -8,7 +8,12 @@
 
   <div class="poll-meta">
     <span class="anime-tag">{{ poll().anime }}</span>
-    @if (voted()) { <span class="badge-voted">Voted</span> }
+    @if (voted()) { <span class="badge-voted">{{ i18n.t('badge.voted') }}</span> }
+    @if (isShareable()) {
+      <button class="share-btn" (click)="sharePoll()" [title]="i18n.t('poll.share')">
+        <i class="pi pi-share-alt"></i>
+      </button>
+    }
   </div>
   <h2 class="poll-question">{{ poll().question }}</h2>
 
@@ -31,7 +36,7 @@
                 <path d="M12 2l8 3v6c0 5-3.4 9.4-8 11-4.6-1.6-8-6-8-11V5l8-3z" />
               </svg>
             </div>
-            <div class="final-label">Winner</div>
+            <div class="final-label">{{ i18n.t('poll.winner') }}</div>
           }
         </div>
       </ng-template>
@@ -44,7 +49,7 @@
           <button class="fighter-btn"
                   (click)="onClickFighter(node.data.id)"
                   [disabled]="node.data.isMyVote"
-                  [title]="(voted() ? 'Switch vote to ' : 'Vote for ') + node.data.name">
+                  [title]="(voted() ? i18n.t('poll.switchTo') : i18n.t('poll.voteFor')) + ' ' + node.data.name">
             <img [src]="node.data.image" [alt]="node.data.name"
                  onerror="this.onerror=null;this.src='https://placehold.co/120x120/1565C0/fff?text=?'" />
             @if (node.data.isMyVote) { <span class="bkt-check">✓</span> }
@@ -71,7 +76,7 @@
              [style.width.%]="pct(poll().fighter2)"></div>
       </div>
     } @else {
-      <div class="board-hint">Tap a fighter to cast your vote</div>
+      <div class="board-hint">{{ i18n.t('poll.tapFighter') }}</div>
     }
   </div>
 

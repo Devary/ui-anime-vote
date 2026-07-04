@@ -13,6 +13,7 @@ export interface Poll {
   question: string;
   fighter1: Character;
   fighter2: Character;
+  visibility?: string; // PUBLIC | PRIVATE | AUTHENTICATED | RESTRICTED
 }
 
 export interface MultiPollGroup {
@@ -33,6 +34,7 @@ export interface MultiPoll {
   anime: string;
   question: string;
   groups: MultiPollGroup[];
+  visibility?: string; // PUBLIC | PRIVATE | AUTHENTICATED | RESTRICTED
 }
 
 export type AnyPoll = Poll | MultiPoll;

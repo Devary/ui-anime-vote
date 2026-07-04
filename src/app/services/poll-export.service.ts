@@ -1,4 +1,6 @@
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
+import { firstValueFrom } from 'rxjs';
+import { AnimeApiService } from './anime-api.service';
 import { PollDto, MultiPollAdminDto, MultiPollGroupDto, CharacterDto } from './api.types';
 
 /** One participant circle inside a match/candidate card; char=null renders the TBD shield. */
@@ -50,10 +52,24 @@ const FALLBACK_COLORS = ['#1565c0', '#c62828', '#2e7d32', '#6a1b9a', '#e65100'];
 @Injectable({ providedIn: 'root' })
 export class PollExportService {
 
-  /** Simple 1v1 poll → plain org chart (Winner on top, fighters below). */
+  private readonly api = inject(AnimeApiService);
+
+  /** Simple poll → same org chart as single-group multi-polls, champion = current vote leader. */
   async downloadPoll(poll: PollDto): Promise<void> {
-    const slots: Slot[] = poll.fighters.map(f => ({ name: f.name, sub: f.title ?? '', imageUrl: f.imageUrl }));
-    const svg = await this.buildOrgChart(poll.question, poll.anime ?? '', null, slots, null);
+    // leader from live results (null on tie / no votes → gold shield instead)
+    let leaderId: string | null = null;
+    try {
+      const res = await firstValueFrom(this.api.getPollResult(poll.id));
+      const sorted = [...res.fighterResults].sort((a, b) => b.votes - a.votes);
+      if (sorted.length > 1 && sorted[0].votes > sorted[1].votes) leaderId = sorted[0].charId;
+    } catch { /* results unavailable → render without champion */ }
+
+    const slots: Slot[] = poll.fighters.map(f => ({
+      name: f.name, sub: f.title ?? '', imageUrl: f.imageUrl, isWinner: f.id === leaderId,
+    }));
+    const leader = leaderId ? poll.fighters.find(f => f.id === leaderId) ?? null : null;
+    const champ: Slot | null = leader ? { name: leader.name, imageUrl: leader.imageUrl } : null;
+    const svg = await this.buildOrgChart(poll.question, poll.anime ?? '', null, slots, champ);
     await this.downloadJpeg(svg.svg, svg.w, svg.h, poll.id);
   }
 

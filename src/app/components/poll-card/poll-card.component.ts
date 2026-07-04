@@ -4,6 +4,8 @@ import { OrganizationChartModule } from 'primeng/organizationchart';
 import { TreeNode } from 'primeng/api';
 import { Character, Poll } from '../../anime-data';
 import { VoteStore } from '../../vote.store';
+import { ShareService } from '../../services/share.service';
+import { I18nService } from '../../i18n/i18n.service';
 
 @Component({
   selector: 'app-poll-card',
@@ -17,8 +19,15 @@ export class PollCardComponent {
   readonly castVote = output<string>();
 
   readonly voteStore = inject(VoteStore);
+  readonly i18n = inject(I18nService);
+  private readonly shareService = inject(ShareService);
 
   readonly COLORS = ['#1565c0', '#c62828'];
+
+  /** Only public polls get a shareable social-media link. */
+  readonly isShareable = computed(() => (this.poll().visibility ?? 'PUBLIC') === 'PUBLIC');
+
+  sharePoll(): void { this.shareService.share(this.poll().id, this.poll().question); }
 
   readonly myVoteId   = computed(() => this.voteStore.getMyVote(this.poll().id));
   readonly voted      = computed(() => this.myVoteId() !== null);

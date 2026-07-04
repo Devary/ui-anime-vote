@@ -4,6 +4,8 @@ import { OrganizationChartModule } from 'primeng/organizationchart';
 import { TreeNode } from 'primeng/api';
 import { Character, MultiPoll, MultiPollGroup } from '../../anime-data';
 import { VoteStore } from '../../vote.store';
+import { ShareService } from '../../services/share.service';
+import { I18nService } from '../../i18n/i18n.service';
 import { CountdownComponent } from '../countdown/countdown.component';
 
 const SEGMENT_COLORS = ['#1565c0', '#c62828', '#2e7d32', '#6a1b9a', '#e65100'];
@@ -34,6 +36,8 @@ export class MultiPollCardComponent implements OnInit, OnDestroy {
   readonly poll = input.required<MultiPoll>();
 
   readonly voteStore = inject(VoteStore);
+  readonly i18n = inject(I18nService);
+  private readonly shareService = inject(ShareService);
   private readonly _now = signal(Date.now());
   private _timer?: ReturnType<typeof setInterval>;
 
@@ -56,6 +60,11 @@ export class MultiPollCardComponent implements OnInit, OnDestroy {
   ngOnDestroy() { clearInterval(this._timer); }
 
   readonly COLORS = SEGMENT_COLORS;
+
+  /** Only public polls get a shareable social-media link. */
+  readonly isShareable = computed(() => (this.poll().visibility ?? 'PUBLIC') === 'PUBLIC');
+
+  sharePoll(): void { this.shareService.share(this.poll().id, this.poll().question); }
 
   readonly bgImages = computed(() =>
     this.poll().groups.flatMap(g => g.candidates).map(c => c.image).slice(0, 6)
@@ -152,7 +161,7 @@ export class MultiPollCardComponent implements OnInit, OnDestroy {
     return c.slice(Math.ceil(c.length / 2));
   });
 
-  readonly centerLabel = computed(() => this.rootNode().group ? 'Final' : 'Winner');
+  readonly centerLabel = computed(() => this.rootNode().group ? 'poll.final' : 'poll.winner');
 
   readonly champion = computed<Character | null>(() => {
     const root = this.rootNode();

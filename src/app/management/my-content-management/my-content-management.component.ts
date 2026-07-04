@@ -9,11 +9,12 @@ import { ToastService } from '../../services/toast.service';
 import { DataRefreshService } from '../../services/data-refresh.service';
 import {
   CharacterDto, CharacterCreateDto, PollDto, PollCreateDto,
-  MultiPollAdminDto, MultiPollCreateDto, AnimeDto, ContentStatus, DailyLimitDto
+  MultiPollAdminDto, MultiPollCreateDto, AnimeDto, ContentStatus, DailyLimitDto, Visibility
 } from '../../services/api.types';
 import { PollGroupFormComponent, CharOption, createGroupForm } from '../poll-group-form/poll-group-form.component';
 import { ImageUploadComponent } from '../../shared/image-upload/image-upload.component';
 import { CrudModalComponent } from '../../shared/crud-modal/crud-modal.component';
+import { VisibilityFieldComponent } from '../../shared/visibility-field/visibility-field.component';
 import { ConfirmModalComponent } from '../../shared/confirm-modal/confirm-modal.component';
 
 type SubTab = 'characters' | 'polls' | 'multi-polls';
@@ -23,7 +24,8 @@ type SubTab = 'characters' | 'polls' | 'multi-polls';
   standalone: true,
   imports: [
     CommonModule, FormsModule, ReactiveFormsModule, SelectModule,
-    PollGroupFormComponent, ImageUploadComponent, CrudModalComponent, ConfirmModalComponent
+    PollGroupFormComponent, ImageUploadComponent, CrudModalComponent,
+    VisibilityFieldComponent, ConfirmModalComponent
   ],
   template: `
     <div class="my-content">
@@ -97,7 +99,7 @@ type SubTab = 'characters' | 'polls' | 'multi-polls';
                   </div>
                 </div>
                 <div class="row-actions">
-                  @if (p.isPrivate) { <span class="priv-badge">PRIVATE</span> }
+                  @if (p.visibility && p.visibility !== 'PUBLIC') { <span class="priv-badge">{{ p.visibility }}</span> }
                   @if (p.deletePending) { <span class="status-badge badge-PENDING">DELETE PENDING</span> }
                   @else { <span class="status-badge" [class]="'badge-' + (p.status ?? 'APPROVED')">{{ p.status ?? 'APPROVED' }}</span> }
                   <button class="btn-icon" (click)="editPoll(p)" title="Edit" [disabled]="p.deletePending"><i class="pi pi-pencil"></i></button>
@@ -130,7 +132,7 @@ type SubTab = 'characters' | 'polls' | 'multi-polls';
                   </div>
                 </div>
                 <div class="row-actions">
-                  @if (mp.isPrivate) { <span class="priv-badge">PRIVATE</span> }
+                  @if (mp.visibility && mp.visibility !== 'PUBLIC') { <span class="priv-badge">{{ mp.visibility }}</span> }
                   @if (mp.deletePending) { <span class="status-badge badge-PENDING">DELETE PENDING</span> }
                   @else { <span class="status-badge" [class]="'badge-' + (mp.status ?? 'APPROVED')">{{ mp.status ?? 'APPROVED' }}</span> }
                   <button class="btn-icon" (click)="editMp(mp)" title="Edit" [disabled]="mp.deletePending"><i class="pi pi-pencil"></i></button>
@@ -193,10 +195,10 @@ type SubTab = 'characters' | 'polls' | 'multi-polls';
                   [editable]="true" [showClear]="true" placeholder="Select or type…" appendTo="body"
                   (onChange)="pollDirty = true" />
               </label>
-              <label class="field private-toggle">
-                <input type="checkbox" [(ngModel)]="pollForm.isPrivate" name="priv" (ngModelChange)="pollDirty = true" />
-                <span>Private <small>(not visible in main feed, no approval needed)</small></span>
-              </label>
+              <app-visibility-field
+                [(visibility)]="pollForm.visibility"
+                [(allowedUserIds)]="pollForm.allowedUserIds"
+                (changed)="pollDirty = true" />
             </div>
             <span class="field-label">Fighters *</span>
             <app-poll-group-form
@@ -208,7 +210,7 @@ type SubTab = 'characters' | 'polls' | 'multi-polls';
             <div class="form-actions">
               <button class="btn-ghost" type="button" (click)="closePollForm()">Cancel</button>
               <button class="btn-primary" type="submit" [disabled]="savingPoll()">
-                {{ savingPoll() ? 'Saving…' : (editingPoll() ? 'Update' : (pollForm.isPrivate ? 'Create' : 'Submit for approval')) }}
+                {{ savingPoll() ? 'Saving…' : (editingPoll() ? 'Update' : (autoApproved(pollForm.visibility) ? 'Create' : 'Submit for approval')) }}
               </button>
             </div>
           </form>
@@ -232,10 +234,10 @@ type SubTab = 'characters' | 'polls' | 'multi-polls';
                     [editable]="true" [showClear]="true" placeholder="Select or type…" appendTo="body"
                     (onChange)="mpDirty = true" />
                 </label>
-                <label class="field private-toggle">
-                  <input type="checkbox" [(ngModel)]="mpForm.isPrivate" name="priv" (ngModelChange)="mpDirty = true" />
-                  <span>Private <small>(no approval needed)</small></span>
-                </label>
+                <app-visibility-field
+                  [(visibility)]="mpForm.visibility"
+                  [(allowedUserIds)]="mpForm.allowedUserIds"
+                  (changed)="mpDirty = true" />
               }
             </div>
             <div class="groups-header">
@@ -254,7 +256,7 @@ type SubTab = 'characters' | 'polls' | 'multi-polls';
             <div class="form-actions">
               <button class="btn-ghost" type="button" (click)="closeMpForm()">Cancel</button>
               <button class="btn-primary" type="submit" [disabled]="savingMp()">
-                {{ savingMp() ? 'Saving…' : (editingMp() ? 'Update' : (mpForm.isPrivate ? 'Create' : 'Submit for approval')) }}
+                {{ savingMp() ? 'Saving…' : (editingMp() ? 'Update' : (autoApproved(mpForm.visibility) ? 'Create' : 'Submit for approval')) }}
               </button>
             </div>
           </form>
@@ -429,18 +431,18 @@ export class MyContentManagementComponent implements OnInit {
   readonly savingPoll    = signal(false);
   readonly pollError     = signal<string | null>(null);
   pollDirty = false;
-  pollForm = { question: '', anime: '', isPrivate: false };
+  pollForm: { question: string; anime: string; visibility: Visibility; allowedUserIds: string[] } = { question: '', anime: '', visibility: 'PUBLIC', allowedUserIds: [] };
   pollFightersGroup = createGroupForm({ showPeriod: false });
 
   openNewPoll(): void {
     this.editingPoll.set(null); this.pollDirty = false; this.pollError.set(null);
-    this.pollForm = { question: '', anime: '', isPrivate: false };
+    this.pollForm = { question: '', anime: '', visibility: 'PUBLIC', allowedUserIds: [] };
     this.pollFightersGroup = createGroupForm({ showPeriod: false });
     this.showPollForm.set(true);
   }
   editPoll(p: PollDto): void {
     this.editingPoll.set(p); this.pollDirty = false; this.pollError.set(null);
-    this.pollForm = { question: p.question, anime: p.anime ?? '', isPrivate: p.isPrivate ?? false };
+    this.pollForm = { question: p.question, anime: p.anime ?? '', visibility: p.visibility ?? (p.isPrivate ? 'PRIVATE' : 'PUBLIC'), allowedUserIds: [...(p.allowedUserIds ?? [])] };
     this.pollFightersGroup = createGroupForm({ showPeriod: false });
     const cArr = this.pollFightersGroup.get('candidates') as FormArray;
     cArr.clear();
@@ -454,19 +456,24 @@ export class MyContentManagementComponent implements OnInit {
       this.askConfirm('Discard changes?', 'Discard unsaved changes?', () => this.showPollForm.set(false), false);
     } else { this.showPollForm.set(false); }
   }
+  autoApproved(v: Visibility): boolean { return v === 'PRIVATE' || v === 'RESTRICTED'; }
+
   savePoll(): void {
     if (!this.pollForm.question?.trim()) { this.pollError.set('Question is required'); return; }
+    if (this.pollForm.visibility === 'RESTRICTED' && this.pollForm.allowedUserIds.length === 0) {
+      this.pollError.set('Select at least one allowed user'); return;
+    }
     const cArr = this.pollFightersGroup.get('candidates') as FormArray;
     const filled = cArr.controls.map(c => c.value as string).filter(Boolean);
     if (filled.length < 2) { this.pollError.set('Select at least 2 fighters'); return; }
-    const label = this.editingPoll() ? 'Save changes?' : (this.pollForm.isPrivate ? 'Create poll?' : 'Submit poll for approval?');
+    const label = this.editingPoll() ? 'Save changes?' : (this.autoApproved(this.pollForm.visibility) ? 'Create poll?' : 'Submit poll for approval?');
     this.askConfirm(label, '', () => this.doSavePoll(), false);
   }
   private doSavePoll(): void {
     this.savingPoll.set(true);
     const cArr = this.pollFightersGroup.get('candidates') as FormArray;
     const filled = cArr.controls.map(c => c.value as string).filter(Boolean);
-    const req: PollCreateDto = { anime: this.pollForm.anime, question: this.pollForm.question, fighterIds: filled, isPrivate: this.pollForm.isPrivate };
+    const req: PollCreateDto = { anime: this.pollForm.anime, question: this.pollForm.question, fighterIds: filled, visibility: this.pollForm.visibility, allowedUserIds: this.pollForm.allowedUserIds };
     const id = this.editingPoll()?.id;
     const req$ = id ? this.api.updateMyPoll(id, req) : this.api.createMyPoll(req);
     req$.subscribe({
@@ -475,7 +482,7 @@ export class MyContentManagementComponent implements OnInit {
     });
   }
   deletePoll(p: PollDto): void {
-    const msg = (p.status === 'APPROVED' && !p.isPrivate)
+    const msg = (p.status === 'APPROVED' && !this.autoApproved(p.visibility ?? 'PUBLIC'))
       ? 'This poll is public and approved — a deletion request will be sent to the admin.'
       : 'Delete this poll permanently?';
     this.askConfirm('Delete poll?', msg, () => this.doDeletePoll(p.id));
@@ -490,7 +497,7 @@ export class MyContentManagementComponent implements OnInit {
   readonly savingMp    = signal(false);
   readonly mpError     = signal<string | null>(null);
   mpDirty = false;
-  mpForm = { question: '', anime: '', isPrivate: false };
+  mpForm: { question: string; anime: string; visibility: Visibility; allowedUserIds: string[] } = { question: '', anime: '', visibility: 'PUBLIC', allowedUserIds: [] };
   mpForm_groups!: FormGroup;
 
   get mpGroupsArray(): FormArray { return this.mpForm_groups.get('groups') as FormArray; }
@@ -505,13 +512,13 @@ export class MyContentManagementComponent implements OnInit {
 
   openNewMp(): void {
     this.editingMp.set(null); this.mpDirty = false; this.mpError.set(null);
-    this.mpForm = { question: '', anime: '', isPrivate: false };
+    this.mpForm = { question: '', anime: '', visibility: 'PUBLIC', allowedUserIds: [] };
     this.initMpForm();
     this.showMpForm.set(true);
   }
   editMp(mp: MultiPollAdminDto): void {
     this.editingMp.set(mp); this.mpDirty = false; this.mpError.set(null);
-    this.mpForm = { question: mp.question, anime: mp.anime ?? '', isPrivate: mp.isPrivate ?? false };
+    this.mpForm = { question: mp.question, anime: mp.anime ?? '', visibility: mp.visibility ?? (mp.isPrivate ? 'PRIVATE' : 'PUBLIC'), allowedUserIds: [...(mp.allowedUserIds ?? [])] };
     this.initMpForm();
     const ga = this.mpGroupsArray;
     ga.clear();
@@ -533,13 +540,16 @@ export class MyContentManagementComponent implements OnInit {
     } else { this.showMpForm.set(false); }
   }
   saveMp(): void {
+    if (this.mpForm.visibility === 'RESTRICTED' && this.mpForm.allowedUserIds.length === 0) {
+      this.mpError.set('Select at least one allowed user'); return;
+    }
     if (!this.mpForm.question?.trim()) { this.mpError.set('Question is required'); return; }
     for (let i = 0; i < this.mpGroupsArray.length; i++) {
       const cArr = this.getMpGroup(i).get('candidates') as FormArray;
       const filled = cArr.controls.map(c => c.value as string).filter(Boolean);
       if (filled.length < 2) { this.mpError.set(`Group ${i + 1} needs at least 2 fighters`); return; }
     }
-    const label = this.editingMp() ? 'Save changes?' : (this.mpForm.isPrivate ? 'Create multi-poll?' : 'Submit for approval?');
+    const label = this.editingMp() ? 'Save changes?' : (this.autoApproved(this.mpForm.visibility) ? 'Create multi-poll?' : 'Submit for approval?');
     this.askConfirm(label, '', () => this.doSaveMp(), false);
   }
   private doSaveMp(): void {
@@ -550,7 +560,7 @@ export class MyContentManagementComponent implements OnInit {
       const cArr = g.get('candidates') as FormArray;
       return { label: g.get('label')?.value ?? '', characterIds: cArr.controls.map(c => c.value as string).filter(Boolean), startNow: g.get('startNow')?.value ?? false, startDate: g.get('startDate')?.value || null, endDate: g.get('endDate')?.value || null };
     });
-    const req: MultiPollCreateDto = { anime: this.mpForm.anime, question: this.mpForm.question, isPrivate: this.mpForm.isPrivate, groups };
+    const req: MultiPollCreateDto = { anime: this.mpForm.anime, question: this.mpForm.question, visibility: this.mpForm.visibility, allowedUserIds: this.mpForm.allowedUserIds, groups };
     const id = this.editingMp()?.id;
     const req$ = id ? this.api.updateMyMultiPoll(id, req) : this.api.createMyMultiPoll(req);
     req$.subscribe({
@@ -559,7 +569,7 @@ export class MyContentManagementComponent implements OnInit {
     });
   }
   deleteMp(mp: MultiPollAdminDto): void {
-    const msg = (mp.status === 'APPROVED' && !mp.isPrivate)
+    const msg = (mp.status === 'APPROVED' && !this.autoApproved(mp.visibility ?? 'PUBLIC'))
       ? 'This multi-poll is public and approved — a deletion request will be sent to the admin.'
       : 'Delete this multi-poll permanently?';
     this.askConfirm('Delete multi-poll?', msg, () => this.doDeleteMp(mp.id));

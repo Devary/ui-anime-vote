@@ -6,12 +6,15 @@
 
       <div class="header-actions">
         @if (isLoggedIn()) {
-          <button class="admin-btn" (click)="openManagement()" aria-label="Management">⚙ Manage</button>
+          <button class="admin-btn" (click)="openManagement()" aria-label="Management">{{ i18n.t('app.manage') }}</button>
           <span class="username-chip">{{ currentUser()?.username }}</span>
-          <button class="login-btn" (click)="logout()">Logout</button>
+          <button class="login-btn" (click)="logout()">{{ i18n.t('app.logout') }}</button>
         } @else {
-          <button class="login-btn" (click)="openAuth()">Login</button>
+          <button class="login-btn" (click)="openAuth()">{{ i18n.t('app.login') }}</button>
         }
+        <button class="lang-toggle" (click)="i18n.cycle()" [attr.aria-label]="'Language'">
+          {{ i18n.lang().toUpperCase() }}
+        </button>
         <button class="theme-toggle"
                 (click)="toggleTheme()"
                 [attr.aria-label]="isDark() ? 'Switch to light mode' : 'Switch to dark mode'">
@@ -23,11 +26,11 @@
 
   <main class="poll-stage">
 
-    <button class="side-nav side-prev" (click)="prev()" aria-label="Previous poll">&#8592;</button>
-    <button class="side-nav side-next" (click)="next()" aria-label="Next poll">&#8594;</button>
+    <button class="side-nav side-prev" (click)="prev()" [attr.aria-label]="i18n.t('app.prevPoll')">&#8592;</button>
+    <button class="side-nav side-next" (click)="next()" [attr.aria-label]="i18n.t('app.nextPoll')">&#8594;</button>
 
     @if (loading()) {
-      <div class="loading-state">Loading polls…</div>
+      <div class="loading-state">{{ i18n.t('app.loading') }}</div>
     } @else if (currentAsSingle(); as poll) {
       <app-poll-card [poll]="poll" (castVote)="onVote($event)" />
     } @else if (currentAsMulti(); as poll) {
@@ -36,7 +39,7 @@
 
     <button class="history-btn" (click)="openHistory()" aria-label="Vote history">
       <span class="history-icon">🗳</span>
-      <span class="history-label">History</span>
+      <span class="history-label">{{ i18n.t('app.history') }}</span>
       @if (votedCount() > 0) {
         <span class="history-badge">{{ votedCount() }}</span>
       }

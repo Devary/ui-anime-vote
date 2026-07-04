@@ -7,7 +7,7 @@ import {
   PollCreateDto, PollDto, MultiPollCreateDto, MultiPollAdminDto, CharacterDto,
   AnimeDto, AnimeCreateDto, CharacterCreateDto, UploadResponse, ServerTimeDto,
   UserDto, UserUpdateDto, AdminUserUpdateDto, RoleDto, RoleCreateDto,
-  ApprovalSummaryDto, DailyLimitDto
+  ApprovalSummaryDto, DailyLimitDto, UserDirectoryEntryDto
 } from './api.types';
 import { environment } from '../../environments/environment';
 
@@ -25,6 +25,11 @@ export class AnimeApiService {
 
   getMultiPolls(): Observable<MultiPollAdminDto[]> {
     return this.http.get<MultiPollAdminDto[]>(`${API}/multi-polls`);
+  }
+
+  /** Usernames visible to any authenticated user — audience picker for RESTRICTED polls. */
+  getUserDirectory(): Observable<UserDirectoryEntryDto[]> {
+    return this.http.get<UserDirectoryEntryDto[]>(`${API}/users/directory`);
   }
 
   // ── Voting (identity from JWT or IP on backend) ───────────────────────────

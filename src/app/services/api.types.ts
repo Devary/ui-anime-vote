@@ -1,5 +1,13 @@
 export type ContentStatus = 'PENDING' | 'APPROVED' | 'REJECTED';
 
+/** Who can see (and vote on) a poll or multi-poll. */
+export type Visibility = 'PUBLIC' | 'PRIVATE' | 'AUTHENTICATED' | 'RESTRICTED';
+
+export interface UserDirectoryEntryDto {
+  id: string;
+  username: string;
+}
+
 export interface CharacterDto {
   id: string;
   name: string;
@@ -106,7 +114,9 @@ export interface PollCreateDto {
   anime: string;
   question: string;
   fighterIds: string[]; // 2-10 character IDs in order
-  isPrivate?: boolean;
+  isPrivate?: boolean;  // legacy; prefer visibility
+  visibility?: Visibility;
+  allowedUserIds?: string[]; // audience when visibility=RESTRICTED
 }
 
 export interface PollDto {
@@ -116,6 +126,8 @@ export interface PollDto {
   fighters: CharacterDto[];
   status?: ContentStatus;
   isPrivate?: boolean;
+  visibility?: Visibility;
+  allowedUserIds?: string[];
   ownerId?: string | null;
   ownerUsername?: string | null;
   deletePending?: boolean;
@@ -124,7 +136,9 @@ export interface PollDto {
 export interface MultiPollCreateDto {
   anime: string;
   question: string;
-  isPrivate?: boolean;
+  isPrivate?: boolean;  // legacy; prefer visibility
+  visibility?: Visibility;
+  allowedUserIds?: string[]; // audience when visibility=RESTRICTED
   groups: GroupCreateDto[];
 }
 
@@ -149,6 +163,8 @@ export interface MultiPollAdminDto {
   groups: MultiPollGroupDto[];
   status?: ContentStatus;
   isPrivate?: boolean;
+  visibility?: Visibility;
+  allowedUserIds?: string[];
   ownerId?: string | null;
   ownerUsername?: string | null;
   deletePending?: boolean;

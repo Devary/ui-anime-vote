@@ -12,15 +12,16 @@ import { AnimeApiService } from '../../services/anime-api.service';
 import { ToastService } from '../../services/toast.service';
 import { DataRefreshService } from '../../services/data-refresh.service';
 import { PollExportService } from '../../services/poll-export.service';
-import { AnimeDto, CharacterDto, MultiPollAdminDto, MultiPollCreateDto, GroupCreateDto } from '../../services/api.types';
+import { AnimeDto, CharacterDto, MultiPollAdminDto, MultiPollCreateDto, GroupCreateDto, Visibility } from '../../services/api.types';
 import { PollGroupFormComponent, CharOption, createGroupForm, groupPeriodValidator } from '../poll-group-form/poll-group-form.component';
 import { CrudModalComponent } from '../../shared/crud-modal/crud-modal.component';
+import { VisibilityFieldComponent } from '../../shared/visibility-field/visibility-field.component';
 import { ConfirmModalComponent } from '../../shared/confirm-modal/confirm-modal.component';
 
 @Component({
   selector: 'app-multi-poll-management',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, TableModule, InputTextModule, IconFieldModule, InputIconModule, SelectModule, PollGroupFormComponent, CrudModalComponent, ConfirmModalComponent],
+  imports: [CommonModule, ReactiveFormsModule, TableModule, InputTextModule, IconFieldModule, InputIconModule, SelectModule, PollGroupFormComponent, CrudModalComponent, ConfirmModalComponent, VisibilityFieldComponent],
   template: `
     <div class="section">
 
@@ -140,6 +141,9 @@ import { ConfirmModalComponent } from '../../shared/confirm-modal/confirm-modal.
                     placeholder="Select or type…"
                     appendTo="body" />
                 </label>
+                <app-visibility-field
+                  [(visibility)]="visForm.visibility"
+                  [(allowedUserIds)]="visForm.allowedUserIds" />
               }
             </div>
 
@@ -554,8 +558,11 @@ export class MultiPollManagementComponent implements OnInit {
 
   // ── UI actions ─────────────────────────────────────────────────────────────
 
+  visForm: { visibility: Visibility; allowedUserIds: string[] } = { visibility: 'PUBLIC', allowedUserIds: [] };
+
   openNew(): void {
     this.editing.set(null);
+    this.visForm = { visibility: 'PUBLIC', allowedUserIds: [] };
     this.api.getServerTime().subscribe({ next: t => { this.serverNow = new Date(t.now); } });
     this.initForm(false);
     this.groupLevels = [0, 0];
@@ -567,6 +574,7 @@ export class MultiPollManagementComponent implements OnInit {
 
   startEdit(mp: MultiPollAdminDto): void {
     this.editing.set(mp);
+    this.visForm = { visibility: mp.visibility ?? (mp.isPrivate ? 'PRIVATE' : 'PUBLIC'), allowedUserIds: [...(mp.allowedUserIds ?? [])] };
     this.initForm(true);
     const ga = this.groupsArray;
     ga.clear();
@@ -685,6 +693,8 @@ export class MultiPollManagementComponent implements OnInit {
     const dto: MultiPollCreateDto = {
       anime:    this.form.get('anime')?.value ?? '',
       question: this.form.get('question')?.value ?? '',
+      visibility: this.visForm.visibility,
+      allowedUserIds: this.visForm.allowedUserIds,
       groups
     };
 

@@ -3,10 +3,12 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { CommonModule } from '@angular/common';
 import { forkJoin } from 'rxjs';
 import { ThemeStore } from './theme.store';
+import { I18nService } from './i18n/i18n.service';
 import { VoteStore } from './vote.store';
 import { AuthService } from './services/auth.service';
 import { AnimeApiService } from './services/anime-api.service';
 import { DataRefreshService } from './services/data-refresh.service';
+import { ShareService } from './services/share.service';
 import { PollCardComponent } from './components/poll-card/poll-card.component';
 import { MultiPollCardComponent } from './components/multi-poll-card/multi-poll-card.component';
 import { VoteHistoryComponent } from './components/vote-history/vote-history.component';
@@ -36,8 +38,10 @@ export class App implements OnInit {
   private readonly voteStore    = inject(VoteStore);
   private readonly api          = inject(AnimeApiService);
   private readonly dataRefresh  = inject(DataRefreshService);
+  private readonly share        = inject(ShareService);
   private readonly destroyRef   = inject(DestroyRef);
   readonly authService          = inject(AuthService);
+  readonly i18n                 = inject(I18nService);
 
   readonly isStandalone = window.self === window.top;
   readonly isDark       = this.themeStore.isDark;
@@ -79,7 +83,10 @@ export class App implements OnInit {
       next: ({ polls, multiPolls }) => {
         const mapped = this.interleave(polls.map(p => this.mapPoll(p)), multiPolls.map(m => this.mapMultiPoll(m)));
         this.allPolls.set(mapped);
-        this._index.set(0);
+        // Deep link: ?p=<pollId> jumps straight to that poll (shared links)
+        const linked = this.share.deepLinkedPollId();
+        const idx = linked ? mapped.findIndex(p => p.id === linked) : -1;
+        this._index.set(idx >= 0 ? idx : 0);
         this.loading.set(false);
       },
       error: () => this.loading.set(false),
@@ -99,11 +106,13 @@ export class App implements OnInit {
   private mapPoll(dto: PollDto): Poll {
     const fighters = (dto.fighters ?? []).map(f => this.mapChar(f));
     return { id: dto.id, type: 'single', anime: dto.anime ?? '', question: dto.question,
-             fighter1: fighters[0], fighter2: fighters[1] };
+             fighter1: fighters[0], fighter2: fighters[1],
+             visibility: dto.visibility ?? 'PUBLIC' };
   }
 
   private mapMultiPoll(dto: MultiPollAdminDto): MultiPoll {
     return { id: dto.id, type: 'multi', anime: dto.anime ?? '', question: dto.question,
+             visibility: dto.visibility ?? 'PUBLIC',
              groups: (dto.groups ?? []).map(g => ({
                id: g.id, label: g.label,
                level: g.level ?? 0,

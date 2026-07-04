@@ -12,15 +12,17 @@ import { AnimeApiService } from '../../services/anime-api.service';
 import { ToastService } from '../../services/toast.service';
 import { DataRefreshService } from '../../services/data-refresh.service';
 import { PollExportService } from '../../services/poll-export.service';
-import { AnimeDto, CharacterDto, PollDto, PollCreateDto } from '../../services/api.types';
+import { AnimeDto, CharacterDto, PollDto, PollCreateDto, Visibility
+} from '../../services/api.types';
 import { PollGroupFormComponent, CharOption, createGroupForm } from '../poll-group-form/poll-group-form.component';
 import { CrudModalComponent } from '../../shared/crud-modal/crud-modal.component';
+import { VisibilityFieldComponent } from '../../shared/visibility-field/visibility-field.component';
 import { ConfirmModalComponent } from '../../shared/confirm-modal/confirm-modal.component';
 
 @Component({
   selector: 'app-poll-management',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, TableModule, InputTextModule, IconFieldModule, InputIconModule, SelectModule, PollGroupFormComponent, CrudModalComponent, ConfirmModalComponent],
+  imports: [CommonModule, ReactiveFormsModule, TableModule, InputTextModule, IconFieldModule, InputIconModule, SelectModule, PollGroupFormComponent, CrudModalComponent, ConfirmModalComponent, VisibilityFieldComponent],
   template: `
     <div class="section">
 
@@ -149,6 +151,9 @@ import { ConfirmModalComponent } from '../../shared/confirm-modal/confirm-modal.
                   placeholder="Select or type…"
                   appendTo="body" />
               </label>
+              <app-visibility-field
+                [(visibility)]="visForm.visibility"
+                [(allowedUserIds)]="visForm.allowedUserIds" />
             </div>
 
             <span class="field-label">Fighters *
@@ -290,6 +295,8 @@ export class PollManagementComponent implements OnInit {
 
   submitted = false;
 
+  visForm: { visibility: Visibility; allowedUserIds: string[] } = { visibility: 'PUBLIC', allowedUserIds: [] };
+
   meta = new FormGroup({
     anime:    new FormControl(''),
     question: new FormControl('', Validators.required)
@@ -329,6 +336,7 @@ export class PollManagementComponent implements OnInit {
 
   openNew(): void {
     this.editing.set(null);
+    this.visForm = { visibility: 'PUBLIC', allowedUserIds: [] };
     this.meta.reset({ anime: '', question: '' });
     this.fightersGroup = createGroupForm({ showPeriod: false });
     this.submitted = false;
@@ -339,6 +347,7 @@ export class PollManagementComponent implements OnInit {
 
   startEdit(p: PollDto): void {
     this.editing.set(p);
+    this.visForm = { visibility: p.visibility ?? (p.isPrivate ? 'PRIVATE' : 'PUBLIC'), allowedUserIds: [...(p.allowedUserIds ?? [])] };
     this.meta.patchValue({ anime: p.anime ?? '', question: p.question });
     this.fightersGroup = createGroupForm({ showPeriod: false });
     const cArr = this.fightersGroup.get('candidates') as FormArray;
@@ -396,7 +405,9 @@ export class PollManagementComponent implements OnInit {
     const dto: PollCreateDto = {
       anime:      this.meta.get('anime')?.value ?? '',
       question:   this.meta.get('question')?.value ?? '',
-      fighterIds: filled
+      fighterIds: filled,
+      visibility: this.visForm.visibility,
+      allowedUserIds: this.visForm.allowedUserIds
     };
     const req$ = editId
       ? this.api.adminUpdatePoll(editId, dto)

@@ -10,7 +10,12 @@
   <!-- Header -->
   <div class="poll-meta">
     <span class="anime-tag">{{ poll().anime }}</span>
-    <span class="multi-badge">{{ rootNode().group ? 'KNOCKOUT' : 'MULTI' }}</span>
+    <span class="multi-badge">{{ i18n.t(rootNode().group ? 'badge.knockout' : 'badge.multi') }}</span>
+    @if (isShareable()) {
+      <button class="share-btn" (click)="sharePoll()" [title]="i18n.t('poll.share')">
+        <i class="pi pi-share-alt"></i>
+      </button>
+    }
   </div>
   <h2 class="poll-question">{{ poll().question }}</h2>
 
@@ -20,8 +25,8 @@
       <div class="simple-header">
         <span class="simple-label">{{ simpleGroup().label }}</span>
         @switch (groupStatuses().get(simpleGroup().id)) {
-          @case ('ended')    { <span class="badge-ended">Ended</span> }
-          @case ('upcoming') { <span class="badge-upcoming">Coming soon</span> }
+          @case ('ended')    { <span class="badge-ended">{{ i18n.t('badge.ended') }}</span> }
+          @case ('upcoming') { <span class="badge-upcoming">{{ i18n.t('badge.upcoming') }}</span> }
           @case ('open') {
             @if (simpleGroup().endDate; as end) {
               <app-countdown [endDate]="end" [startDate]="simpleGroup().startDate" />
@@ -48,7 +53,7 @@
                   <path d="M12 2l8 3v6c0 5-3.4 9.4-8 11-4.6-1.6-8-6-8-11V5l8-3z" />
                 </svg>
               </div>
-              <div class="final-label">Winner</div>
+              <div class="final-label">{{ i18n.t('poll.winner') }}</div>
             }
           </div>
         </ng-template>
@@ -61,7 +66,7 @@
             <button class="candidate-btn"
                     (click)="onClickCandidate(node.data.id, simpleGroup())"
                     [disabled]="groupStatuses().get(simpleGroup().id) !== 'open' || node.data.isMyVote"
-                    [title]="(hasVotedInGroup(simpleGroup().id) ? 'Switch vote to ' : 'Vote for ') + node.data.name">
+                    [title]="(hasVotedInGroup(simpleGroup().id) ? i18n.t('poll.switchTo') : i18n.t('poll.voteFor')) + ' ' + node.data.name">
               <img [src]="node.data.image" [alt]="node.data.name"
                    onerror="this.onerror=null;this.src='https://placehold.co/120x120/1565C0/fff?text=?'" />
               @if (node.data.isMyVote) { <span class="bkt-check">✓</span> }
@@ -80,7 +85,7 @@
       </p-organization-chart>
 
       @if (groupStatuses().get(simpleGroup().id) === 'open' && !hasVotedInGroup(simpleGroup().id)) {
-        <div class="board-hint in-board">Tap a candidate to cast your vote</div>
+        <div class="board-hint in-board">{{ i18n.t('poll.tapCandidate') }}</div>
       }
     </div>
   } @else {
@@ -113,7 +118,7 @@
               <div class="champ-name">{{ champ.name }}</div>
             </div>
           } @else {
-            <div class="final-label">{{ centerLabel() }}</div>
+            <div class="final-label">{{ i18n.t(centerLabel()) }}</div>
           }
           <div class="bkt-match final"
                [class.clickable]="isOpenable(rootNode())"
@@ -138,7 +143,7 @@
     </div>
   </div>
 
-  <div class="board-hint">Tap a match to vote or see results</div>
+  <div class="board-hint">{{ i18n.t('poll.tapMatch') }}</div>
 
   }
 
@@ -202,8 +207,8 @@
     <div class="sheet-header">
       <span class="sheet-label">{{ g.label }}</span>
       @switch (groupStatuses().get(g.id)) {
-        @case ('ended')    { <span class="badge-ended">Ended</span> }
-        @case ('upcoming') { <span class="badge-upcoming">Coming soon</span> }
+        @case ('ended')    { <span class="badge-ended">{{ i18n.t('badge.ended') }}</span> }
+        @case ('upcoming') { <span class="badge-upcoming">{{ i18n.t('badge.upcoming') }}</span> }
         @case ('open') {
           @if (g.endDate) { <app-countdown [endDate]="g.endDate" [startDate]="g.startDate" /> }
         }
@@ -230,7 +235,7 @@
             @if (showResults(g)) {
               {{ countOf(c, g) | number }} · {{ pctOf(c, g).toFixed(1) }}%
             } @else if (groupStatuses().get(g.id) === 'open') {
-              {{ hasVotedInGroup(g.id) ? 'Tap to switch' : 'Tap to vote' }}
+              {{ i18n.t(hasVotedInGroup(g.id) ? 'poll.tapToSwitch' : 'poll.tapToVote') }}
             }
           </span>
           @if (g.winnerCharId === c.id) { <span class="row-crown">🏆</span> }
@@ -239,7 +244,7 @@
       }
 
       @if (hasVotedInGroup(g.id) && groupStatuses().get(g.id) === 'open') {
-        <div class="sheet-note">You voted in this match — tap another candidate to switch while it's open</div>
+        <div class="sheet-note">{{ i18n.t('poll.votedNote') }}</div>
       }
     </div>
 
