@@ -21,7 +21,7 @@ export class ShareService {
     const url = this.pollUrl(pollId);
     if (navigator.share) {
       try {
-        await navigator.share({ title: 'Anime Vote', text: question, url });
+        await navigator.share({ title: 'VoteScroll', text: question, url });
         return;
       } catch { /* user cancelled or unsupported — fall back to clipboard */ }
     }

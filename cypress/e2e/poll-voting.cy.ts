@@ -7,12 +7,11 @@ describe('Simple poll voting', () => {
     cy.get('app-poll-card .fighter-node').should('have.length.at.least', 2);
   });
 
-  it('votes on a fighter, shows a toast and the result bar, then advances', () => {
+  it('votes on a fighter and auto-advances to the next poll', () => {
     cy.freshUserSession().then(s => cy.visitWithSession(s));
     cy.get('app-poll-card .poll-question').invoke('text').then(firstQuestion => {
       cy.get('app-poll-card .fighter-btn').first().click();
-      cy.contains('.toast', 'Vote cast!').should('be.visible');
-      // carousel auto-advances to the next unvoted card
+      // no toast anymore — the carousel auto-advances to the next unvoted card
       cy.get('.poll-question').should($q => {
         expect($q.text().trim()).not.to.eq(firstQuestion.trim());
       });

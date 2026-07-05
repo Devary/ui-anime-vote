@@ -38,8 +38,6 @@ const en: Dict = {
   'poll.votes':           'votes',
   'poll.by':              'by',
 
-  'toast.voteCast':       'Vote cast!',
-  'toast.voteChanged':    'Vote changed!',
   'toast.linkCopied':     'Link copied to clipboard!',
 
   'auth.login':           'Login',
@@ -93,8 +91,6 @@ const fr: Dict = {
   'poll.votes':           'votes',
   'poll.by':              'par',
 
-  'toast.voteCast':       'Vote enregistré !',
-  'toast.voteChanged':    'Vote modifié !',
   'toast.linkCopied':     'Lien copié dans le presse-papiers !',
 
   'auth.login':           'Connexion',
@@ -148,8 +144,6 @@ const ar: Dict = {
   'poll.votes':           'أصوات',
   'poll.by':              'بواسطة',
 
-  'toast.voteCast':       'تم التصويت!',
-  'toast.voteChanged':    'تم تغيير التصويت!',
   'toast.linkCopied':     'تم نسخ الرابط!',
 
   'auth.login':           'تسجيل الدخول',

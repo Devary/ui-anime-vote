@@ -24,14 +24,12 @@ describe('Knockout bracket (multi-group multi-poll)', () => {
 
     // vote for the first candidate
     cy.get('.sheet-row:not(:disabled)').first().click();
-    cy.contains('.toast', 'Vote cast!').should('be.visible');
     cy.get('.sheet-row.is-my-vote').should('have.length', 1);
     cy.get('.sheet-row.is-my-vote').should('be.disabled');
 
     // one vote per group — but switching to another candidate is allowed while open
     cy.get('.sheet-row.is-my-vote .row-name').invoke('text').then(firstPick => {
       cy.get('.sheet-row:not(:disabled)').first().click();
-      cy.contains('.toast', 'Vote changed!').should('be.visible');
       cy.get('.sheet-row.is-my-vote .row-name').should($el => {
         expect($el.text().trim()).not.to.eq(firstPick.trim());
       });
