@@ -54,7 +54,11 @@ export class PollExportService {
 
   private readonly api = inject(AnimeApiService);
 
-  /** Simple poll → same org chart as single-group multi-polls, champion = current vote leader. */
+  /**
+   * Simple poll → exact multi-poll knockout style: each fighter becomes a side
+   * match-box feeding the gold Winner center (leader from live results shown
+   * as the advanced slot; shields while undecided).
+   */
   async downloadPoll(poll: PollDto): Promise<void> {
     // leader from live results (null on tie / no votes → gold shield instead)
     let leaderId: string | null = null;
@@ -64,12 +68,25 @@ export class PollExportService {
       if (sorted.length > 1 && sorted[0].votes > sorted[1].votes) leaderId = sorted[0].charId;
     } catch { /* results unavailable → render without champion */ }
 
-    const slots: Slot[] = poll.fighters.map(f => ({
-      name: f.name, sub: f.title ?? '', imageUrl: f.imageUrl, isWinner: f.id === leaderId,
-    }));
+    const pseudo: MultiPollAdminDto = {
+      id: poll.id,
+      anime: poll.anime ?? '',
+      question: poll.question,
+      groups: poll.fighters.map((f, i) => ({
+        id: `side-${i}`,
+        label: f.name,
+        groupOrder: i,
+        level: 0,
+        feederGroupIds: [],
+        resolved: true,
+        candidates: [f],
+        winnerCharId: f.id === leaderId ? f.id : null,
+      })),
+    };
+    // a poll has exactly one winner → single center slot (leader avatar or one shield)
     const leader = leaderId ? poll.fighters.find(f => f.id === leaderId) ?? null : null;
-    const champ: Slot | null = leader ? { name: leader.name, imageUrl: leader.imageUrl } : null;
-    const svg = await this.buildOrgChart(poll.question, poll.anime ?? '', null, slots, champ);
+    const center: Slot[] = [leader ? { name: leader.name, imageUrl: leader.imageUrl, isWinner: true } : {}];
+    const svg = await this.buildKnockout(pseudo, center);
     await this.downloadJpeg(svg.svg, svg.w, svg.h, poll.id);
   }
 
@@ -151,7 +168,10 @@ export class PollExportService {
   // SYMMETRIC KNOCKOUT (multi-group multi-poll)
   // ══════════════════════════════════════════════════════════════════════════
 
-  private async buildKnockout(poll: MultiPollAdminDto): Promise<{ svg: string; w: number; h: number }> {
+  private async buildKnockout(
+    poll: MultiPollAdminDto,
+    centerSlots?: Slot[], // overrides the flat-poll center (e.g. simple polls have a single winner slot)
+  ): Promise<{ svg: string; w: number; h: number }> {
     const groups = poll.groups ?? [];
     const byId   = new Map(groups.map(g => [g.id, g]));
     const maxLevel = groups.reduce((m, g) => Math.max(m, g.level ?? 0), 0);
@@ -188,7 +208,7 @@ export class PollExportService {
       champion = final?.winnerCharId ? final.candidates.find(c => c.id === final.winnerCharId) ?? null : null;
     } else {
       root = {
-        slots: groups.map(g => {
+        slots: centerSlots ?? groups.map(g => {
           const winner = g.winnerCharId ? g.candidates.find(c => c.id === g.winnerCharId) : null;
           return winner ? { name: winner.name, imageUrl: winner.imageUrl, isWinner: true } : {};
         }),
