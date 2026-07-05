@@ -7,9 +7,10 @@ import { PollManagementComponent } from './poll-management/poll-management.compo
 import { MultiPollManagementComponent } from './multi-poll-management/multi-poll-management.component';
 import { UserManagementComponent } from './user-management/user-management.component';
 import { MyContentManagementComponent } from './my-content-management/my-content-management.component';
+import { AuditManagementComponent } from './audit-management/audit-management.component';
 import { ApprovalManagementComponent } from './approval-management/approval-management.component';
 
-type Section = 'anime' | 'characters' | 'polls' | 'multi-polls' | 'users' | 'my-content' | 'approvals';
+type Section = 'anime' | 'characters' | 'polls' | 'multi-polls' | 'users' | 'my-content' | 'approvals' | 'audit';
 
 interface NavItem {
   id: Section;
@@ -30,6 +31,7 @@ interface NavItem {
     UserManagementComponent,
     MyContentManagementComponent,
     ApprovalManagementComponent,
+    AuditManagementComponent,
   ],
   templateUrl: './management.component.html',
   styleUrl: './management.component.scss',
@@ -51,6 +53,7 @@ export class ManagementComponent {
     { id: 'multi-polls', label: 'Multi-Polls', icon: '🏆', access: 'moderator' },
     { id: 'users',       label: 'Users',       icon: '👥', access: 'admin'     },
     { id: 'approvals',   label: 'Approvals',   icon: '✅', access: 'moderator' },
+    { id: 'audit',       label: 'Audit',       icon: '📜', access: 'moderator' },
   ];
 
   get navItems(): NavItem[] {

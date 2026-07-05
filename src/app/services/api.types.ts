@@ -250,3 +250,16 @@ export interface RoleCreateDto {
   name: string;
   description?: string;
 }
+
+// ── Audit trail ───────────────────────────────────────────────────────────────
+export interface AuditEventDto {
+  id: number;
+  entityType: 'ANIME' | 'CHARACTER' | 'POLL' | 'MULTI_POLL';
+  entityId: string;
+  action: 'CREATED' | 'UPDATED' | 'DELETED' | 'APPROVED' | 'REJECTED' | 'RESTORED';
+  userId: string | null;
+  username: string | null;
+  at: string;
+  snapshot: string | null;
+  restorable: boolean;
+}

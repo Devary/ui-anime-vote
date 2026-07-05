@@ -14,6 +14,7 @@ export interface Poll {
   fighter1: Character;
   fighter2: Character;
   visibility?: string; // PUBLIC | PRIVATE | AUTHENTICATED | RESTRICTED
+  ownerUsername?: string | null;
 }
 
 export interface MultiPollGroup {
@@ -35,6 +36,7 @@ export interface MultiPoll {
   question: string;
   groups: MultiPollGroup[];
   visibility?: string; // PUBLIC | PRIVATE | AUTHENTICATED | RESTRICTED
+  ownerUsername?: string | null;
 }
 
 export type AnyPoll = Poll | MultiPoll;

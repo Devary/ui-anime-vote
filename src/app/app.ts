@@ -116,12 +116,14 @@ export class App implements OnInit {
     const fighters = (dto.fighters ?? []).map(f => this.mapChar(f));
     return { id: dto.id, type: 'single', anime: dto.anime ?? '', question: dto.question,
              fighter1: fighters[0], fighter2: fighters[1],
-             visibility: dto.visibility ?? 'PUBLIC' };
+             visibility: dto.visibility ?? 'PUBLIC',
+             ownerUsername: dto.ownerUsername ?? null };
   }
 
   private mapMultiPoll(dto: MultiPollAdminDto): MultiPoll {
     return { id: dto.id, type: 'multi', anime: dto.anime ?? '', question: dto.question,
              visibility: dto.visibility ?? 'PUBLIC',
+             ownerUsername: dto.ownerUsername ?? null,
              groups: (dto.groups ?? []).map(g => ({
                id: g.id, label: g.label,
                level: g.level ?? 0,

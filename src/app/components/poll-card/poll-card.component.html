@@ -8,6 +8,7 @@
 
   <div class="poll-meta">
     <span class="anime-tag">{{ poll().anime }}</span>
+    <span class="owner-chip">{{ i18n.t('poll.by') }} : {{ poll().ownerUsername || 'admin' }}</span>
     @if (voted()) { <span class="badge-voted">{{ i18n.t('badge.voted') }}</span> }
     @if (isShareable()) {
       <button class="share-btn" (click)="sharePoll()" [title]="i18n.t('poll.share')">

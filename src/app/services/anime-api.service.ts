@@ -7,7 +7,7 @@ import {
   PollCreateDto, PollDto, MultiPollCreateDto, MultiPollAdminDto, CharacterDto,
   AnimeDto, AnimeCreateDto, CharacterCreateDto, UploadResponse, ServerTimeDto,
   UserDto, UserUpdateDto, AdminUserUpdateDto, RoleDto, RoleCreateDto,
-  ApprovalSummaryDto, DailyLimitDto, UserDirectoryEntryDto
+  ApprovalSummaryDto, DailyLimitDto, UserDirectoryEntryDto, AuditEventDto
 } from './api.types';
 import { environment } from '../../environments/environment';
 
@@ -345,5 +345,19 @@ export class AnimeApiService {
 
   rejectMultiPollDeletion(id: string): Observable<void> {
     return this.http.post<void>(`${API}/admin/approvals/delete/multi-polls/${id}/reject`, {});
+  }
+
+  // ── Audit trail (moderators) ──────────────────────────────────────────────
+
+  getAuditRecent(limit = 50): Observable<AuditEventDto[]> {
+    return this.http.get<AuditEventDto[]>(`${API}/admin/audit?limit=${limit}`);
+  }
+
+  getAuditHistory(entityType: string, entityId: string): Observable<AuditEventDto[]> {
+    return this.http.get<AuditEventDto[]>(`${API}/admin/audit/${entityType}/${entityId}`);
+  }
+
+  restoreAuditEvent(eventId: number): Observable<AuditEventDto> {
+    return this.http.post<AuditEventDto>(`${API}/admin/audit/${eventId}/restore`, {});
   }
 }

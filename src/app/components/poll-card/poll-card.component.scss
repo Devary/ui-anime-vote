@@ -63,6 +63,18 @@
   flex-shrink: 0;
 }
 
+.owner-chip {
+  font-size:      0.66rem;
+  font-weight:    700;
+  color:          rgba(255, 255, 255, 0.75);
+  background:     rgba(255, 255, 255, 0.08);
+  border:         1px solid rgba(255, 255, 255, 0.12);
+  border-radius:  var(--rz-radius-full);
+  padding:        0.2rem 0.65rem;
+  white-space:    nowrap;
+}
+
+
 .share-btn {
   display:       grid;
   place-items:   center;

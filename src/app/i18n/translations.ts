@@ -36,6 +36,7 @@ const en: Dict = {
   'poll.tapToSwitch':     'Tap to switch',
   'poll.votedNote':       "You voted in this match — tap another candidate to switch while it's open",
   'poll.votes':           'votes',
+  'poll.by':              'by',
 
   'toast.voteCast':       'Vote cast!',
   'toast.voteChanged':    'Vote changed!',
@@ -90,6 +91,7 @@ const fr: Dict = {
   'poll.tapToSwitch':     'Touchez pour changer',
   'poll.votedNote':       'Vous avez voté dans ce match — touchez un autre candidat pour changer tant qu\'il est ouvert',
   'poll.votes':           'votes',
+  'poll.by':              'par',
 
   'toast.voteCast':       'Vote enregistré !',
   'toast.voteChanged':    'Vote modifié !',
@@ -144,6 +146,7 @@ const ar: Dict = {
   'poll.tapToSwitch':     'اضغط للتغيير',
   'poll.votedNote':       'لقد صوّتَ في هذه المباراة — اضغط على مرشح آخر للتغيير ما دامت مفتوحة',
   'poll.votes':           'أصوات',
+  'poll.by':              'بواسطة',
 
   'toast.voteCast':       'تم التصويت!',
   'toast.voteChanged':    'تم تغيير التصويت!',
