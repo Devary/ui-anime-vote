@@ -122,10 +122,28 @@ export class AnimeApiService {
     return this.http.put<MultiPollAdminDto>(`${API}/admin/multi-polls/${id}`, req);
   }
 
+  // ── User content — Anime (open to everyone, changes are moderated) ────────
+
+  getMyAnimeList(): Observable<AnimeDto[]> {
+    return this.http.get<AnimeDto[]>(`${API}/user/anime`);
+  }
+
+  createMyAnime(req: AnimeCreateDto): Observable<AnimeDto> {
+    return this.http.post<AnimeDto>(`${API}/user/anime`, req);
+  }
+
+  updateMyAnime(id: string, req: AnimeCreateDto): Observable<AnimeDto> {
+    return this.http.put<AnimeDto>(`${API}/user/anime/${id}`, req);
+  }
+
   // ── Admin CRUD — Anime ────────────────────────────────────────────────────
 
   adminGetAnimeList(): Observable<AnimeDto[]> {
     return this.http.get<AnimeDto[]>(`${API}/admin/anime`);
+  }
+
+  adminGetAnime(id: string): Observable<AnimeDto> {
+    return this.http.get<AnimeDto>(`${API}/admin/anime/${id}`);
   }
 
   adminCreateAnime(req: AnimeCreateDto): Observable<AnimeDto> {
@@ -283,6 +301,14 @@ export class AnimeApiService {
 
   approveCharacter(id: string): Observable<void> {
     return this.http.post<void>(`${API}/admin/approvals/characters/${id}/approve`, {});
+  }
+
+  approveAnime(id: string): Observable<void> {
+    return this.http.post<void>(`${API}/admin/approvals/anime/${id}/approve`, {});
+  }
+
+  rejectAnime(id: string): Observable<void> {
+    return this.http.post<void>(`${API}/admin/approvals/anime/${id}/reject`, {});
   }
 
   rejectCharacter(id: string): Observable<void> {

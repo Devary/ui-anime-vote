@@ -99,6 +99,7 @@ import { ConfirmModalComponent } from '../../shared/confirm-modal/confirm-modal.
     .type-POLL        { background: rgba(21,101,192,0.12); color: #1565c0; }
     .type-MULTI_POLL  { background: rgba(124,58,237,0.12); color: #7c3aed; }
     .type-CHARACTER   { background: rgba(5,150,105,0.12); color: #059669; }
+    .type-ANIME       { background: rgba(59,130,246,0.12); color: #3b82f6; }
     .del-type { opacity: 0.7; }
     .item-details { display: flex; flex-direction: column; gap: 0.1rem; min-width: 0; }
     .item-title { font-size: 0.85rem; font-weight: 600; color: var(--rz-ink);
@@ -156,7 +157,7 @@ export class ApprovalManagementComponent implements OnInit {
   }
 
   typeLabel(type: string): string {
-    return type === 'POLL' ? 'Poll' : type === 'MULTI_POLL' ? 'Tournament' : 'Character';
+    return type === 'POLL' ? 'Poll' : type === 'MULTI_POLL' ? 'Tournament' : type === 'ANIME' ? 'Anime' : 'Character';
   }
 
   approve(item: ApprovalItemDto): void {
@@ -182,6 +183,7 @@ export class ApprovalManagementComponent implements OnInit {
   private doApprove(item: ApprovalItemDto): void {
     const req$ = item.type === 'POLL' ? this.api.approvePoll(item.id)
                : item.type === 'MULTI_POLL' ? this.api.approveMultiPoll(item.id)
+               : item.type === 'ANIME' ? this.api.approveAnime(item.id)
                : this.api.approveCharacter(item.id);
     req$.subscribe({ next: () => { this.toast.success('Approved'); this.refresh.notify(); this.load(); }, error: e => this.toast.error(this.msg(e)) });
   }
@@ -189,6 +191,7 @@ export class ApprovalManagementComponent implements OnInit {
   private doReject(item: ApprovalItemDto): void {
     const req$ = item.type === 'POLL' ? this.api.rejectPoll(item.id)
                : item.type === 'MULTI_POLL' ? this.api.rejectMultiPoll(item.id)
+               : item.type === 'ANIME' ? this.api.rejectAnime(item.id)
                : this.api.rejectCharacter(item.id);
     req$.subscribe({ next: () => { this.toast.success('Rejected'); this.load(); }, error: e => this.toast.error(this.msg(e)) });
   }

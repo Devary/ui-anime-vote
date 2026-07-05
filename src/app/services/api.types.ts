@@ -173,7 +173,7 @@ export interface MultiPollAdminDto {
 // ── Approval system ───────────────────────────────────────────────────────────
 export interface ApprovalItemDto {
   id: string;
-  type: 'POLL' | 'MULTI_POLL' | 'CHARACTER';
+  type: 'POLL' | 'MULTI_POLL' | 'CHARACTER' | 'ANIME';
   title: string;
   anime: string;
   ownerId: string;
@@ -198,6 +198,8 @@ export interface AnimeDto {
   id: string;
   name: string;
   imageUrl: string | null;
+  status?: ContentStatus;
+  ownerId?: string | null;
 }
 
 export interface AnimeCreateDto {

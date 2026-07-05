@@ -45,8 +45,8 @@ export class ManagementComponent {
 
   readonly allNavItems: NavItem[] = [
     { id: 'my-content',  label: 'My Content', icon: '✦',  access: 'all'       },
-    { id: 'anime',       label: 'Anime',       icon: '🎬', access: 'moderator' },
-    { id: 'characters',  label: 'Characters',  icon: '👤', access: 'moderator' },
+    { id: 'anime',       label: 'Anime',       icon: '🎬', access: 'all'       },
+    { id: 'characters',  label: 'Characters',  icon: '👤', access: 'all'       },
     { id: 'polls',       label: 'Polls',       icon: '⚔',  access: 'moderator' },
     { id: 'multi-polls', label: 'Multi-Polls', icon: '🏆', access: 'moderator' },
     { id: 'users',       label: 'Users',       icon: '👥', access: 'admin'     },

@@ -11,6 +11,7 @@ import { map, catchError } from 'rxjs/operators';
 import { AnimeApiService } from '../../services/anime-api.service';
 import { ToastService } from '../../services/toast.service';
 import { DataRefreshService } from '../../services/data-refresh.service';
+import { AuthService } from '../../services/auth.service';
 import { AnimeDto, CharacterDto, CharacterCreateDto } from '../../services/api.types';
 import { ImageUploadComponent } from '../../shared/image-upload/image-upload.component';
 import { CrudModalComponent } from '../../shared/crud-modal/crud-modal.component';
@@ -43,11 +44,13 @@ import { ConfirmModalComponent } from '../../shared/confirm-modal/confirm-modal.
                      placeholder="Search characters…" />
             </p-iconfield>
             <div class="caption-actions">
+              @if (canModerate()) {
               <button class="btn-danger" type="button"
                       [disabled]="!selectedIds().size"
                       (click)="delSelected()">
                 Remove Selected{{ selectedIds().size ? ' (' + selectedIds().size + ')' : '' }}
               </button>
+              }
               <button class="btn-danger" type="button"
                       [disabled]="!chars().length"
                       (click)="delAll()">
@@ -109,9 +112,11 @@ import { ConfirmModalComponent } from '../../shared/confirm-modal/confirm-modal.
               <button class="btn-icon" (click)="startEdit(c)" title="Edit">
                 <i class="pi pi-pencil"></i>
               </button>
+              @if (canModerate()) {
               <button class="btn-icon danger" (click)="del(c.id)" title="Delete">
                 <i class="pi pi-trash"></i>
               </button>
+              }
             </td>
           </tr>
         </ng-template>
@@ -227,6 +232,7 @@ export class CharacterManagementComponent implements OnInit {
   private readonly api     = inject(AnimeApiService);
   private readonly toast   = inject(ToastService);
   private readonly refresh = inject(DataRefreshService);
+  readonly canModerate     = inject(AuthService).canModerate;
 
   readonly chars     = signal<CharacterDto[]>([]);
   readonly animeList = signal<AnimeDto[]>([]);
@@ -335,20 +341,42 @@ export class CharacterManagementComponent implements OnInit {
     this.saving.set(true);
     this.error.set(null);
     const editId = this.editing()?.id;
-    const req$ = editId
-      ? this.api.adminUpdateCharacter(editId, this.form)
-      : this.api.adminCreateCharacter(this.form);
+    // simple users go through the moderated endpoints; moderators publish directly
+    const req$ = this.canModerate()
+      ? (editId ? this.api.adminUpdateCharacter(editId, this.form) : this.api.adminCreateCharacter(this.form))
+      : (editId ? this.api.updateMyCharacter(editId, this.form)    : this.api.createMyCharacter(this.form));
 
     req$.subscribe({
       next: () => {
-        this.toast.success(editId ? 'Character updated' : 'Character created');
+        this.toast.success(this.canModerate()
+          ? (editId ? 'Character updated' : 'Character created')
+          : 'Submitted for moderation');
         this.saving.set(false);
         this.closeForm();
         this.load();
         this.refresh.notify();
       },
-      error: e => { this.error.set(this.msg(e)); this.saving.set(false); }
+      error: e => {
+        this.saving.set(false);
+        const conflictId = e?.error?.conflictId;
+        if (e?.status === 409 && conflictId) { this.offerEditExisting(conflictId); return; }
+        this.error.set(this.msg(e));
+      }
     });
+  }
+
+  /** Duplicate detected — "it already exists, do you want to modify it?" */
+  private offerEditExisting(conflictId: string): void {
+    this.askConfirm(
+      'Already exists',
+      `"${this.form.name}" already exists. Do you want to modify it instead?`,
+      () => {
+        const existing = this.chars().find(c => c.id === conflictId);
+        if (existing) { this.startEdit(existing); }
+        else { this.error.set('The existing character is awaiting moderation and cannot be edited right now.'); }
+      },
+      false
+    );
   }
 
   del(id: string): void {

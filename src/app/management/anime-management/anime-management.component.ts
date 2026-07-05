@@ -10,6 +10,7 @@ import { map, catchError } from 'rxjs/operators';
 import { AnimeApiService } from '../../services/anime-api.service';
 import { ToastService } from '../../services/toast.service';
 import { DataRefreshService } from '../../services/data-refresh.service';
+import { AuthService } from '../../services/auth.service';
 import { AnimeDto, AnimeCreateDto } from '../../services/api.types';
 import { ImageUploadComponent } from '../../shared/image-upload/image-upload.component';
 import { CrudModalComponent } from '../../shared/crud-modal/crud-modal.component';
@@ -42,11 +43,13 @@ import { ConfirmModalComponent } from '../../shared/confirm-modal/confirm-modal.
                      placeholder="Search anime…" />
             </p-iconfield>
             <div class="caption-actions">
+              @if (canModerate()) {
               <button class="btn-danger" type="button"
                       [disabled]="!selectedIds().size"
                       (click)="delSelected()">
                 Remove Selected{{ selectedIds().size ? ' (' + selectedIds().size + ')' : '' }}
               </button>
+              }
               <button class="btn-danger" type="button"
                       [disabled]="!animeList().length"
                       (click)="delAll()">
@@ -96,9 +99,12 @@ import { ConfirmModalComponent } from '../../shared/confirm-modal/confirm-modal.
               <button class="btn-icon" (click)="startEdit(anime)" title="Edit">
                 <i class="pi pi-pencil"></i>
               </button>
+              @if (anime.status === 'PENDING') { <span class="pending-chip">PENDING</span> }
+              @if (canModerate()) {
               <button class="btn-icon danger" (click)="del(anime.id)" title="Delete">
                 <i class="pi pi-trash"></i>
               </button>
+              }
             </td>
           </tr>
         </ng-template>
@@ -180,6 +186,8 @@ import { ConfirmModalComponent } from '../../shared/confirm-modal/confirm-modal.
                  border-radius: var(--rz-radius-sm); color: var(--rz-ink-muted); }
     .btn-icon:hover { background: var(--rz-surface-hover); color: var(--rz-ink); }
     .btn-icon.danger:hover { background: var(--rz-danger-bg); color: var(--rz-danger); }
+    .pending-chip { font-size: 0.6rem; font-weight: 800; letter-spacing: 0.06em; padding: 0.15rem 0.5rem;
+                    border-radius: var(--rz-radius-full); background: rgba(245,158,11,0.15); color: #d97706; }
   `]
 })
 export class AnimeManagementComponent implements OnInit {
@@ -188,6 +196,7 @@ export class AnimeManagementComponent implements OnInit {
   private readonly api     = inject(AnimeApiService);
   private readonly toast   = inject(ToastService);
   private readonly refresh = inject(DataRefreshService);
+  readonly canModerate     = inject(AuthService).canModerate;
 
   readonly animeList = signal<AnimeDto[]>([]);
   readonly loading   = signal(false);
@@ -229,7 +238,8 @@ export class AnimeManagementComponent implements OnInit {
 
   load(): void {
     this.loading.set(true);
-    this.api.adminGetAnimeList().subscribe({
+    // user listing includes the caller's own pending entries
+    this.api.getMyAnimeList().subscribe({
       next: list => { this.animeList.set(list); this.loading.set(false); },
       error: e => { this.toast.error(this.msg(e)); this.loading.set(false); }
     });
@@ -292,20 +302,45 @@ export class AnimeManagementComponent implements OnInit {
     this.saving.set(true);
     this.error.set(null);
     const editId = this.editing()?.id;
-    const req$ = editId
-      ? this.api.adminUpdateAnime(editId, this.form)
-      : this.api.adminCreateAnime(this.form);
+    // simple users go through the moderated endpoints; moderators publish directly
+    const req$ = this.canModerate()
+      ? (editId ? this.api.adminUpdateAnime(editId, this.form) : this.api.adminCreateAnime(this.form))
+      : (editId ? this.api.updateMyAnime(editId, this.form)   : this.api.createMyAnime(this.form));
 
     req$.subscribe({
       next: () => {
-        this.toast.success(editId ? 'Anime updated' : 'Anime created');
+        this.toast.success(this.canModerate()
+          ? (editId ? 'Anime updated' : 'Anime created')
+          : 'Submitted for moderation');
         this.saving.set(false);
         this.closeForm();
         this.load();
         this.refresh.notify();
       },
-      error: e => { this.error.set(this.msg(e)); this.saving.set(false); }
+      error: e => {
+        this.saving.set(false);
+        const conflictId = e?.error?.conflictId;
+        if (e?.status === 409 && conflictId) { this.offerEditExisting(conflictId); return; }
+        this.error.set(this.msg(e));
+      }
     });
+  }
+
+  /** Duplicate detected — "it already exists, do you want to modify it?" */
+  private offerEditExisting(conflictId: string): void {
+    this.askConfirm(
+      'Already exists',
+      `"${this.form.name}" already exists. Do you want to modify it instead?`,
+      () => {
+        const existing = this.animeList().find(a => a.id === conflictId);
+        if (existing) { this.startEdit(existing); return; }
+        this.api.adminGetAnime(conflictId).subscribe({
+          next: a => this.startEdit(a),
+          error: e2 => this.error.set(this.msg(e2)),
+        });
+      },
+      false
+    );
   }
 
   del(id: string): void {
