@@ -15,7 +15,7 @@ interface NavItem {
   id: Section;
   label: string;
   icon: string;
-  adminOnly: boolean;
+  access: 'all' | 'moderator' | 'admin';
 }
 
 @Component({
@@ -38,22 +38,26 @@ export class ManagementComponent {
   readonly close = output<void>();
 
   private readonly auth = inject(AuthService);
-  readonly isAdmin = this.auth.isAdmin;
+  readonly isAdmin     = this.auth.isAdmin;
+  readonly canModerate = this.auth.canModerate;
 
   readonly activeSection = signal<Section>('my-content');
 
   readonly allNavItems: NavItem[] = [
-    { id: 'my-content',  label: 'My Content', icon: '✦',  adminOnly: false },
-    { id: 'anime',       label: 'Anime',       icon: '🎬', adminOnly: true  },
-    { id: 'characters',  label: 'Characters',  icon: '👤', adminOnly: true  },
-    { id: 'polls',       label: 'Polls',       icon: '⚔',  adminOnly: true  },
-    { id: 'multi-polls', label: 'Multi-Polls', icon: '🏆', adminOnly: true  },
-    { id: 'users',       label: 'Users',       icon: '👥', adminOnly: true  },
-    { id: 'approvals',   label: 'Approvals',   icon: '✅', adminOnly: true  },
+    { id: 'my-content',  label: 'My Content', icon: '✦',  access: 'all'       },
+    { id: 'anime',       label: 'Anime',       icon: '🎬', access: 'moderator' },
+    { id: 'characters',  label: 'Characters',  icon: '👤', access: 'moderator' },
+    { id: 'polls',       label: 'Polls',       icon: '⚔',  access: 'moderator' },
+    { id: 'multi-polls', label: 'Multi-Polls', icon: '🏆', access: 'moderator' },
+    { id: 'users',       label: 'Users',       icon: '👥', access: 'admin'     },
+    { id: 'approvals',   label: 'Approvals',   icon: '✅', access: 'moderator' },
   ];
 
   get navItems(): NavItem[] {
-    return this.allNavItems.filter(n => !n.adminOnly || this.isAdmin());
+    return this.allNavItems.filter(n =>
+      n.access === 'all'
+      || (n.access === 'moderator' && this.canModerate())
+      || (n.access === 'admin' && this.isAdmin()));
   }
 
   setSection(s: Section): void {

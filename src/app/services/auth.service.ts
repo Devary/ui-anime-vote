@@ -19,6 +19,9 @@ export class AuthService {
   readonly currentUser  = this._session.asReadonly();
   readonly isLoggedIn   = computed(() => this._session() !== null);
   readonly isAdmin      = computed(() => this._session()?.roles?.some(r => r.toLowerCase() === 'admin') ?? false);
+  /** ADMIN or MODERATOR — may validate and manage content (anime, characters, polls, multi-polls). */
+  readonly canModerate  = computed(() =>
+    this._session()?.roles?.some(r => ['admin', 'moderator'].includes(r.toLowerCase())) ?? false);
 
   constructor() {
     const stored = localStorage.getItem(STORAGE_KEY);
