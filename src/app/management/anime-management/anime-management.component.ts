@@ -121,7 +121,7 @@ import { ConfirmModalComponent } from '../../shared/confirm-modal/confirm-modal.
           <form (ngSubmit)="requestSave()">
             <label class="field">
               <span>Name *</span>
-              <input class="input" [(ngModel)]="form.name" name="name" placeholder="e.g. Naruto"
+              <input class="input" [(ngModel)]="form.name" name="name" maxlength="254" placeholder="e.g. Naruto"
                      (ngModelChange)="markDirty()" required />
             </label>
             <label class="field">

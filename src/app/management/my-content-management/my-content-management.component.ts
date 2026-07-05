@@ -153,7 +153,7 @@ type SubTab = 'characters' | 'polls' | 'multi-polls';
           <div class="form-grid">
             <label class="field span-2">
               <span>Name *</span>
-              <input class="input" [(ngModel)]="charForm.name" (ngModelChange)="charDirty = true" placeholder="Character name" />
+              <input class="input" [(ngModel)]="charForm.name" maxlength="254" (ngModelChange)="charDirty = true" placeholder="Character name" />
             </label>
             <label class="field">
               <span>Anime</span>
@@ -186,7 +186,7 @@ type SubTab = 'characters' | 'polls' | 'multi-polls';
             <div class="form-grid">
               <label class="field span-2">
                 <span>Question *</span>
-                <input class="input" [(ngModel)]="pollForm.question" name="q" (ngModelChange)="pollDirty = true" placeholder="Who would win?" />
+                <input class="input" [(ngModel)]="pollForm.question" maxlength="254" name="q" (ngModelChange)="pollDirty = true" placeholder="Who would win?" />
               </label>
               <label class="field">
                 <span>Anime</span>
@@ -224,7 +224,7 @@ type SubTab = 'characters' | 'polls' | 'multi-polls';
             <div class="form-grid">
               <label class="field span-2">
                 <span>Question *</span>
-                <input class="input" [(ngModel)]="mpForm.question" name="q" (ngModelChange)="mpDirty = true" placeholder="Who is the best?" />
+                <input class="input" [(ngModel)]="mpForm.question" maxlength="254" name="q" (ngModelChange)="mpDirty = true" placeholder="Who is the best?" />
               </label>
               @if (!editingMp()) {
                 <label class="field">
@@ -558,7 +558,7 @@ export class MyContentManagementComponent implements OnInit {
     const groups = this.mpGroupsArray.controls.map(ctrl => {
       const g = ctrl as FormGroup;
       const cArr = g.get('candidates') as FormArray;
-      return { label: g.get('label')?.value ?? '', characterIds: cArr.controls.map(c => c.value as string).filter(Boolean), startNow: g.get('startNow')?.value ?? false, startDate: g.get('startDate')?.value || null, endDate: g.get('endDate')?.value || null };
+      return { label: g.get('label')?.value ?? '', characterIds: cArr.controls.map(c => c.value as string).filter(Boolean), startNow: g.get('startNow')?.value ?? false, startDate: g.get('startDate')?.value || null, endDate: g.get('endDate')?.value || null, level: 0 };
     });
     const req: MultiPollCreateDto = { anime: this.mpForm.anime, question: this.mpForm.question, visibility: this.mpForm.visibility, allowedUserIds: this.mpForm.allowedUserIds, groups };
     const id = this.editingMp()?.id;

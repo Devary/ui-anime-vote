@@ -51,7 +51,9 @@ const en: Dict = {
   'comments.pause':          'Disable comments',
   'comments.resume':         'Enable comments',
   'comments.errEmpty':       'Comment cannot be empty',
-  'comments.errTooLong':     'Comment is limited to 500 characters',
+  'comments.errTooShort':    'Comment must be longer than 5 characters',
+  'comments.errTooLong':     'Comment must be shorter than 350 characters',
+  'comments.errMarkup':      'Characters like < or > are not allowed',
   'comments.errLink':        'Links are not allowed in comments',
 
   'toast.linkCopied':     'Link copied to clipboard!',
@@ -120,7 +122,9 @@ const fr: Dict = {
   'comments.pause':          'Désactiver les commentaires',
   'comments.resume':         'Activer les commentaires',
   'comments.errEmpty':       'Le commentaire ne peut pas être vide',
-  'comments.errTooLong':     'Le commentaire est limité à 500 caractères',
+  'comments.errTooShort':    'Le commentaire doit dépasser 5 caractères',
+  'comments.errTooLong':     'Le commentaire doit faire moins de 350 caractères',
+  'comments.errMarkup':      'Les caractères < et > ne sont pas autorisés',
   'comments.errLink':        'Les liens ne sont pas autorisés',
 
   'toast.linkCopied':     'Lien copié dans le presse-papiers !',
@@ -189,7 +193,9 @@ const ar: Dict = {
   'comments.pause':          'تعطيل التعليقات',
   'comments.resume':         'تفعيل التعليقات',
   'comments.errEmpty':       'لا يمكن أن يكون التعليق فارغاً',
-  'comments.errTooLong':     'الحد الأقصى للتعليق 500 حرف',
+  'comments.errTooShort':    'يجب أن يتجاوز التعليق 5 أحرف',
+  'comments.errTooLong':     'يجب أن يكون التعليق أقل من 350 حرفاً',
+  'comments.errMarkup':      'الرموز مثل < و > غير مسموحة',
   'comments.errLink':        'الروابط غير مسموحة في التعليقات',
 
   'toast.linkCopied':     'تم نسخ الرابط!',

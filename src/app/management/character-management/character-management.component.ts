@@ -134,7 +134,7 @@ import { ConfirmModalComponent } from '../../shared/confirm-modal/confirm-modal.
             <div class="form-grid">
               <label class="field">
                 <span>Name *</span>
-                <input class="input" [(ngModel)]="form.name" name="cname" placeholder="e.g. Naruto Uzumaki"
+                <input class="input" [(ngModel)]="form.name" maxlength="254" name="cname" placeholder="e.g. Naruto Uzumaki"
                        (ngModelChange)="markDirty()" required />
               </label>
               <label class="field">

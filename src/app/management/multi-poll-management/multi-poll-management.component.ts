@@ -121,7 +121,7 @@ import { ConfirmModalComponent } from '../../shared/confirm-modal/confirm-modal.
             <div class="form-grid">
               <label class="field span-2">
                 <span>Question *</span>
-                <input class="input" formControlName="question" placeholder="Who is the best?" />
+                <input class="input" formControlName="question" maxlength="254" placeholder="Who is the best?" />
                 @if (submitted && form.get('question')?.errors?.['required']) {
                   <small class="error-msg">Question is required</small>
                 }

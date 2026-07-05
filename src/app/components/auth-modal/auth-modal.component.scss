@@ -1,7 +1,7 @@
 :host {
   position: fixed;
   inset: 0;
-  z-index: 200;
+  z-index: 700; // above the header bar
   display: flex;
   align-items: center;
   justify-content: center;

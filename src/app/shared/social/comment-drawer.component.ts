@@ -7,7 +7,7 @@ import { AnimeApiService } from '../../services/anime-api.service';
 import { AuthService } from '../../services/auth.service';
 import { ToastService } from '../../services/toast.service';
 import { I18nService } from '../../i18n/i18n.service';
-import { COMMENT_MAX_LENGTH, validateComment } from './comment-validation';
+import { COMMENT_MAX_LENGTH, sanitizeComment, validateComment } from './comment-validation';
 
 /** Text-only comment drawer for polls and multi-polls (newest first). */
 @Component({
@@ -68,11 +68,11 @@ import { COMMENT_MAX_LENGTH, validateComment } from './comment-validation';
   styles: [`
     :host { display: contents; }
 
-    .drawer-backdrop { position: fixed; inset: 0; z-index: 150; background: rgba(0, 0, 0, 0.45); }
+    .drawer-backdrop { position: fixed; inset: 0; z-index: 600; background: rgba(0, 0, 0, 0.45); }
 
     .drawer {
       position:        fixed;
-      z-index:         151; // above the header's stacking context
+      z-index:         601; // above the header bar
       display:         flex;
       flex-direction:  column;
       gap:             0.6rem;
@@ -200,7 +200,7 @@ export class CommentDrawerComponent implements OnInit {
     const validationError = validateComment(this.draft);
     if (validationError) { this.error.set(validationError); return; }
     this.posting.set(true);
-    this.api.addComment(this.kind(), this.poll().id, this.draft.trim()).subscribe({
+    this.api.addComment(this.kind(), this.poll().id, sanitizeComment(this.draft)).subscribe({
       next: comment => {
         this.comments.update(list => [comment, ...list]);
         this.countChanged.emit(this.comments().length);

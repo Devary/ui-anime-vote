@@ -83,12 +83,12 @@ import { ConfirmModalComponent } from '../../shared/confirm-modal/confirm-modal.
           <div class="edit-grid">
             @if (item.type === 'ANIME') {
               <label class="field"><span>Name *</span>
-                <input class="input" [(ngModel)]="editForm.name" (ngModelChange)="editDirty = true" /></label>
+                <input class="input" [(ngModel)]="editForm.name" maxlength="254" (ngModelChange)="editDirty = true" /></label>
               <label class="field"><span>Image URL</span>
                 <input class="input" [(ngModel)]="editForm.imageUrl" (ngModelChange)="editDirty = true" /></label>
             } @else if (item.type === 'CHARACTER') {
               <label class="field"><span>Name *</span>
-                <input class="input" [(ngModel)]="editForm.name" (ngModelChange)="editDirty = true" /></label>
+                <input class="input" [(ngModel)]="editForm.name" maxlength="254" (ngModelChange)="editDirty = true" /></label>
               <label class="field"><span>Title</span>
                 <input class="input" [(ngModel)]="editForm.title" (ngModelChange)="editDirty = true" /></label>
               <label class="field"><span>Anime</span>
@@ -97,7 +97,7 @@ import { ConfirmModalComponent } from '../../shared/confirm-modal/confirm-modal.
                 <input class="input" [(ngModel)]="editForm.imageUrl" (ngModelChange)="editDirty = true" /></label>
             } @else {
               <label class="field"><span>Question *</span>
-                <input class="input" [(ngModel)]="editForm.question" (ngModelChange)="editDirty = true" /></label>
+                <input class="input" [(ngModel)]="editForm.question" maxlength="254" (ngModelChange)="editDirty = true" /></label>
               <label class="field"><span>Anime</span>
                 <input class="input" [(ngModel)]="editForm.anime" (ngModelChange)="editDirty = true" /></label>
             }

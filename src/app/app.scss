@@ -17,7 +17,7 @@
 .standalone-header {
   flex-shrink:     0;
   position:        relative;
-  z-index:         100; // its backdrop-filter makes a stacking context — keep menus above the stage
+  z-index:         500; // its backdrop-filter makes a stacking context — menus must beat the main frame
   display:         flex;
   align-items:     center;
   justify-content: space-between;

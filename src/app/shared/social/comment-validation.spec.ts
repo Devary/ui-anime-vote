@@ -1,4 +1,4 @@
-import { validateComment, containsLink, COMMENT_MAX_LENGTH } from './comment-validation';
+import { validateComment, containsLink, sanitizeComment, COMMENT_MAX_LENGTH, COMMENT_MIN_LENGTH } from './comment-validation';
 
 describe('comment validation (mirrors the backend rules)', () => {
   it('accepts plain text with punctuation', () => {
@@ -11,9 +11,20 @@ describe('comment validation (mirrors the backend rules)', () => {
     expect(validateComment('   ')).toBe('comments.errEmpty');
   });
 
-  it('rejects comments over the limit', () => {
-    expect(validateComment('x'.repeat(COMMENT_MAX_LENGTH + 1))).toBe('comments.errTooLong');
+  it('enforces the 6..349 character bounds', () => {
+    expect(validateComment('hi')).toBe('comments.errTooShort');
+    expect(validateComment('12345')).toBe('comments.errTooShort');
+    expect(validateComment('123456')).toBeNull();
     expect(validateComment('x'.repeat(COMMENT_MAX_LENGTH))).toBeNull();
+    expect(validateComment('x'.repeat(COMMENT_MAX_LENGTH + 1))).toBe('comments.errTooLong');
+    expect(COMMENT_MIN_LENGTH).toBe(6);
+    expect(COMMENT_MAX_LENGTH).toBe(349);
+  });
+
+  it('manages special characters: strips control chars, rejects markup', () => {
+    expect(sanitizeComment('clean\u0007 text\u200B here')).toBe('clean text here');
+    expect(validateComment('<b>hello world</b>')).toBe('comments.errMarkup');
+    expect(validateComment('1 < 2 but 3 > 2 right?')).toBe('comments.errMarkup');
   });
 
   it('rejects links in every common form', () => {
