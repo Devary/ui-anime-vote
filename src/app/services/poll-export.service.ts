@@ -184,13 +184,14 @@ export class PollExportService {
     const center: Slot = leader ? { name: leader.name, imageUrl: leader.imageUrl, isWinner: true } : {};
     await this.resolveImages([...fighterSlots, center]);
 
-    const boxH  = MATCH_P * 2 + SLOT_H;
-    const n     = fighterSlots.length;
-    const left  = Math.ceil(n / 2);
-    const w     = PAD * 2 + (n + 1) * MATCH_W + n * H_GAP;
-    const topY  = TITLE_H + 42; // room for the Winner label above the row
-    const cy    = topY + boxH / 2;
-    const h     = topY + boxH + PAD;
+    const boxH    = MATCH_P * 2 + SLOT_H;
+    const n       = fighterSlots.length;
+    const w       = PAD * 2 + n * MATCH_W + (n - 1) * H_GAP;
+    const winTop  = TITLE_H + 26;          // room for the Winner label above the gold box
+    const railY   = winTop + boxH + 24;    // elbow rail between the winner and the fighters row
+    const rowTop  = railY + 24;
+    const h       = rowTop + boxH + PAD;
+    const winX    = w / 2 - MATCH_W / 2;
 
     const defs:  string[] = [];
     const lines: string[] = [];
@@ -199,22 +200,24 @@ export class PollExportService {
     elems.push(this.txt(poll.question, w / 2, 34, '#fff', 15, 800, w - PAD));
     if (poll.anime) elems.push(this.txt(poll.anime.toUpperCase(), w / 2, 54, '#60a5fa', 10, 700, w - PAD));
 
-    // one row: [left fighters] [gold Winner] [right fighters], joined by a horizontal rail
-    const xAt = (i: number) => PAD + i * (MATCH_W + H_GAP);
-    const node = (slots: Slot[], x: number): KNode =>
+    const node = (slots: Slot[], x: number, cy: number): KNode =>
       ({ slots, children: [], depth: 0, boxH, h: boxH, x, cy });
 
-    for (let i = 0; i < n + 1; i++) {
-      if (i > 0) lines.push(`<path d="M${xAt(i) - H_GAP},${cy} H${xAt(i)}" stroke="${LINE}" stroke-width="2" fill="none"/>`);
-      if (i === left) {
-        const root = node([center], xAt(i));
-        this.drawMatch(elems, defs, root, true);
-        elems.push(this.txt('Winner', xAt(i) + MATCH_W / 2, cy - boxH / 2 - 12, GOLD, 12, 800, MATCH_W));
-      } else {
-        const fi = i < left ? i : i - 1;
-        this.drawMatch(elems, defs, node([fighterSlots[fi]], xAt(i)), false);
-      }
-    }
+    // Winner one level above the fighters
+    this.drawMatch(elems, defs, node([center], winX, winTop + boxH / 2), true);
+    elems.push(this.txt('Winner', w / 2, winTop - 12, GOLD, 12, 800, MATCH_W + 40));
+
+    // fighters row + right-angle connectors up to the rail, rail up to the winner
+    const centers: number[] = [];
+    fighterSlots.forEach((slot, i) => {
+      const x  = PAD + i * (MATCH_W + H_GAP);
+      const cx = x + MATCH_W / 2;
+      centers.push(cx);
+      this.drawMatch(elems, defs, node([slot], x, rowTop + boxH / 2), false);
+      lines.push(`<path d="M${cx},${rowTop} V${railY}" stroke="${LINE}" stroke-width="2" fill="none"/>`);
+    });
+    lines.push(`<path d="M${Math.min(...centers)},${railY} H${Math.max(...centers)}" stroke="${LINE}" stroke-width="2" fill="none"/>`);
+    lines.push(`<path d="M${w / 2},${railY} V${winTop + boxH}" stroke="${LINE}" stroke-width="2" fill="none"/>`);
 
     return { svg: this.wrapSvg(w, h, defs, [...lines, ...elems], fighterSlots), w, h };
   }
