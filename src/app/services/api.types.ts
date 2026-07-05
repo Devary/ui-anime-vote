@@ -131,6 +131,10 @@ export interface PollDto {
   ownerId?: string | null;
   ownerUsername?: string | null;
   deletePending?: boolean;
+  commentsEnabled?: boolean;
+  commentCount?: number;
+  likes?: number;
+  likedByMe?: boolean;
 }
 
 export interface MultiPollCreateDto {
@@ -168,6 +172,10 @@ export interface MultiPollAdminDto {
   ownerId?: string | null;
   ownerUsername?: string | null;
   deletePending?: boolean;
+  commentsEnabled?: boolean;
+  commentCount?: number;
+  likes?: number;
+  likedByMe?: boolean;
 }
 
 // ── Approval system ───────────────────────────────────────────────────────────
@@ -263,3 +271,20 @@ export interface AuditEventDto {
   snapshot: string | null;
   restorable: boolean;
 }
+
+// ── Comments & likes ──────────────────────────────────────────────────────────
+export interface CommentDto {
+  id: string;
+  username: string;
+  text: string;
+  createdAt: string;
+  mine: boolean;
+}
+
+export interface LikeStateDto {
+  likes: number;
+  likedByMe: boolean;
+}
+
+/** REST prefix for social endpoints shared by both poll kinds */
+export type PollKind = 'polls' | 'multi-polls';

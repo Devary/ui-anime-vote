@@ -7,6 +7,7 @@ import { VoteStore } from '../../vote.store';
 import { ShareService } from '../../services/share.service';
 import { I18nService } from '../../i18n/i18n.service';
 import { CountdownComponent } from '../countdown/countdown.component';
+import { SocialActionsComponent } from '../../shared/social/social-actions.component';
 
 const SEGMENT_COLORS = ['#1565c0', '#c62828', '#2e7d32', '#6a1b9a', '#e65100'];
 
@@ -28,7 +29,7 @@ export interface BracketSlot {
 @Component({
   selector:    'app-multi-poll-card',
   standalone:  true,
-  imports:     [CommonModule, CountdownComponent, OrganizationChartModule],
+  imports:     [CommonModule, CountdownComponent, OrganizationChartModule, SocialActionsComponent],
   templateUrl: './multi-poll-card.component.html',
   styleUrl:    './multi-poll-card.component.scss',
 })

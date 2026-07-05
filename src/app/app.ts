@@ -66,6 +66,23 @@ export class App implements OnInit {
 
   /** slide animation direction for the TikTok-style vertical feed */
   readonly slideDir = signal<'next' | 'prev'>('next');
+
+  // language dropdown
+  readonly langMenuOpen = signal(false);
+  readonly currentLang = computed(() =>
+    this.i18n.LANGS.find(l => l.code === this.i18n.lang()) ?? this.i18n.LANGS[0]);
+
+  selectLang(code: 'en' | 'fr' | 'ar'): void {
+    this.i18n.setLang(code);
+    this.langMenuOpen.set(false);
+  }
+
+  onWindowClick(event: Event): void {
+    if (this.langMenuOpen() && event.target instanceof Element && !event.target.closest('.lang-select')) {
+      this.langMenuOpen.set(false);
+    }
+  }
+
   readonly currentPollArr = computed<AnyPoll[]>(() => {
     const p = this.currentPoll();
     return p ? [p] : [];
@@ -117,13 +134,23 @@ export class App implements OnInit {
     return { id: dto.id, type: 'single', anime: dto.anime ?? '', question: dto.question,
              fighter1: fighters[0], fighter2: fighters[1],
              visibility: dto.visibility ?? 'PUBLIC',
-             ownerUsername: dto.ownerUsername ?? null };
+             ownerUsername: dto.ownerUsername ?? null,
+             ownerId: dto.ownerId ?? null,
+             commentsEnabled: dto.commentsEnabled ?? true,
+             commentCount: dto.commentCount ?? 0,
+             likes: dto.likes ?? 0,
+             likedByMe: dto.likedByMe ?? false };
   }
 
   private mapMultiPoll(dto: MultiPollAdminDto): MultiPoll {
     return { id: dto.id, type: 'multi', anime: dto.anime ?? '', question: dto.question,
              visibility: dto.visibility ?? 'PUBLIC',
              ownerUsername: dto.ownerUsername ?? null,
+             ownerId: dto.ownerId ?? null,
+             commentsEnabled: dto.commentsEnabled ?? true,
+             commentCount: dto.commentCount ?? 0,
+             likes: dto.likes ?? 0,
+             likedByMe: dto.likedByMe ?? false,
              groups: (dto.groups ?? []).map(g => ({
                id: g.id, label: g.label,
                level: g.level ?? 0,

@@ -2,7 +2,7 @@
 
   @if (isStandalone) {
     <header class="standalone-header">
-      <span class="app-brand"><img class="brand-logo" src="logo.svg" alt="VS" /> VoteScroll</span>
+      <span class="app-brand"><img class="brand-logo" src="logo.svg" alt="VoteScroll" /></span>
 
       <div class="header-actions">
         @if (isLoggedIn()) {
@@ -12,9 +12,26 @@
         } @else {
           <button class="login-btn" (click)="openAuth()">{{ i18n.t('app.login') }}</button>
         }
-        <button class="lang-toggle" (click)="i18n.cycle()" [attr.aria-label]="'Language'">
-          {{ i18n.lang().toUpperCase() }}
-        </button>
+        <div class="lang-select" (window:click)="onWindowClick($event)">
+          <button class="lang-toggle" (click)="langMenuOpen.set(!langMenuOpen())"
+                  aria-haspopup="listbox" [attr.aria-expanded]="langMenuOpen()">
+            <span class="lang-flag">{{ currentLang().flag }}</span>
+            <span class="lang-code">{{ i18n.lang().toUpperCase() }}</span>
+            <span class="lang-caret">▾</span>
+          </button>
+          @if (langMenuOpen()) {
+            <div class="lang-menu" role="listbox">
+              @for (l of i18n.LANGS; track l.code) {
+                <button class="lang-option" role="option"
+                        [class.active]="i18n.lang() === l.code"
+                        (click)="selectLang(l.code)">
+                  <span class="lang-flag">{{ l.flag }}</span>
+                  <span class="lang-label">{{ l.label }}</span>
+                </button>
+              }
+            </div>
+          }
+        </div>
         <button class="theme-toggle"
                 (click)="toggleTheme()"
                 [attr.aria-label]="isDark() ? 'Switch to light mode' : 'Switch to dark mode'">

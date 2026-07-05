@@ -1,9 +1,9 @@
 export type Lang = 'en' | 'fr' | 'ar';
 
-export const LANGS: { code: Lang; label: string }[] = [
-  { code: 'en', label: 'EN' },
-  { code: 'fr', label: 'FR' },
-  { code: 'ar', label: 'AR' },
+export const LANGS: { code: Lang; label: string; flag: string }[] = [
+  { code: 'en', label: 'English (US)', flag: '🇺🇸' },
+  { code: 'fr', label: 'Français',     flag: '🇫🇷' },
+  { code: 'ar', label: 'العربية (تونس)', flag: '🇹🇳' },
 ];
 
 type Dict = Record<string, string>;
@@ -37,6 +37,22 @@ const en: Dict = {
   'poll.votedNote':       "You voted in this match — tap another candidate to switch while it's open",
   'poll.votes':           'votes',
   'poll.by':              'by',
+
+  'action.like':          'Like',
+  'action.comment':       'Comment',
+  'action.share':         'Share',
+
+  'comments.title':          'Comments',
+  'comments.placeholder':    'Write a comment… (text only, no links)',
+  'comments.post':           'Post',
+  'comments.empty':          'No comments yet — be the first!',
+  'comments.signIn':         'Sign in to join the conversation',
+  'comments.disabledNotice': 'Commenting has been disabled on this poll',
+  'comments.pause':          'Disable comments',
+  'comments.resume':         'Enable comments',
+  'comments.errEmpty':       'Comment cannot be empty',
+  'comments.errTooLong':     'Comment is limited to 500 characters',
+  'comments.errLink':        'Links are not allowed in comments',
 
   'toast.linkCopied':     'Link copied to clipboard!',
 
@@ -91,6 +107,22 @@ const fr: Dict = {
   'poll.votes':           'votes',
   'poll.by':              'par',
 
+  'action.like':          'J\'aime',
+  'action.comment':       'Commenter',
+  'action.share':         'Partager',
+
+  'comments.title':          'Commentaires',
+  'comments.placeholder':    'Écrivez un commentaire… (texte uniquement, sans liens)',
+  'comments.post':           'Publier',
+  'comments.empty':          'Aucun commentaire — soyez le premier !',
+  'comments.signIn':         'Connectez-vous pour participer',
+  'comments.disabledNotice': 'Les commentaires ont été désactivés sur ce sondage',
+  'comments.pause':          'Désactiver les commentaires',
+  'comments.resume':         'Activer les commentaires',
+  'comments.errEmpty':       'Le commentaire ne peut pas être vide',
+  'comments.errTooLong':     'Le commentaire est limité à 500 caractères',
+  'comments.errLink':        'Les liens ne sont pas autorisés',
+
   'toast.linkCopied':     'Lien copié dans le presse-papiers !',
 
   'auth.login':           'Connexion',
@@ -143,6 +175,22 @@ const ar: Dict = {
   'poll.votedNote':       'لقد صوّتَ في هذه المباراة — اضغط على مرشح آخر للتغيير ما دامت مفتوحة',
   'poll.votes':           'أصوات',
   'poll.by':              'بواسطة',
+
+  'action.like':          'إعجاب',
+  'action.comment':       'تعليق',
+  'action.share':         'مشاركة',
+
+  'comments.title':          'التعليقات',
+  'comments.placeholder':    'اكتب تعليقاً… (نص فقط، بدون روابط)',
+  'comments.post':           'نشر',
+  'comments.empty':          'لا توجد تعليقات — كن الأول!',
+  'comments.signIn':         'سجّل الدخول للمشاركة',
+  'comments.disabledNotice': 'تم تعطيل التعليقات على هذا الاستطلاع',
+  'comments.pause':          'تعطيل التعليقات',
+  'comments.resume':         'تفعيل التعليقات',
+  'comments.errEmpty':       'لا يمكن أن يكون التعليق فارغاً',
+  'comments.errTooLong':     'الحد الأقصى للتعليق 500 حرف',
+  'comments.errLink':        'الروابط غير مسموحة في التعليقات',
 
   'toast.linkCopied':     'تم نسخ الرابط!',
 

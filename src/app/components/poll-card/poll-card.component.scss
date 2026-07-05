@@ -126,7 +126,7 @@
 .board-hint {
   font-size:   0.68rem;
   font-weight: 600;
-  color:       var(--rz-ink-muted);
+  color:       var(--rz-ink-muted); // inside the glass board → theme-aware is correct here
   text-align:  center;
   padding-top: 0.9rem;
 }

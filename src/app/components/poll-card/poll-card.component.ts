@@ -1,6 +1,7 @@
 import { Component, computed, inject, input, output } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { OrganizationChartModule } from 'primeng/organizationchart';
+import { SocialActionsComponent } from '../../shared/social/social-actions.component';
 import { TreeNode } from 'primeng/api';
 import { Character, Poll } from '../../anime-data';
 import { VoteStore } from '../../vote.store';
@@ -10,7 +11,7 @@ import { I18nService } from '../../i18n/i18n.service';
 @Component({
   selector: 'app-poll-card',
   standalone: true,
-  imports: [CommonModule, OrganizationChartModule],
+  imports: [CommonModule, OrganizationChartModule, SocialActionsComponent],
   templateUrl: './poll-card.component.html',
   styleUrl: './poll-card.component.scss'
 })

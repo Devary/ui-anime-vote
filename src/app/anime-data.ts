@@ -15,6 +15,11 @@ export interface Poll {
   fighter2: Character;
   visibility?: string; // PUBLIC | PRIVATE | AUTHENTICATED | RESTRICTED
   ownerUsername?: string | null;
+  ownerId?: string | null;
+  commentsEnabled?: boolean;
+  commentCount?: number;
+  likes?: number;
+  likedByMe?: boolean;
 }
 
 export interface MultiPollGroup {
@@ -37,6 +42,11 @@ export interface MultiPoll {
   groups: MultiPollGroup[];
   visibility?: string; // PUBLIC | PRIVATE | AUTHENTICATED | RESTRICTED
   ownerUsername?: string | null;
+  ownerId?: string | null;
+  commentsEnabled?: boolean;
+  commentCount?: number;
+  likes?: number;
+  likedByMe?: boolean;
 }
 
 export type AnyPoll = Poll | MultiPoll;

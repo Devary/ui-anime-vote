@@ -7,7 +7,8 @@ import {
   PollCreateDto, PollDto, MultiPollCreateDto, MultiPollAdminDto, CharacterDto,
   AnimeDto, AnimeCreateDto, CharacterCreateDto, UploadResponse, ServerTimeDto,
   UserDto, UserUpdateDto, AdminUserUpdateDto, RoleDto, RoleCreateDto,
-  ApprovalSummaryDto, DailyLimitDto, UserDirectoryEntryDto, AuditEventDto
+  ApprovalSummaryDto, DailyLimitDto, UserDirectoryEntryDto, AuditEventDto,
+  CommentDto, LikeStateDto, PollKind
 } from './api.types';
 import { environment } from '../../environments/environment';
 
@@ -359,5 +360,23 @@ export class AnimeApiService {
 
   restoreAuditEvent(eventId: number): Observable<AuditEventDto> {
     return this.http.post<AuditEventDto>(`${API}/admin/audit/${eventId}/restore`, {});
+  }
+
+  // ── Comments & likes ──────────────────────────────────────────────────────
+
+  getComments(kind: PollKind, pollId: string): Observable<CommentDto[]> {
+    return this.http.get<CommentDto[]>(`${API}/${kind}/${pollId}/comments`);
+  }
+
+  addComment(kind: PollKind, pollId: string, text: string): Observable<CommentDto> {
+    return this.http.post<CommentDto>(`${API}/${kind}/${pollId}/comments`, { text });
+  }
+
+  setCommentsEnabled(kind: PollKind, pollId: string, enabled: boolean): Observable<{ enabled: boolean }> {
+    return this.http.put<{ enabled: boolean }>(`${API}/${kind}/${pollId}/comments-enabled`, { enabled });
+  }
+
+  toggleLike(kind: PollKind, pollId: string): Observable<LikeStateDto> {
+    return this.http.post<LikeStateDto>(`${API}/${kind}/${pollId}/like`, {});
   }
 }
