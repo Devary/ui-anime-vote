@@ -55,9 +55,9 @@ export class PollExportService {
   private readonly api = inject(AnimeApiService);
 
   /**
-   * Simple poll → exact multi-poll knockout style: each fighter becomes a side
-   * match-box feeding the gold Winner center (leader from live results shown
-   * as the advanced slot; shields while undecided).
+   * Simple poll → multi-poll knockout style. Up to 4 fighters sit on one
+   * horizontal line around the gold Winner center; more than 4 fall back to
+   * the mirrored stacked layout.
    */
   async downloadPoll(poll: PollDto): Promise<void> {
     // leader from live results (null on tie / no votes → gold shield instead)
@@ -67,6 +67,12 @@ export class PollExportService {
       const sorted = [...res.fighterResults].sort((a, b) => b.votes - a.votes);
       if (sorted.length > 1 && sorted[0].votes > sorted[1].votes) leaderId = sorted[0].charId;
     } catch { /* results unavailable → render without champion */ }
+
+    if (poll.fighters.length <= 4) {
+      const svg = await this.buildHorizontalPoll(poll, leaderId);
+      await this.downloadJpeg(svg.svg, svg.w, svg.h, poll.id);
+      return;
+    }
 
     const pseudo: MultiPollAdminDto = {
       id: poll.id,
@@ -162,6 +168,55 @@ export class PollExportService {
     });
 
     return { svg: this.wrapSvg(w, h, defs, [...lines, ...elems], slots), w, h };
+  }
+
+  // ══════════════════════════════════════════════════════════════════════════
+  // HORIZONTAL VERSUS (simple poll, ≤4 fighters on one line around the center)
+  // ══════════════════════════════════════════════════════════════════════════
+
+  private async buildHorizontalPoll(
+    poll: PollDto, leaderId: string | null,
+  ): Promise<{ svg: string; w: number; h: number }> {
+    const fighterSlots: Slot[] = poll.fighters.map(f => ({
+      name: f.name, imageUrl: f.imageUrl, isWinner: f.id === leaderId,
+    }));
+    const leader = leaderId ? poll.fighters.find(f => f.id === leaderId) ?? null : null;
+    const center: Slot = leader ? { name: leader.name, imageUrl: leader.imageUrl, isWinner: true } : {};
+    await this.resolveImages([...fighterSlots, center]);
+
+    const boxH  = MATCH_P * 2 + SLOT_H;
+    const n     = fighterSlots.length;
+    const left  = Math.ceil(n / 2);
+    const w     = PAD * 2 + (n + 1) * MATCH_W + n * H_GAP;
+    const topY  = TITLE_H + 42; // room for the Winner label above the row
+    const cy    = topY + boxH / 2;
+    const h     = topY + boxH + PAD;
+
+    const defs:  string[] = [];
+    const lines: string[] = [];
+    const elems: string[] = [];
+
+    elems.push(this.txt(poll.question, w / 2, 34, '#fff', 15, 800, w - PAD));
+    if (poll.anime) elems.push(this.txt(poll.anime.toUpperCase(), w / 2, 54, '#60a5fa', 10, 700, w - PAD));
+
+    // one row: [left fighters] [gold Winner] [right fighters], joined by a horizontal rail
+    const xAt = (i: number) => PAD + i * (MATCH_W + H_GAP);
+    const node = (slots: Slot[], x: number): KNode =>
+      ({ slots, children: [], depth: 0, boxH, h: boxH, x, cy });
+
+    for (let i = 0; i < n + 1; i++) {
+      if (i > 0) lines.push(`<path d="M${xAt(i) - H_GAP},${cy} H${xAt(i)}" stroke="${LINE}" stroke-width="2" fill="none"/>`);
+      if (i === left) {
+        const root = node([center], xAt(i));
+        this.drawMatch(elems, defs, root, true);
+        elems.push(this.txt('Winner', xAt(i) + MATCH_W / 2, cy - boxH / 2 - 12, GOLD, 12, 800, MATCH_W));
+      } else {
+        const fi = i < left ? i : i - 1;
+        this.drawMatch(elems, defs, node([fighterSlots[fi]], xAt(i)), false);
+      }
+    }
+
+    return { svg: this.wrapSvg(w, h, defs, [...lines, ...elems], fighterSlots), w, h };
   }
 
   // ══════════════════════════════════════════════════════════════════════════
