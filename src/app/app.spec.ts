@@ -63,6 +63,47 @@ describe('App', () => {
     }
   });
 
+  it('wheel gestures navigate the vertical feed with a cooldown', async () => {
+    const fixture = TestBed.createComponent(App);
+    fixture.detectChanges();
+    await fixture.whenStable();
+    const app = fixture.componentInstance;
+    expect(app.currentPoll()?.id).toBe('p1');
+
+    app.onWheel(new WheelEvent('wheel', { deltaY: 300 }));
+    expect(app.currentPoll()?.id).toBe('m1');
+    expect(app.slideDir()).toBe('next');
+
+    // a second gesture inside the 500ms cooldown is ignored (inertial scrolling)
+    app.onWheel(new WheelEvent('wheel', { deltaY: 300 }));
+    expect(app.currentPoll()?.id).toBe('m1');
+
+    // after the cooldown, wheel up goes back
+    (app as any).lastNavAt = 0;
+    app.onWheel(new WheelEvent('wheel', { deltaY: -300 }));
+    expect(app.currentPoll()?.id).toBe('p1');
+    expect(app.slideDir()).toBe('prev');
+  });
+
+  it('arrow keys navigate unless a form field or overlay is active', async () => {
+    const fixture = TestBed.createComponent(App);
+    fixture.detectChanges();
+    await fixture.whenStable();
+    const app = fixture.componentInstance;
+
+    app.onKeydown(new KeyboardEvent('keydown', { key: 'ArrowDown' }));
+    expect(app.currentPoll()?.id).toBe('m1');
+
+    // typing in an input must never navigate
+    const input = document.createElement('input');
+    document.body.appendChild(input);
+    const evt = new KeyboardEvent('keydown', { key: 'ArrowDown' });
+    Object.defineProperty(evt, 'target', { value: input });
+    app.onKeydown(evt);
+    expect(app.currentPoll()?.id).toBe('m1');
+    input.remove();
+  });
+
   it('next() skips polls the user already voted in', async () => {
     const fixture = TestBed.createComponent(App);
     fixture.detectChanges();

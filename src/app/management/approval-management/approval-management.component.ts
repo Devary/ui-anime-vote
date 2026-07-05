@@ -4,12 +4,14 @@ import { AnimeApiService } from '../../services/anime-api.service';
 import { ToastService } from '../../services/toast.service';
 import { DataRefreshService } from '../../services/data-refresh.service';
 import { ApprovalItemDto, ApprovalSummaryDto } from '../../services/api.types';
+import { FormsModule } from '@angular/forms';
+import { CrudModalComponent } from '../../shared/crud-modal/crud-modal.component';
 import { ConfirmModalComponent } from '../../shared/confirm-modal/confirm-modal.component';
 
 @Component({
   selector: 'app-approval-management',
   standalone: true,
-  imports: [CommonModule, ConfirmModalComponent],
+  imports: [CommonModule, FormsModule, ConfirmModalComponent, CrudModalComponent],
   template: `
     <div class="approvals">
       <div class="section-header">
@@ -39,6 +41,7 @@ import { ConfirmModalComponent } from '../../shared/confirm-modal/confirm-modal.
               </div>
             </div>
             <div class="item-actions">
+              <button class="btn-edit" (click)="startEdit(item)">✎ Edit</button>
               <button class="btn-approve" (click)="approve(item)">✓ Approve</button>
               <button class="btn-reject" (click)="reject(item)">✗ Reject</button>
             </div>
@@ -73,6 +76,40 @@ import { ConfirmModalComponent } from '../../shared/confirm-modal/confirm-modal.
         }
       </div>
     </div>
+
+      <!-- Edit-before-approve modal -->
+      @if (editItem(); as item) {
+        <app-crud-modal [title]="'Edit ' + typeLabel(item.type)" (closeRequest)="onEditCloseRequest()">
+          <div class="edit-grid">
+            @if (item.type === 'ANIME') {
+              <label class="field"><span>Name *</span>
+                <input class="input" [(ngModel)]="editForm.name" (ngModelChange)="editDirty = true" /></label>
+              <label class="field"><span>Image URL</span>
+                <input class="input" [(ngModel)]="editForm.imageUrl" (ngModelChange)="editDirty = true" /></label>
+            } @else if (item.type === 'CHARACTER') {
+              <label class="field"><span>Name *</span>
+                <input class="input" [(ngModel)]="editForm.name" (ngModelChange)="editDirty = true" /></label>
+              <label class="field"><span>Title</span>
+                <input class="input" [(ngModel)]="editForm.title" (ngModelChange)="editDirty = true" /></label>
+              <label class="field"><span>Anime</span>
+                <input class="input" [(ngModel)]="editForm.anime" (ngModelChange)="editDirty = true" /></label>
+              <label class="field"><span>Image URL</span>
+                <input class="input" [(ngModel)]="editForm.imageUrl" (ngModelChange)="editDirty = true" /></label>
+            } @else {
+              <label class="field"><span>Question *</span>
+                <input class="input" [(ngModel)]="editForm.question" (ngModelChange)="editDirty = true" /></label>
+              <label class="field"><span>Anime</span>
+                <input class="input" [(ngModel)]="editForm.anime" (ngModelChange)="editDirty = true" /></label>
+            }
+            @if (editError()) { <div class="error-msg">{{ editError() }}</div> }
+            <div class="edit-actions">
+              <button class="btn-ghost-sm" type="button" (click)="onEditCloseRequest()">Cancel</button>
+              <button class="btn-edit" type="button" [disabled]="savingEdit()" (click)="saveEdit(false)">Save</button>
+              <button class="btn-approve" type="button" [disabled]="savingEdit()" (click)="saveEdit(true)">Save &amp; Approve</button>
+            </div>
+          </div>
+        </app-crud-modal>
+      }
 
     @if (showConfirm()) {
       <app-confirm-modal
@@ -111,6 +148,16 @@ import { ConfirmModalComponent } from '../../shared/confirm-modal/confirm-modal.
                     background: rgba(34,197,94,0.15); color: #16a34a; font-size: 0.78rem; font-weight: 600;
                     cursor: pointer; }
     .btn-approve:hover { background: rgba(34,197,94,0.28); }
+    .btn-edit { padding: 0.3rem 0.75rem; border-radius: var(--rz-radius-sm); border: none;
+                background: rgba(59,130,246,0.16); color: #3b82f6; font-weight: 700; cursor: pointer; }
+    .btn-edit:hover { background: rgba(59,130,246,0.28); }
+    .edit-grid { display: flex; flex-direction: column; gap: 0.7rem; }
+    .field { display: flex; flex-direction: column; gap: 0.3rem; }
+    .field > span { font-size: 0.72rem; font-weight: 700; color: var(--rz-ink-muted); }
+    .input { background: var(--rz-surface); color: var(--rz-ink); border: 1px solid var(--rz-border);
+             border-radius: var(--rz-radius-sm); padding: 0.45rem 0.6rem; font: inherit; font-size: 0.85rem; }
+    .error-msg { color: var(--rz-danger); font-size: 0.78rem; }
+    .edit-actions { display: flex; justify-content: flex-end; gap: 0.5rem; margin-top: 0.3rem; }
     .btn-reject { padding: 0.3rem 0.75rem; border-radius: var(--rz-radius-sm); border: none;
                    background: rgba(239,68,68,0.12); color: #dc2626; font-size: 0.78rem; font-weight: 600;
                    cursor: pointer; }
@@ -204,6 +251,107 @@ export class ApprovalManagementComponent implements OnInit {
   private doRejectDeletion(item: ApprovalItemDto): void {
     const req$ = item.type === 'POLL' ? this.api.rejectPollDeletion(item.id) : this.api.rejectMultiPollDeletion(item.id);
     req$.subscribe({ next: () => { this.toast.success('Deletion request cancelled'); this.load(); }, error: e => this.toast.error(this.msg(e)) });
+  }
+
+  // ── Edit before approving ─────────────────────────────────────────────────
+
+  readonly editItem   = signal<ApprovalItemDto | null>(null);
+  readonly savingEdit = signal(false);
+  readonly editError  = signal<string | null>(null);
+  editDirty = false;
+  editForm = { name: '', title: '', anime: '', imageUrl: '', question: '' };
+
+  startEdit(item: ApprovalItemDto): void {
+    this.editError.set(null);
+    this.editDirty = false;
+    switch (item.type) {
+      case 'ANIME':
+        this.api.adminGetAnime(item.id).subscribe({
+          next: a => { this.editForm = { name: a.name, title: '', anime: '', imageUrl: a.imageUrl ?? '', question: '' }; this.editItem.set(item); },
+          error: e => this.toast.error(this.msg(e)),
+        });
+        break;
+      case 'CHARACTER':
+        this.api.adminGetAllCharacters().subscribe({
+          next: list => {
+            const c = list.find(x => x.id === item.id);
+            if (!c) { this.toast.error('Character not found'); return; }
+            this.editForm = { name: c.name, title: c.title ?? '', anime: c.anime ?? '', imageUrl: c.imageUrl ?? '', question: '' };
+            this.editItem.set(item);
+          },
+          error: e => this.toast.error(this.msg(e)),
+        });
+        break;
+      case 'POLL':
+        this.api.adminGetPolls().subscribe({
+          next: list => {
+            const poll = list.find(x => x.id === item.id);
+            if (!poll) { this.toast.error('Poll not found'); return; }
+            this.editForm = { name: '', title: '', anime: poll.anime ?? '', imageUrl: '', question: poll.question };
+            this.editItem.set(item);
+          },
+          error: e => this.toast.error(this.msg(e)),
+        });
+        break;
+      case 'MULTI_POLL':
+        this.api.adminGetMultiPolls().subscribe({
+          next: list => {
+            const mp = list.find(x => x.id === item.id);
+            if (!mp) { this.toast.error('Multi-poll not found'); return; }
+            this.editForm = { name: '', title: '', anime: mp.anime ?? '', imageUrl: '', question: mp.question };
+            this.editItem.set(item);
+          },
+          error: e => this.toast.error(this.msg(e)),
+        });
+        break;
+    }
+  }
+
+  onEditCloseRequest(): void {
+    if (this.editDirty) {
+      this.askConfirm('Discard changes?', 'You have unsaved changes. Discard them?',
+        () => this.editItem.set(null), false);
+    } else { this.editItem.set(null); }
+  }
+
+  saveEdit(approveAfter: boolean): void {
+    const item = this.editItem();
+    if (!item) return;
+    if ((item.type === 'ANIME' || item.type === 'CHARACTER') && !this.editForm.name.trim()) {
+      this.editError.set('Name is required'); return;
+    }
+    if ((item.type === 'POLL' || item.type === 'MULTI_POLL') && !this.editForm.question.trim()) {
+      this.editError.set('Question is required'); return;
+    }
+    this.askConfirm(
+      approveAfter ? 'Save and approve?' : 'Save changes?',
+      approveAfter
+        ? `Save the changes and publish "${item.title}"?`
+        : 'Save the changes to this entry? It stays pending.',
+      () => this.doSaveEdit(item, approveAfter), false);
+  }
+
+  private doSaveEdit(item: ApprovalItemDto, approveAfter: boolean): void {
+    this.savingEdit.set(true);
+    this.editError.set(null);
+    const f = this.editForm;
+    // widen to Observable<unknown> — the union of DTO observables has incompatible subscribe overloads
+    const req$: import('rxjs').Observable<unknown> =
+        item.type === 'ANIME'      ? this.api.adminUpdateAnime(item.id, { name: f.name, imageUrl: f.imageUrl || null })
+      : item.type === 'CHARACTER'  ? this.api.adminUpdateCharacter(item.id, { name: f.name, title: f.title, anime: f.anime, imageUrl: f.imageUrl || null })
+      : item.type === 'POLL'       ? this.api.adminUpdatePoll(item.id, { question: f.question, anime: f.anime, fighterIds: [] })
+      :                              this.api.adminUpdateMultiPoll(item.id, { question: f.question, anime: f.anime, groups: [] });
+
+    req$.subscribe({
+      next: () => {
+        this.savingEdit.set(false);
+        this.editItem.set(null);
+        this.editDirty = false;
+        this.toast.success('Changes saved');
+        if (approveAfter) { this.doApprove(item); } else { this.load(); }
+      },
+      error: e => { this.savingEdit.set(false); this.editError.set(this.msg(e)); },
+    });
   }
 
   private msg(e: any): string { return e?.error?.message ?? e?.message ?? 'Request failed'; }

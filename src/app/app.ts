@@ -64,6 +64,15 @@ export class App implements OnInit {
   readonly progressPct    = signal(0);
   readonly showHistory    = signal(false);
 
+  /** slide animation direction for the TikTok-style vertical feed */
+  readonly slideDir = signal<'next' | 'prev'>('next');
+  readonly currentPollArr = computed<AnyPoll[]>(() => {
+    const p = this.currentPoll();
+    return p ? [p] : [];
+  });
+  private lastNavAt = 0;
+  private touchStartY: number | null = null;
+
   readonly votedCount = computed(() => Object.keys(this.voteStore.myVotes()).length);
 
   readonly currentAsSingle = computed(() => {
@@ -155,6 +164,46 @@ export class App implements OnInit {
       this.advancing = false;
       this.next();
     }, 600);
+  }
+
+  goNext(): void { this.slideDir.set('next'); this.next(); }
+  goPrev(): void { this.slideDir.set('prev'); this.prev(); }
+
+  /** One wheel gesture = one poll, TikTok style (with a cooldown against inertial scrolling). */
+  onWheel(event: WheelEvent): void {
+    if (this.isInsideScrollable(event.target)) return;
+    if (Math.abs(event.deltaY) < 20) return;
+    const now = Date.now();
+    if (now - this.lastNavAt < 500) return;
+    this.lastNavAt = now;
+    event.deltaY > 0 ? this.goNext() : this.goPrev();
+  }
+
+  onTouchStart(event: TouchEvent): void {
+    this.touchStartY = event.touches[0]?.clientY ?? null;
+  }
+
+  onTouchEnd(event: TouchEvent): void {
+    if (this.touchStartY === null || this.isInsideScrollable(event.target)) { this.touchStartY = null; return; }
+    const endY = event.changedTouches[0]?.clientY ?? this.touchStartY;
+    const delta = this.touchStartY - endY;
+    this.touchStartY = null;
+    if (Math.abs(delta) < 60) return;
+    delta > 0 ? this.goNext() : this.goPrev(); // swipe up → next poll
+  }
+
+  onKeydown(event: KeyboardEvent): void {
+    const target = event.target as HTMLElement | null;
+    if (target && ['INPUT', 'TEXTAREA', 'SELECT'].includes(target.tagName)) return;
+    if (this.showHistory() || this.showAuth() || this.showManagement()) return;
+    if (event.key === 'ArrowDown') { event.preventDefault(); this.goNext(); }
+    if (event.key === 'ArrowUp')   { event.preventDefault(); this.goPrev(); }
+  }
+
+  /** Interactive sub-areas (vote sheet, bracket board, drawers) keep their own scrolling. */
+  private isInsideScrollable(target: EventTarget | null): boolean {
+    return target instanceof Element
+      && !!target.closest('.vote-sheet, .bracket-board, .simple-board, app-vote-history, app-management, app-auth-modal');
   }
 
   next(): void {

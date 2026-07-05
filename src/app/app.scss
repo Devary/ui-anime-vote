@@ -107,42 +107,58 @@
   overflow:  hidden;
 }
 
-// ── Invisible side nav buttons ────────────────────────────────────────────────
+// ── Vertical feed nav (TikTok style: scroll / swipe up-down, plus chevrons) ──
 .side-nav {
-  position:    absolute;
-  top:         0;
-  bottom:      40px; // leave space for counter
-  width:       15%;
-  max-width:   90px;
-  z-index:     20;
-  border:      none;
-  background:  transparent;
-  color:       transparent;
-  font-size:   2rem;
-  font-weight: 700;
-  cursor:      pointer;
-  display:     flex;
-  align-items: center;
+  position:      absolute;
+  right:         0.9rem;
+  width:         2.6rem;
+  height:        2.6rem;
+  z-index:       20;
+  border:        1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 50%;
+  background:    rgba(255, 255, 255, 0.06);
+  color:         rgba(255, 255, 255, 0.55);
+  font-size:     1.15rem;
+  font-weight:   700;
+  cursor:        pointer;
+  display:       flex;
+  align-items:   center;
   justify-content: center;
-  transition:  color 0.25s, background 0.25s;
-  user-select: none;
+  transition:    color 0.2s, background 0.2s, transform 0.2s;
+  user-select:   none;
   -webkit-tap-highlight-color: transparent;
 
-  &.side-prev { left:  0; }
-  &.side-next { right: 0; }
+  &.side-prev { top:    calc(50% - 3.4rem); }
+  &.side-next { bottom: calc(50% - 3.4rem); }
 
   &:hover {
-    color:      rgba(255, 255, 255, 0.35);
-    background: linear-gradient(
-      to var(--_dir, right),
-      rgba(255,255,255,0.06),
-      transparent
-    );
+    color:      #fff;
+    background: rgba(255, 255, 255, 0.16);
+    transform:  scale(1.08);
   }
-  &.side-prev:hover { --_dir: right; }
-  &.side-next:hover { --_dir: left; }
 
-  &:active { color: rgba(255,255,255,0.65); }
+  &:active { transform: scale(0.95); }
+}
+
+// ── Card slide-in (one poll per screen, entering from the scroll direction) ──
+.card-slide {
+  flex:           1;
+  min-height:     0;
+  display:        flex;
+  flex-direction: column;
+
+  &.slide-from-bottom { animation: card-from-bottom 0.35s ease; }
+  &.slide-from-top    { animation: card-from-top    0.35s ease; }
+}
+
+@keyframes card-from-bottom {
+  from { transform: translateY(6%); opacity: 0; }
+  to   { transform: translateY(0);  opacity: 1; }
+}
+
+@keyframes card-from-top {
+  from { transform: translateY(-6%); opacity: 0; }
+  to   { transform: translateY(0);   opacity: 1; }
 }
 
 // ── History button ────────────────────────────────────────────────────────────

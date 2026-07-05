@@ -24,17 +24,29 @@
     </header>
   }
 
-  <main class="poll-stage">
+  <main class="poll-stage"
+        (wheel)="onWheel($event)"
+        (touchstart)="onTouchStart($event)"
+        (touchend)="onTouchEnd($event)"
+        (window:keydown)="onKeydown($event)">
 
-    <button class="side-nav side-prev" (click)="prev()" [attr.aria-label]="i18n.t('app.prevPoll')">&#8592;</button>
-    <button class="side-nav side-next" (click)="next()" [attr.aria-label]="i18n.t('app.nextPoll')">&#8594;</button>
+    <button class="side-nav side-prev" (click)="goPrev()" [attr.aria-label]="i18n.t('app.prevPoll')">&#8593;</button>
+    <button class="side-nav side-next" (click)="goNext()" [attr.aria-label]="i18n.t('app.nextPoll')">&#8595;</button>
 
     @if (loading()) {
       <div class="loading-state">{{ i18n.t('app.loading') }}</div>
-    } @else if (currentAsSingle(); as poll) {
-      <app-poll-card [poll]="poll" (castVote)="onVote($event)" />
-    } @else if (currentAsMulti(); as poll) {
-      <app-multi-poll-card [poll]="poll" />
+    } @else {
+      @for (poll of currentPollArr(); track poll.id) {
+        <div class="card-slide"
+             [class.slide-from-bottom]="slideDir() === 'next'"
+             [class.slide-from-top]="slideDir() === 'prev'">
+          @if (poll.type === 'single') {
+            <app-poll-card [poll]="currentAsSingle()!" (castVote)="onVote($event)" />
+          } @else {
+            <app-multi-poll-card [poll]="currentAsMulti()!" />
+          }
+        </div>
+      }
     }
 
     <button class="history-btn" (click)="openHistory()" aria-label="Vote history">
