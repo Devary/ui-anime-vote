@@ -40,6 +40,7 @@ export interface MultiPoll {
   anime: string;
   question: string;
   groups: MultiPollGroup[];
+  votingByGroup?: boolean; // vote for a whole group instead of one character per group
   visibility?: string; // PUBLIC | PRIVATE | AUTHENTICATED | RESTRICTED
   ownerUsername?: string | null;
   ownerId?: string | null;

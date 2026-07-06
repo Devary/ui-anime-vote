@@ -20,6 +20,7 @@ const en: Dict = {
   'badge.voted':          'Voted',
   'badge.multi':          'MULTI',
   'badge.knockout':       'KNOCKOUT',
+  'badge.groupVote':      'GROUP VOTE',
   'badge.ended':          'Ended',
   'badge.upcoming':       'Coming soon',
 
@@ -32,6 +33,7 @@ const en: Dict = {
   'poll.tapFighter':      'Tap a fighter to cast your vote',
   'poll.tapCandidate':    'Tap a candidate to cast your vote',
   'poll.tapMatch':        'Tap a match to vote or see results',
+  'poll.tapGroup':        'Tap a group to cast your vote',
   'poll.tapToVote':       'Tap to vote',
   'poll.tapToSwitch':     'Tap to switch',
   'poll.votedNote':       "You voted in this match — tap another candidate to switch while it's open",
@@ -91,6 +93,7 @@ const fr: Dict = {
   'badge.voted':          'Voté',
   'badge.multi':          'MULTI',
   'badge.knockout':       'ÉLIMINATOIRE',
+  'badge.groupVote':      'VOTE PAR GROUPE',
   'badge.ended':          'Terminé',
   'badge.upcoming':       'Bientôt',
 
@@ -103,6 +106,7 @@ const fr: Dict = {
   'poll.tapFighter':      'Touchez un combattant pour voter',
   'poll.tapCandidate':    'Touchez un candidat pour voter',
   'poll.tapMatch':        'Touchez un match pour voter ou voir les résultats',
+  'poll.tapGroup':        'Touchez un groupe pour voter',
   'poll.tapToVote':       'Touchez pour voter',
   'poll.tapToSwitch':     'Touchez pour changer',
   'poll.votedNote':       'Vous avez voté dans ce match — touchez un autre candidat pour changer tant qu\'il est ouvert',
@@ -162,6 +166,7 @@ const ar: Dict = {
   'badge.voted':          'تم التصويت',
   'badge.multi':          'متعدد',
   'badge.knockout':       'إقصائي',
+  'badge.groupVote':      'تصويت بالمجموعة',
   'badge.ended':          'انتهى',
   'badge.upcoming':       'قريباً',
 
@@ -174,6 +179,7 @@ const ar: Dict = {
   'poll.tapFighter':      'اضغط على مقاتل للتصويت',
   'poll.tapCandidate':    'اضغط على مرشح للتصويت',
   'poll.tapMatch':        'اضغط على مباراة للتصويت أو رؤية النتائج',
+  'poll.tapGroup':        'اضغط على مجموعة للتصويت',
   'poll.tapToVote':       'اضغط للتصويت',
   'poll.tapToSwitch':     'اضغط للتغيير',
   'poll.votedNote':       'لقد صوّتَ في هذه المباراة — اضغط على مرشح آخر للتغيير ما دامت مفتوحة',

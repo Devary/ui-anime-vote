@@ -1,6 +1,6 @@
 import { Component, OnInit, ViewChild, inject, signal, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { ReactiveFormsModule, FormBuilder, FormGroup, FormArray, FormControl, Validators, AbstractControl, ValidationErrors, ValidatorFn } from '@angular/forms';
+import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup, FormArray, FormControl, Validators, AbstractControl, ValidationErrors, ValidatorFn } from '@angular/forms';
 import { Table, TableModule } from 'primeng/table';
 import { InputTextModule } from 'primeng/inputtext';
 import { IconFieldModule } from 'primeng/iconfield';
@@ -21,7 +21,7 @@ import { ConfirmModalComponent } from '../../shared/confirm-modal/confirm-modal.
 @Component({
   selector: 'app-multi-poll-management',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, TableModule, InputTextModule, IconFieldModule, InputIconModule, SelectModule, PollGroupFormComponent, CrudModalComponent, ConfirmModalComponent, VisibilityFieldComponent],
+  imports: [CommonModule, FormsModule, ReactiveFormsModule, TableModule, InputTextModule, IconFieldModule, InputIconModule, SelectModule, PollGroupFormComponent, CrudModalComponent, ConfirmModalComponent, VisibilityFieldComponent],
   template: `
     <div class="section">
 
@@ -144,6 +144,10 @@ import { ConfirmModalComponent } from '../../shared/confirm-modal/confirm-modal.
                 <app-visibility-field
                   [(visibility)]="visForm.visibility"
                   [(allowedUserIds)]="visForm.allowedUserIds" />
+                <label class="field vbg-toggle">
+                  <input type="checkbox" [(ngModel)]="votingByGroup" name="vbg" />
+                  <span>Vote by group <small>(immutable after creation)</small></span>
+                </label>
               }
             </div>
 
@@ -559,10 +563,12 @@ export class MultiPollManagementComponent implements OnInit {
   // ── UI actions ─────────────────────────────────────────────────────────────
 
   visForm: { visibility: Visibility; allowedUserIds: string[] } = { visibility: 'PUBLIC', allowedUserIds: [] };
+  votingByGroup = false;
 
   openNew(): void {
     this.editing.set(null);
     this.visForm = { visibility: 'PUBLIC', allowedUserIds: [] };
+    this.votingByGroup = false;
     this.api.getServerTime().subscribe({ next: t => { this.serverNow = new Date(t.now); } });
     this.initForm(false);
     this.groupLevels = [0, 0];
@@ -695,6 +701,7 @@ export class MultiPollManagementComponent implements OnInit {
       question: this.form.get('question')?.value ?? '',
       visibility: this.visForm.visibility,
       allowedUserIds: this.visForm.allowedUserIds,
+      votingByGroup: this.votingByGroup,
       groups
     };
 

@@ -238,6 +238,10 @@ type SubTab = 'characters' | 'polls' | 'multi-polls';
                   [(visibility)]="mpForm.visibility"
                   [(allowedUserIds)]="mpForm.allowedUserIds"
                   (changed)="mpDirty = true" />
+                <label class="field private-toggle">
+                  <input type="checkbox" [(ngModel)]="mpForm.votingByGroup" name="vbg" (ngModelChange)="mpDirty = true" />
+                  <span>Vote by group <small>(voters pick a whole group — cannot be changed later)</small></span>
+                </label>
               }
             </div>
             <div class="groups-header">
@@ -497,7 +501,7 @@ export class MyContentManagementComponent implements OnInit {
   readonly savingMp    = signal(false);
   readonly mpError     = signal<string | null>(null);
   mpDirty = false;
-  mpForm: { question: string; anime: string; visibility: Visibility; allowedUserIds: string[] } = { question: '', anime: '', visibility: 'PUBLIC', allowedUserIds: [] };
+  mpForm: { question: string; anime: string; visibility: Visibility; allowedUserIds: string[]; votingByGroup: boolean } = { question: '', anime: '', visibility: 'PUBLIC', allowedUserIds: [], votingByGroup: false };
   mpForm_groups!: FormGroup;
 
   get mpGroupsArray(): FormArray { return this.mpForm_groups.get('groups') as FormArray; }
@@ -512,13 +516,13 @@ export class MyContentManagementComponent implements OnInit {
 
   openNewMp(): void {
     this.editingMp.set(null); this.mpDirty = false; this.mpError.set(null);
-    this.mpForm = { question: '', anime: '', visibility: 'PUBLIC', allowedUserIds: [] };
+    this.mpForm = { question: '', anime: '', visibility: 'PUBLIC', allowedUserIds: [], votingByGroup: false };
     this.initMpForm();
     this.showMpForm.set(true);
   }
   editMp(mp: MultiPollAdminDto): void {
     this.editingMp.set(mp); this.mpDirty = false; this.mpError.set(null);
-    this.mpForm = { question: mp.question, anime: mp.anime ?? '', visibility: mp.visibility ?? (mp.isPrivate ? 'PRIVATE' : 'PUBLIC'), allowedUserIds: [...(mp.allowedUserIds ?? [])] };
+    this.mpForm = { question: mp.question, anime: mp.anime ?? '', visibility: mp.visibility ?? (mp.isPrivate ? 'PRIVATE' : 'PUBLIC'), allowedUserIds: [...(mp.allowedUserIds ?? [])], votingByGroup: mp.votingByGroup ?? false };
     this.initMpForm();
     const ga = this.mpGroupsArray;
     ga.clear();
@@ -560,7 +564,7 @@ export class MyContentManagementComponent implements OnInit {
       const cArr = g.get('candidates') as FormArray;
       return { label: g.get('label')?.value ?? '', characterIds: cArr.controls.map(c => c.value as string).filter(Boolean), startNow: g.get('startNow')?.value ?? false, startDate: g.get('startDate')?.value || null, endDate: g.get('endDate')?.value || null, level: 0 };
     });
-    const req: MultiPollCreateDto = { anime: this.mpForm.anime, question: this.mpForm.question, visibility: this.mpForm.visibility, allowedUserIds: this.mpForm.allowedUserIds, groups };
+    const req: MultiPollCreateDto = { anime: this.mpForm.anime, question: this.mpForm.question, visibility: this.mpForm.visibility, allowedUserIds: this.mpForm.allowedUserIds, votingByGroup: this.mpForm.votingByGroup, groups };
     const id = this.editingMp()?.id;
     const req$ = id ? this.api.updateMyMultiPoll(id, req) : this.api.createMyMultiPoll(req);
     req$.subscribe({

@@ -71,11 +71,14 @@ export interface MultiPollResultDto {
     anime: string;
     question: string;
     groups: MultiPollGroupDto[];
+    votingByGroup?: boolean;
   };
   groups: GroupResultDto[];
   overallWinnerCharId: string | null;
-  /** groupId → charId the user voted for */
+  /** groupId → charId the user voted for (vote-by-character polls) */
   myVotesByGroup: { [groupId: string]: string };
+  /** the group the user voted for (vote-by-group polls) */
+  myVotedGroupId?: string | null;
 }
 
 export interface HistoryItemDto {
@@ -144,6 +147,7 @@ export interface MultiPollCreateDto {
   visibility?: Visibility;
   allowedUserIds?: string[]; // audience when visibility=RESTRICTED
   groups: GroupCreateDto[];
+  votingByGroup?: boolean; // immutable after creation
 }
 
 export interface GroupCreateDto {
@@ -176,6 +180,7 @@ export interface MultiPollAdminDto {
   commentCount?: number;
   likes?: number;
   likedByMe?: boolean;
+  votingByGroup?: boolean;
 }
 
 // ── Approval system ───────────────────────────────────────────────────────────

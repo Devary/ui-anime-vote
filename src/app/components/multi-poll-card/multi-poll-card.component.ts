@@ -92,6 +92,44 @@ export class MultiPollCardComponent implements OnInit, OnDestroy {
     return statuses;
   });
 
+  // ── Vote-by-group mode (the vote is a whole group) ─────────────────────────
+
+  readonly isGroupVote = computed(() => !!this.poll().votingByGroup);
+
+  myChoice(): string | null {
+    return this.voteStore.getMyGroupChoice(this.poll().id);
+  }
+
+  groupChoiceVotes(group: MultiPollGroup): number {
+    return this.voteStore.getGroupChoiceVotes(group.id);
+  }
+
+  totalChoiceVotes(): number {
+    return this.poll().groups.reduce((s, g) => s + this.groupChoiceVotes(g), 0);
+  }
+
+  pctOfGroup(group: MultiPollGroup): number {
+    const total = this.totalChoiceVotes();
+    return total > 0
+      ? (this.groupChoiceVotes(group) / total) * 100
+      : 100 / Math.max(this.poll().groups.length, 1);
+  }
+
+  showChoiceResults(): boolean {
+    return this.myChoice() !== null
+      || this.poll().groups.some(g => this.groupStatuses().get(g.id) === 'ended');
+  }
+
+  onClickGroupChoice(group: MultiPollGroup): void {
+    if (this.groupStatuses().get(group.id) !== 'open') return;
+    const current = this.myChoice();
+    if (!current) {
+      this.voteStore.voteForGroup(this.poll().id, group.id);
+    } else if (current !== group.id) {
+      this.voteStore.changeGroupChoice(this.poll().id, current, group.id);
+    }
+  }
+
   // ── Simple mode (single group → PrimeNG org chart, no symmetric tree) ─────
 
   readonly isSimple = computed(() => this.poll().groups.length === 1);

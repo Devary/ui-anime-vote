@@ -25,6 +25,7 @@ describe('Open content editing with moderation', () => {
     openManagementTab('Anime');
     createAnime(name);
     cy.contains('.toast', 'Submitted for moderation').should('be.visible');
+    cy.get('input[placeholder="Search anime…"]').type(name);
     cy.contains('tr', name).find('.pending-chip').should('contain.text', 'PENDING');
   });
 
@@ -63,6 +64,7 @@ describe('Open content editing with moderation', () => {
     cy.freshUserSession().then(s => cy.visitWithSession(s));
     openManagementTab('Anime');
     createAnime(name);
+    cy.get('input[placeholder="Search anime…"]').type(name);
     cy.contains('tr', name).should('exist');
     cy.get('button[title="Delete"]').should('not.exist');
   });

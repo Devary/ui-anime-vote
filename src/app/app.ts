@@ -144,6 +144,7 @@ export class App implements OnInit {
 
   private mapMultiPoll(dto: MultiPollAdminDto): MultiPoll {
     return { id: dto.id, type: 'multi', anime: dto.anime ?? '', question: dto.question,
+             votingByGroup: dto.votingByGroup ?? false,
              visibility: dto.visibility ?? 'PUBLIC',
              ownerUsername: dto.ownerUsername ?? null,
              ownerId: dto.ownerId ?? null,

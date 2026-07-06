@@ -376,6 +376,14 @@ export class AnimeApiService {
     return this.http.put<{ enabled: boolean }>(`${API}/${kind}/${pollId}/comments-enabled`, { enabled });
   }
 
+  castGroupVote(pollId: string, groupId: string): Observable<MultiPollResultDto> {
+    return this.http.post<MultiPollResultDto>(`${API}/multi-polls/${pollId}/vote`, { groupId });
+  }
+
+  changeGroupVote(pollId: string, newGroupId: string): Observable<MultiPollResultDto> {
+    return this.http.put<MultiPollResultDto>(`${API}/multi-polls/${pollId}/vote`, { newGroupId });
+  }
+
   toggleLike(kind: PollKind, pollId: string): Observable<LikeStateDto> {
     return this.http.post<LikeStateDto>(`${API}/${kind}/${pollId}/like`, {});
   }

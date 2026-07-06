@@ -11,11 +11,44 @@
   <div class="poll-meta">
     <span class="anime-tag">{{ poll().anime }}</span>
     <span class="owner-chip">{{ i18n.t('poll.by') }} : {{ poll().ownerUsername || 'admin' }}</span>
-    <span class="multi-badge">{{ i18n.t(rootNode().group ? 'badge.knockout' : 'badge.multi') }}</span>
+    <span class="multi-badge">{{ i18n.t(isGroupVote() ? 'badge.groupVote' : rootNode().group ? 'badge.knockout' : 'badge.multi') }}</span>
   </div>
   <h2 class="poll-question">{{ poll().question }}</h2>
 
-  @if (isSimple()) {
+  @if (isGroupVote()) {
+    <!-- vote-by-group: each group is one selectable choice -->
+    <div class="choice-board">
+      @for (group of poll().groups; track group.id; let gi = $index) {
+        <button class="choice-card"
+                [class.is-my-choice]="myChoice() === group.id"
+                [disabled]="groupStatuses().get(group.id) !== 'open' || myChoice() === group.id"
+                (click)="onClickGroupChoice(group)"
+                [title]="(myChoice() ? i18n.t('poll.switchTo') : i18n.t('poll.voteFor')) + ' ' + group.label">
+          @if (showChoiceResults()) {
+            <span class="choice-fill"
+                  [style.background]="COLORS[gi % COLORS.length]"
+                  [style.width.%]="pctOfGroup(group)"></span>
+          }
+          <span class="choice-head">
+            <span class="choice-label">{{ group.label }}</span>
+            @if (myChoice() === group.id) { <span class="choice-check">✓</span> }
+            @if (showChoiceResults()) {
+              <span class="choice-meta">{{ groupChoiceVotes(group) | number }} · {{ pctOfGroup(group).toFixed(1) }}%</span>
+            }
+          </span>
+          <span class="choice-roster">
+            @for (c of group.candidates; track c.id) {
+              <img class="choice-avatar" [src]="c.image" [alt]="c.name" [title]="c.name"
+                   onerror="this.onerror=null;this.src='https://placehold.co/60x60/1565C0/fff?text=?'" />
+            }
+          </span>
+        </button>
+      }
+      @if (!myChoice()) {
+        <div class="board-hint in-board">{{ i18n.t('poll.tapGroup') }}</div>
+      }
+    </div>
+  } @else if (isSimple()) {
     <!-- Single group → simple org chart -->
     <div class="simple-board">
       <div class="simple-header">
