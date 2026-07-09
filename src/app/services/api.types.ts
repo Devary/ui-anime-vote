@@ -293,3 +293,32 @@ export interface LikeStateDto {
 
 /** REST prefix for social endpoints shared by both poll kinds */
 export type PollKind = 'polls' | 'multi-polls';
+
+// ── Dashboard analytics ────────────────────────────────────────────────────────
+export interface RankedItemDto {
+  id: string;
+  type: 'poll' | 'multi';
+  question: string;
+  value: number;
+}
+
+export interface DashboardDto {
+  totalUsers: number;
+  totalAnimes: number;
+  totalCharacters: number;
+  totalPolls: number;
+  totalMultiPolls: number;
+  totalVotes: number;
+  totalComments: number;
+  totalLikes: number;
+  pendingApprovals: number;
+  publicPolls: number;
+  privatePolls: number;
+  votingByGroupPolls: number;
+  votingByCharacterPolls: number;
+  newUsersLast7Days: number;
+  votesLast7Days: number;
+  mostLikedPolls: RankedItemDto[];
+  mostVotedPolls: RankedItemDto[];
+  mostCommentedPolls: RankedItemDto[];
+}

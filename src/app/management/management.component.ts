@@ -9,8 +9,9 @@ import { UserManagementComponent } from './user-management/user-management.compo
 import { MyContentManagementComponent } from './my-content-management/my-content-management.component';
 import { AuditManagementComponent } from './audit-management/audit-management.component';
 import { ApprovalManagementComponent } from './approval-management/approval-management.component';
+import { DashboardManagementComponent } from './dashboard-management/dashboard-management.component';
 
-type Section = 'anime' | 'characters' | 'polls' | 'multi-polls' | 'users' | 'my-content' | 'approvals' | 'audit';
+type Section = 'anime' | 'characters' | 'polls' | 'multi-polls' | 'users' | 'my-content' | 'approvals' | 'audit' | 'dashboard';
 
 interface NavItem {
   id: Section;
@@ -32,6 +33,7 @@ interface NavItem {
     MyContentManagementComponent,
     ApprovalManagementComponent,
     AuditManagementComponent,
+    DashboardManagementComponent,
   ],
   templateUrl: './management.component.html',
   styleUrl: './management.component.scss',
@@ -46,6 +48,7 @@ export class ManagementComponent {
   readonly activeSection = signal<Section>('my-content');
 
   readonly allNavItems: NavItem[] = [
+    { id: 'dashboard',   label: 'Dashboard',  icon: '📊', access: 'moderator' },
     { id: 'my-content',  label: 'My Content', icon: '✦',  access: 'all'       },
     { id: 'anime',       label: 'Anime',       icon: '🎬', access: 'all'       },
     { id: 'characters',  label: 'Characters',  icon: '👤', access: 'all'       },

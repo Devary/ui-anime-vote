@@ -1,4 +1,4 @@
-import { Component, OnInit, inject, signal, computed } from '@angular/core';
+import { Component, OnInit, ViewChild, inject, signal, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule, ReactiveFormsModule, FormControl, FormGroup, FormArray, Validators } from '@angular/forms';
 import { SelectModule } from 'primeng/select';
@@ -16,6 +16,8 @@ import { ImageUploadComponent } from '../../shared/image-upload/image-upload.com
 import { CrudModalComponent } from '../../shared/crud-modal/crud-modal.component';
 import { VisibilityFieldComponent } from '../../shared/visibility-field/visibility-field.component';
 import { ConfirmModalComponent } from '../../shared/confirm-modal/confirm-modal.component';
+import { MultiPollWizardComponent } from '../../shared/multi-poll-wizard/multi-poll-wizard.component';
+import { pollTimeStatus, pollRemainingLabel } from '../../shared/poll-time';
 
 type SubTab = 'characters' | 'polls' | 'multi-polls';
 
@@ -25,7 +27,7 @@ type SubTab = 'characters' | 'polls' | 'multi-polls';
   imports: [
     CommonModule, FormsModule, ReactiveFormsModule, SelectModule,
     PollGroupFormComponent, ImageUploadComponent, CrudModalComponent,
-    VisibilityFieldComponent, ConfirmModalComponent
+    VisibilityFieldComponent, ConfirmModalComponent, MultiPollWizardComponent
   ],
   template: `
     <div class="my-content">
@@ -128,10 +130,14 @@ type SubTab = 'characters' | 'polls' | 'multi-polls';
                 <div class="row-info">
                   <div class="row-details">
                     <span class="row-title">{{ mp.question }}</span>
-                    <span class="row-sub">{{ mp.anime || '—' }} · {{ (mp.groups ?? []).length }} groups</span>
+                    <span class="row-sub">
+                      {{ mp.anime || '—' }} · {{ (mp.groups ?? []).length }} groups
+                      · {{ mp.votingByGroup ? 'vote by group' : 'vote by character' }}
+                    </span>
                   </div>
                 </div>
                 <div class="row-actions">
+                  <span class="time-badge" [class]="'time-' + timeStatus(mp)">{{ remaining(mp) }}</span>
                   @if (mp.visibility && mp.visibility !== 'PUBLIC') { <span class="priv-badge">{{ mp.visibility }}</span> }
                   @if (mp.deletePending) { <span class="status-badge badge-PENDING">DELETE PENDING</span> }
                   @else { <span class="status-badge" [class]="'badge-' + (mp.status ?? 'APPROVED')">{{ mp.status ?? 'APPROVED' }}</span> }
@@ -217,53 +223,19 @@ type SubTab = 'characters' | 'polls' | 'multi-polls';
         </app-crud-modal>
       }
 
-      <!-- ─────────── Multi-Poll form modal ─────────── -->
+      <!-- ─────────── Multi-Poll wizard modal ─────────── -->
       @if (showMpForm()) {
-        <app-crud-modal [title]="editingMp() ? 'Edit Multi-Poll (candidates)' : 'New Multi-Poll'" (closeRequest)="closeMpForm()">
-          <form (ngSubmit)="saveMp()">
-            <div class="form-grid">
-              <label class="field span-2">
-                <span>Question *</span>
-                <input class="input" [(ngModel)]="mpForm.question" maxlength="254" name="q" (ngModelChange)="mpDirty = true" placeholder="Who is the best?" />
-              </label>
-              @if (!editingMp()) {
-                <label class="field">
-                  <span>Anime</span>
-                  <p-select [options]="animeList()" [(ngModel)]="mpForm.anime" name="anime"
-                    optionLabel="name" optionValue="name" [filter]="true" filterBy="name"
-                    [editable]="true" [showClear]="true" placeholder="Select or type…" appendTo="body"
-                    (onChange)="mpDirty = true" />
-                </label>
-                <app-visibility-field
-                  [(visibility)]="mpForm.visibility"
-                  [(allowedUserIds)]="mpForm.allowedUserIds"
-                  (changed)="mpDirty = true" />
-                <label class="field private-toggle">
-                  <input type="checkbox" [(ngModel)]="mpForm.votingByGroup" name="vbg" (ngModelChange)="mpDirty = true" />
-                  <span>Vote by group <small>(voters pick a whole group — cannot be changed later)</small></span>
-                </label>
-              }
-            </div>
-            <div class="groups-header">
-              <span class="groups-label">Groups <small>(min 2)</small></span>
-              @if (!editingMp()) { <button type="button" class="btn-ghost-sm" (click)="addMpGroup()">+ Group</button> }
-            </div>
-            @for (ctrl of mpGroupsArray.controls; track ctrl; let i = $index) {
-              <app-poll-group-form
-                [group]="getMpGroup(i)"
-                [charOptions]="charOptions()"
-                [showLabel]="true" [showPeriod]="!editingMp()" [isEdit]="!!editingMp()"
-                [canRemove]="mpGroupsArray.length > 2 && !editingMp()"
-                (remove)="removeMpGroup(i)" />
-            }
-            @if (mpError()) { <div class="error-msg">{{ mpError() }}</div> }
-            <div class="form-actions">
-              <button class="btn-ghost" type="button" (click)="closeMpForm()">Cancel</button>
-              <button class="btn-primary" type="submit" [disabled]="savingMp()">
-                {{ savingMp() ? 'Saving…' : (editingMp() ? 'Update' : (autoApproved(mpForm.visibility) ? 'Create' : 'Submit for approval')) }}
-              </button>
-            </div>
-          </form>
+        <app-crud-modal [title]="editingMp() ? 'Edit Multi-Poll' : 'New Multi-Poll'" (closeRequest)="closeMpForm()">
+          <app-multi-poll-wizard #mpWizard
+            mode="user"
+            [animeList]="animeList()"
+            [charOptions]="charOptions()"
+            [editing]="editingMp()"
+            [serverNow]="serverNow"
+            [saving]="savingMp()"
+            [error]="mpError()"
+            (save)="onMpWizardSave($event)"
+            (cancelRequest)="closeMpForm()" />
         </app-crud-modal>
       }
 
@@ -308,6 +280,11 @@ type SubTab = 'characters' | 'polls' | 'multi-polls';
     .badge-REJECTED { background: rgba(239,68,68,0.12); color: #dc2626; }
     .priv-badge { font-size: 0.65rem; font-weight: 700; padding: 0.15rem 0.45rem; border-radius: 99px;
                    background: rgba(99,102,241,0.12); color: #6366f1; text-transform: uppercase; }
+    .time-badge { font-size: 0.65rem; font-weight: 700; padding: 0.15rem 0.45rem; border-radius: 99px; white-space: nowrap; }
+    .time-upcoming { background: rgba(251,192,45,0.15); color: #f59e0b; }
+    .time-live     { background: rgba(34,197,94,0.12); color: #16a34a; }
+    .time-finished { background: var(--rz-surface-hover); color: var(--rz-ink-muted); }
+    .time-unknown  { background: var(--rz-surface-hover); color: var(--rz-ink-faint); }
     .loading, .empty { font-size: 0.8rem; color: var(--rz-ink-muted); padding: 1rem 0; text-align: center; }
     .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; }
     .span-2 { grid-column: span 2; }
@@ -495,76 +472,38 @@ export class MyContentManagementComponent implements OnInit {
     this.api.deleteMyPoll(id).subscribe({ next: () => { this.toast.success('Poll deleted / deletion requested'); this.loadPolls(); this.refresh.notify(); }, error: e => this.toast.error(this.msg(e)) });
   }
 
-  // ── Multi-poll form ────────────────────────────────────────────────────────
+  // ── Multi-poll wizard ────────────────────────────────────────────────────────
+  @ViewChild('mpWizard') mpWizard?: MultiPollWizardComponent;
+
   readonly showMpForm  = signal(false);
   readonly editingMp   = signal<MultiPollAdminDto | null>(null);
   readonly savingMp    = signal(false);
   readonly mpError     = signal<string | null>(null);
-  mpDirty = false;
-  mpForm: { question: string; anime: string; visibility: Visibility; allowedUserIds: string[]; votingByGroup: boolean } = { question: '', anime: '', visibility: 'PUBLIC', allowedUserIds: [], votingByGroup: false };
-  mpForm_groups!: FormGroup;
+  serverNow = new Date();
 
-  get mpGroupsArray(): FormArray { return this.mpForm_groups.get('groups') as FormArray; }
-  getMpGroup(i: number): FormGroup { return this.mpGroupsArray.at(i) as FormGroup; }
-
-  private initMpForm(): void {
-    this.mpForm_groups = new FormGroup({ groups: new FormArray([createGroupForm({ showPeriod: true }), createGroupForm({ showPeriod: true })]) });
-  }
-
-  addMpGroup(): void { this.mpGroupsArray.push(createGroupForm({ showPeriod: true })); }
-  removeMpGroup(i: number): void { if (this.mpGroupsArray.length > 2) this.mpGroupsArray.removeAt(i); }
+  timeStatus(mp: MultiPollAdminDto): string { return pollTimeStatus(mp.groups); }
+  remaining(mp: MultiPollAdminDto): string { return pollRemainingLabel(mp.groups); }
 
   openNewMp(): void {
-    this.editingMp.set(null); this.mpDirty = false; this.mpError.set(null);
-    this.mpForm = { question: '', anime: '', visibility: 'PUBLIC', allowedUserIds: [], votingByGroup: false };
-    this.initMpForm();
+    this.editingMp.set(null); this.mpError.set(null);
+    this.api.getServerTime().subscribe({ next: t => { this.serverNow = new Date(t.now); } });
     this.showMpForm.set(true);
   }
   editMp(mp: MultiPollAdminDto): void {
-    this.editingMp.set(mp); this.mpDirty = false; this.mpError.set(null);
-    this.mpForm = { question: mp.question, anime: mp.anime ?? '', visibility: mp.visibility ?? (mp.isPrivate ? 'PRIVATE' : 'PUBLIC'), allowedUserIds: [...(mp.allowedUserIds ?? [])], votingByGroup: mp.votingByGroup ?? false };
-    this.initMpForm();
-    const ga = this.mpGroupsArray;
-    ga.clear();
-    (mp.groups ?? []).forEach(g => {
-      const gf = createGroupForm({ isEdit: true, showPeriod: false });
-      gf.patchValue({ label: g.label });
-      const cArr = gf.get('candidates') as FormArray;
-      cArr.clear();
-      const ids = g.candidates.map(c => c.id);
-      while (ids.length < 2) ids.push('');
-      ids.forEach(id => cArr.push(new FormControl(id)));
-      ga.push(gf);
-    });
+    this.editingMp.set(mp); this.mpError.set(null);
     this.showMpForm.set(true);
   }
   closeMpForm(): void {
-    if (this.mpDirty) {
+    if (this.mpWizard?.dirty) {
       this.askConfirm('Discard changes?', 'Discard unsaved changes?', () => this.showMpForm.set(false), false);
     } else { this.showMpForm.set(false); }
   }
-  saveMp(): void {
-    if (this.mpForm.visibility === 'RESTRICTED' && this.mpForm.allowedUserIds.length === 0) {
-      this.mpError.set('Select at least one allowed user'); return;
-    }
-    if (!this.mpForm.question?.trim()) { this.mpError.set('Question is required'); return; }
-    for (let i = 0; i < this.mpGroupsArray.length; i++) {
-      const cArr = this.getMpGroup(i).get('candidates') as FormArray;
-      const filled = cArr.controls.map(c => c.value as string).filter(Boolean);
-      if (filled.length < 2) { this.mpError.set(`Group ${i + 1} needs at least 2 fighters`); return; }
-    }
-    const label = this.editingMp() ? 'Save changes?' : (this.autoApproved(this.mpForm.visibility) ? 'Create multi-poll?' : 'Submit for approval?');
-    this.askConfirm(label, '', () => this.doSaveMp(), false);
+  onMpWizardSave(req: MultiPollCreateDto): void {
+    const label = this.editingMp() ? 'Save changes?' : (this.autoApproved(req.visibility ?? 'PUBLIC') ? 'Create multi-poll?' : 'Submit for approval?');
+    this.askConfirm(label, '', () => this.doSaveMp(req), false);
   }
-  private doSaveMp(): void {
+  private doSaveMp(req: MultiPollCreateDto): void {
     this.savingMp.set(true);
-    const isEdit = !!this.editingMp();
-    const groups = this.mpGroupsArray.controls.map(ctrl => {
-      const g = ctrl as FormGroup;
-      const cArr = g.get('candidates') as FormArray;
-      return { label: g.get('label')?.value ?? '', characterIds: cArr.controls.map(c => c.value as string).filter(Boolean), startNow: g.get('startNow')?.value ?? false, startDate: g.get('startDate')?.value || null, endDate: g.get('endDate')?.value || null, level: 0 };
-    });
-    const req: MultiPollCreateDto = { anime: this.mpForm.anime, question: this.mpForm.question, visibility: this.mpForm.visibility, allowedUserIds: this.mpForm.allowedUserIds, votingByGroup: this.mpForm.votingByGroup, groups };
     const id = this.editingMp()?.id;
     const req$ = id ? this.api.updateMyMultiPoll(id, req) : this.api.createMyMultiPoll(req);
     req$.subscribe({
@@ -585,7 +524,6 @@ export class MyContentManagementComponent implements OnInit {
   // ── Lifecycle ──────────────────────────────────────────────────────────────
 
   ngOnInit(): void {
-    this.initMpForm();
     this.loadChars(); this.loadPolls(); this.loadMps();
     this.api.adminGetAnimeList().subscribe({ next: l => this.animeList.set(l) });
     this.api.adminGetAllCharacters().subscribe({ next: l => this._charOptions = l.map(c => ({ id: c.id, displayName: c.anime ? `${c.name} (${c.anime})` : c.name, imageUrl: c.imageUrl })) });

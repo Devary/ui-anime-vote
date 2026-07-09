@@ -8,7 +8,7 @@ import {
   AnimeDto, AnimeCreateDto, CharacterCreateDto, UploadResponse, ServerTimeDto,
   UserDto, UserUpdateDto, AdminUserUpdateDto, RoleDto, RoleCreateDto,
   ApprovalSummaryDto, DailyLimitDto, UserDirectoryEntryDto, AuditEventDto,
-  CommentDto, LikeStateDto, PollKind
+  CommentDto, LikeStateDto, PollKind, DashboardDto
 } from './api.types';
 import { environment } from '../../environments/environment';
 
@@ -386,5 +386,9 @@ export class AnimeApiService {
 
   toggleLike(kind: PollKind, pollId: string): Observable<LikeStateDto> {
     return this.http.post<LikeStateDto>(`${API}/${kind}/${pollId}/like`, {});
+  }
+
+  getDashboard(): Observable<DashboardDto> {
+    return this.http.get<DashboardDto>(`${API}/admin/dashboard`);
   }
 }

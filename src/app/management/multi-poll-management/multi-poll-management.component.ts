@@ -1,27 +1,26 @@
 import { Component, OnInit, ViewChild, inject, signal, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup, FormArray, FormControl, Validators, AbstractControl, ValidationErrors, ValidatorFn } from '@angular/forms';
 import { Table, TableModule } from 'primeng/table';
 import { InputTextModule } from 'primeng/inputtext';
 import { IconFieldModule } from 'primeng/iconfield';
 import { InputIconModule } from 'primeng/inputicon';
-import { SelectModule } from 'primeng/select';
 import { forkJoin, of } from 'rxjs';
 import { map, catchError } from 'rxjs/operators';
 import { AnimeApiService } from '../../services/anime-api.service';
 import { ToastService } from '../../services/toast.service';
 import { DataRefreshService } from '../../services/data-refresh.service';
 import { PollExportService } from '../../services/poll-export.service';
-import { AnimeDto, CharacterDto, MultiPollAdminDto, MultiPollCreateDto, GroupCreateDto, Visibility } from '../../services/api.types';
-import { PollGroupFormComponent, CharOption, createGroupForm, groupPeriodValidator } from '../poll-group-form/poll-group-form.component';
+import { AnimeDto, CharacterDto, MultiPollAdminDto, MultiPollCreateDto } from '../../services/api.types';
+import { CharOption } from '../poll-group-form/poll-group-form.component';
 import { CrudModalComponent } from '../../shared/crud-modal/crud-modal.component';
-import { VisibilityFieldComponent } from '../../shared/visibility-field/visibility-field.component';
 import { ConfirmModalComponent } from '../../shared/confirm-modal/confirm-modal.component';
+import { MultiPollWizardComponent } from '../../shared/multi-poll-wizard/multi-poll-wizard.component';
+import { pollTimeStatus, pollRemainingLabel } from '../../shared/poll-time';
 
 @Component({
   selector: 'app-multi-poll-management',
   standalone: true,
-  imports: [CommonModule, FormsModule, ReactiveFormsModule, TableModule, InputTextModule, IconFieldModule, InputIconModule, SelectModule, PollGroupFormComponent, CrudModalComponent, ConfirmModalComponent, VisibilityFieldComponent],
+  imports: [CommonModule, TableModule, InputTextModule, IconFieldModule, InputIconModule, CrudModalComponent, ConfirmModalComponent, MultiPollWizardComponent],
   template: `
     <div class="section">
 
@@ -78,6 +77,9 @@ import { ConfirmModalComponent } from '../../shared/confirm-modal/confirm-modal.
               Question <p-sortIcon field="question" />
               <p-columnFilter type="text" field="question" display="menu" />
             </th>
+            <th style="width:100px">Visibility</th>
+            <th style="width:90px">Mode</th>
+            <th style="width:130px">Status</th>
             <th style="width:90px">Groups</th>
             <th style="width:110px">Candidates</th>
             <th style="width:100px">Actions</th>
@@ -93,10 +95,15 @@ import { ConfirmModalComponent } from '../../shared/confirm-modal/confirm-modal.
             </td>
             <td class="muted-cell">{{ mp.anime || '—' }}</td>
             <td class="name-cell">{{ mp.question }}</td>
+            <td><span class="vis-badge" [class]="'vis-' + (mp.visibility || 'PUBLIC')">{{ mp.visibility || 'PUBLIC' }}</span></td>
+            <td><span class="mode-badge">{{ mp.votingByGroup ? 'Group' : 'Character' }}</span></td>
+            <td>
+              <span class="time-badge" [class]="'time-' + timeStatus(mp)">{{ remaining(mp) }}</span>
+            </td>
             <td class="center-cell">{{ mp.groups?.length ?? 0 }}</td>
             <td class="center-cell">{{ totalCandidates(mp) }}</td>
             <td class="actions-cell">
-              <button class="btn-icon" (click)="startEdit(mp)" title="Edit candidates">
+              <button class="btn-icon" (click)="startEdit(mp)" title="Edit">
                 <i class="pi pi-pencil"></i>
               </button>
               <button class="btn-icon" (click)="download(mp)" title="Download hierarchy">
@@ -110,151 +117,25 @@ import { ConfirmModalComponent } from '../../shared/confirm-modal/confirm-modal.
         </ng-template>
 
         <ng-template pTemplate="emptymessage">
-          <tr><td colspan="6">No multi-polls found.</td></tr>
+          <tr><td colspan="9">No multi-polls found.</td></tr>
         </ng-template>
       </p-table>
 
-      <!-- Form modal -->
+      <!-- Wizard modal -->
       @if (showForm()) {
-        <app-crud-modal [title]="editing() ? 'Edit Multi-Poll (candidates only)' : 'New Multi-Poll'" (closeRequest)="onCloseRequest()">
-          <form [formGroup]="form" (ngSubmit)="requestSave()">
-            <div class="form-grid">
-              <label class="field span-2">
-                <span>Question *</span>
-                <input class="input" formControlName="question" maxlength="254" placeholder="Who is the best?" />
-                @if (submitted && form.get('question')?.errors?.['required']) {
-                  <small class="error-msg">Question is required</small>
-                }
-              </label>
-              @if (!editing()) {
-                <label class="field">
-                  <span>Anime <span class="optional">(optional)</span></span>
-                  <p-select
-                    [options]="animeList()"
-                    formControlName="anime"
-                    optionLabel="name"
-                    optionValue="name"
-                    [filter]="true"
-                    filterBy="name"
-                    [editable]="true"
-                    [showClear]="true"
-                    placeholder="Select or type…"
-                    appendTo="body" />
-                </label>
-                <app-visibility-field
-                  [(visibility)]="visForm.visibility"
-                  [(allowedUserIds)]="visForm.allowedUserIds" />
-                <label class="field vbg-toggle">
-                  <input type="checkbox" [(ngModel)]="votingByGroup" name="vbg" />
-                  <span>Vote by group <small>(immutable after creation)</small></span>
-                </label>
-              }
-            </div>
-
-            <div class="groups-header">
-              <span class="groups-label">
-                Groups
-                @if (!editing()) {
-                  <span class="optional"> — build levels with "Add Level ↑"</span>
-                }
-              </span>
-              <div class="groups-actions">
-                @if (!editing() && maxLevel > 0) {
-                  <button type="button" class="btn-ghost-sm btn-danger-outline" (click)="removeLevel()">
-                    ↓ Remove {{ levelLabel(maxLevel) }}
-                  </button>
-                }
-                @if (!editing()) {
-                  <button type="button" class="btn-ghost-sm" (click)="addLevel()"
-                          [disabled]="groupsAtMaxLevel().length < 2">
-                    Add Level ↑
-                  </button>
-                }
-                <button type="button" class="btn-ghost-sm" (click)="addGroup()"
-                        [disabled]="!editing() && maxLevel > 0"
-                        [title]="!editing() && maxLevel > 0 ? 'Remove higher levels before adding QF groups' : ''">
-                  + Group
-                </button>
-              </div>
-            </div>
-
-            @if (submitted && !editing()) {
-              @if (groupsArray.errors?.['noGroupStartsNow']) {
-                <div class="cross-error">At least one Quarter-Final group must have "Start now" checked</div>
-              }
-              @if (groupsArray.errors?.['groupsOutOfOrder']) {
-                <div class="cross-error">Groups must be in chronological order</div>
-              }
-            }
-
-            @for (ctrl of groupsArray.controls; track ctrl; let i = $index) {
-
-              @if (isFirstOfLevel(i)) {
-                <div class="level-header">
-                  <span class="level-badge">{{ levelLabel(groupLevels[i] ?? 0) }}</span>
-                  @if ((groupLevels[i] ?? 0) > 0) {
-                    <span class="level-hint">Schedule and label — fighters resolved from winners</span>
-                  }
-                </div>
-              }
-
-              @if ((groupLevels[i] ?? 0) === 0) {
-                <app-poll-group-form
-                  [group]="getGroupForm(i)"
-                  [charOptions]="charOptions()"
-                  [excludeIds]="excludeIdsForGroup(i)"
-                  [showLabel]="true"
-                  [showPeriod]="!editing()"
-                  [isEdit]="!!editing()"
-                  [canRemove]="groupsArray.length > 2 && !isGroupReferenced(i) && maxLevel === 0"
-                  [submitted]="submitted"
-                  (remove)="removeGroup(i)" />
-              } @else {
-                <!-- Bracket group (level > 0): no fighter selection -->
-                <div class="bracket-group">
-                  <div [formGroup]="getGroupForm(i)" class="bracket-group-inner">
-                    <div class="bg-top-row">
-                      <label class="bg-label-field">
-                        <span class="field-lbl">Label</span>
-                        <input class="input" formControlName="label"
-                               [placeholder]="(groupLevels[i] === 1 ? 'Semi-Final' : 'Grand Final') + ' ' + (i + 1)" />
-                      </label>
-                      <div class="bg-feeder-info">
-                        <span class="bg-feeder-label">Feeds from</span>
-                        <span class="bg-feeder-value">{{ feederLabels(i) }}</span>
-                      </div>
-                    </div>
-                    @if (!editing()) {
-                      <div class="bg-period-row">
-                        <label class="bg-period-field">
-                          <span class="field-lbl">Start Date</span>
-                          <input class="input" type="datetime-local" formControlName="startDate" />
-                        </label>
-                        <label class="bg-period-field">
-                          <span class="field-lbl">End Date</span>
-                          <input class="input" type="datetime-local" formControlName="endDate" />
-                        </label>
-                      </div>
-                    }
-                  </div>
-                </div>
-              }
-            }
-
-            @if (error()) { <div class="error-msg-block">{{ error() }}</div> }
-            @if (dupError()) {
-              <div class="dup-banner">⚠ {{ dupError() }}
-                <button type="button" class="dup-close" (click)="dupError.set(null)">✕</button>
-              </div>
-            }
-
-            <div class="form-actions">
-              <button class="btn-ghost" type="button" (click)="onCloseRequest()">Cancel</button>
-              <button class="btn-primary" type="submit" [disabled]="saving()">
-                {{ saving() ? 'Saving…' : (editing() ? 'Update' : 'Create') }}
-              </button>
-            </div>
-          </form>
+        <app-crud-modal [title]="editing() ? 'Edit Multi-Poll' : 'New Multi-Poll'" (closeRequest)="onCloseRequest()">
+          <app-multi-poll-wizard #wizard
+            mode="admin"
+            [animeList]="animeList()"
+            [charOptions]="charOptions()"
+            [editing]="editing()"
+            [serverNow]="serverNow"
+            [saving]="saving()"
+            [error]="error()"
+            [dupError]="dupError()"
+            (dupErrorDismiss)="dupError.set(null)"
+            (save)="onWizardSave($event)"
+            (cancelRequest)="onCloseRequest()" />
         </app-crud-modal>
       }
 
@@ -272,44 +153,6 @@ import { ConfirmModalComponent } from '../../shared/confirm-modal/confirm-modal.
   styles: [`
     :host { display: block; }
     .section { display: flex; flex-direction: column; gap: 1rem; }
-    .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; }
-    .span-2 { grid-column: span 2; }
-    .field { display: flex; flex-direction: column; gap: 0.3rem; font-size: 0.8rem; color: var(--rz-ink-muted); }
-    .optional { font-size: 0.72rem; color: var(--rz-ink-faint); }
-    .input { padding: 0.4rem 0.6rem; border: 1px solid var(--rz-border); border-radius: var(--rz-radius-sm);
-              background: var(--rz-glass-bg); color: var(--rz-ink); font-size: 0.82rem; }
-    .input:focus { outline: none; border-color: var(--rz-primary); }
-    .groups-header { display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; flex-wrap: wrap; }
-    .groups-label { font-size: 0.8rem; font-weight: 600; color: var(--rz-ink-muted); }
-    .groups-actions { display: flex; gap: 0.4rem; align-items: center; flex-wrap: wrap; }
-    .cross-error { font-size: 0.78rem; color: var(--rz-danger); background: var(--rz-danger-bg);
-                    padding: 0.35rem 0.6rem; border-radius: var(--rz-radius-sm); }
-    .error-msg { color: var(--rz-danger); font-size: 0.75rem; }
-    .error-msg-block { color: var(--rz-danger); font-size: 0.8rem; }
-    .dup-banner { display: flex; align-items: center; gap: 0.5rem; background: var(--rz-danger-bg);
-                   color: var(--rz-danger); border-radius: var(--rz-radius-sm); padding: 0.5rem 0.75rem; font-size: 0.8rem; }
-    .dup-close { background: none; border: none; cursor: pointer; color: var(--rz-danger); font-size: 1rem; padding: 0; }
-    .form-actions { display: flex; gap: 0.5rem; justify-content: flex-end; margin-top: 0.25rem; }
-
-    /* Level header */
-    .level-header { display: flex; align-items: center; gap: 0.6rem; margin: 0.75rem 0 0.25rem; }
-    .level-badge { font-size: 0.7rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em;
-                    background: rgba(124,58,237,0.12); color: #7c3aed;
-                    padding: 0.2rem 0.65rem; border-radius: 99px; }
-    .level-hint { font-size: 0.72rem; color: var(--rz-ink-faint); font-style: italic; }
-
-    /* Bracket group (level > 0) */
-    .bracket-group { background: rgba(124,58,237,0.04); border: 1px dashed rgba(124,58,237,0.3);
-                      border-radius: var(--rz-radius-sm); padding: 0.65rem 0.85rem; margin-bottom: 0.4rem; }
-    .bracket-group-inner { display: flex; flex-direction: column; gap: 0.55rem; }
-    .bg-top-row { display: flex; gap: 0.75rem; align-items: flex-end; flex-wrap: wrap; }
-    .bg-label-field { display: flex; flex-direction: column; gap: 0.25rem; flex: 1; min-width: 130px; }
-    .bg-feeder-info { display: flex; flex-direction: column; gap: 0.15rem; flex: 2; padding-bottom: 0.2rem; }
-    .bg-feeder-label { font-size: 0.7rem; color: var(--rz-ink-faint); }
-    .bg-feeder-value { font-size: 0.8rem; color: #7c3aed; font-style: italic; }
-    .bg-period-row { display: flex; gap: 0.75rem; flex-wrap: wrap; }
-    .bg-period-field { display: flex; flex-direction: column; gap: 0.25rem; flex: 1; min-width: 160px; }
-    .field-lbl { font-size: 0.78rem; color: var(--rz-ink-muted); }
 
     /* Table */
     .table-caption { display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; flex-wrap: wrap; }
@@ -320,21 +163,25 @@ import { ConfirmModalComponent } from '../../shared/confirm-modal/confirm-modal.
     .muted-cell { color: var(--rz-ink-muted); }
     .center-cell { text-align: center; color: var(--rz-ink-muted); }
     .actions-cell { display: flex; gap: 0.4rem; align-items: center; }
+
+    .vis-badge { font-size: 0.68rem; font-weight: 700; padding: 0.15rem 0.5rem; border-radius: 99px; text-transform: uppercase; letter-spacing: 0.02em; }
+    .vis-PUBLIC { background: rgba(34,197,94,0.12); color: #16a34a; }
+    .vis-PRIVATE { background: rgba(239,68,68,0.12); color: #dc2626; }
+    .vis-AUTHENTICATED { background: rgba(59,130,246,0.12); color: #2563eb; }
+    .vis-RESTRICTED { background: rgba(124,58,237,0.12); color: #7c3aed; }
+
+    .mode-badge { font-size: 0.7rem; font-weight: 600; color: var(--rz-ink-muted); }
+
+    .time-badge { font-size: 0.7rem; font-weight: 700; padding: 0.15rem 0.5rem; border-radius: 99px; white-space: nowrap; }
+    .time-upcoming { background: rgba(251,192,45,0.15); color: #f59e0b; }
+    .time-live     { background: rgba(34,197,94,0.12); color: #16a34a; }
+    .time-finished { background: var(--rz-surface-hover); color: var(--rz-ink-muted); }
+    .time-unknown  { background: var(--rz-surface-hover); color: var(--rz-ink-faint); }
+
     .btn-primary { padding: 0.4rem 1rem; border-radius: var(--rz-radius-sm); border: none;
                     background: var(--rz-primary); color: #fff; font-size: 0.8rem; font-weight: 600; cursor: pointer; }
     .btn-primary:hover:not(:disabled) { opacity: 0.88; }
     .btn-primary:disabled { opacity: 0.5; cursor: default; }
-    .btn-ghost { padding: 0.4rem 1rem; border-radius: var(--rz-radius-sm);
-                  border: 1px solid var(--rz-border); background: transparent; color: var(--rz-ink);
-                  font-size: 0.8rem; cursor: pointer; }
-    .btn-ghost:hover { background: var(--rz-surface-hover); }
-    .btn-ghost-sm { padding: 0.25rem 0.75rem; border-radius: var(--rz-radius-sm);
-                     border: 1px solid var(--rz-border); background: transparent; color: var(--rz-ink);
-                     font-size: 0.78rem; cursor: pointer; }
-    .btn-ghost-sm:hover:not(:disabled) { background: var(--rz-surface-hover); }
-    .btn-ghost-sm:disabled { opacity: 0.4; cursor: default; }
-    .btn-danger-outline { border-color: var(--rz-danger) !important; color: var(--rz-danger) !important; }
-    .btn-danger-outline:hover:not(:disabled) { background: var(--rz-danger-bg) !important; }
     .btn-danger { padding: 0.4rem 1rem; border-radius: var(--rz-radius-sm);
                    border: 1px solid var(--rz-danger); background: var(--rz-danger-bg);
                    color: var(--rz-danger); font-size: 0.8rem; font-weight: 600; cursor: pointer; }
@@ -344,26 +191,26 @@ import { ConfirmModalComponent } from '../../shared/confirm-modal/confirm-modal.
                  border-radius: var(--rz-radius-sm); color: var(--rz-ink-muted); }
     .btn-icon:hover { background: var(--rz-surface-hover); color: var(--rz-ink); }
     .btn-icon.danger:hover { background: var(--rz-danger-bg); color: var(--rz-danger); }
-    @media (max-width: 640px) { .form-grid { grid-template-columns: 1fr; } .span-2 { grid-column: span 1; } }
   `]
 })
 export class MultiPollManagementComponent implements OnInit {
   @ViewChild('dt') dt!: Table;
+  @ViewChild('wizard') wizard?: MultiPollWizardComponent;
 
   private readonly api     = inject(AnimeApiService);
   private readonly toast   = inject(ToastService);
   private readonly refresh = inject(DataRefreshService);
-  private readonly export = inject(PollExportService);
+  private readonly export  = inject(PollExportService);
 
   readonly multiPolls = signal<MultiPollAdminDto[]>([]);
-  readonly chars      = signal<CharacterDto[]>([]);
-  readonly animeList  = signal<AnimeDto[]>([]);
-  readonly loading    = signal(false);
-  readonly saving     = signal(false);
-  readonly showForm   = signal(false);
-  readonly editing    = signal<MultiPollAdminDto | null>(null);
-  readonly error      = signal<string | null>(null);
-  readonly dupError   = signal<string | null>(null);
+  readonly chars       = signal<CharacterDto[]>([]);
+  readonly animeList   = signal<AnimeDto[]>([]);
+  readonly loading     = signal(false);
+  readonly saving      = signal(false);
+  readonly showForm    = signal(false);
+  readonly editing     = signal<MultiPollAdminDto | null>(null);
+  readonly error       = signal<string | null>(null);
+  readonly dupError    = signal<string | null>(null);
   readonly selectedIds = signal(new Set<string>());
 
   readonly allSelected = computed(() =>
@@ -381,6 +228,9 @@ export class MultiPollManagementComponent implements OnInit {
     }))
   );
 
+  timeStatus(mp: MultiPollAdminDto): string { return pollTimeStatus(mp.groups); }
+  remaining(mp: MultiPollAdminDto): string { return pollRemainingLabel(mp.groups); }
+
   // ── Confirm modal state ──────────────────────────────────────────────────────
   readonly showConfirm  = signal(false);
   readonly confirmTitle = signal('');
@@ -396,136 +246,7 @@ export class MultiPollManagementComponent implements OnInit {
   onConfirmed(): void { this.confirmCb(); this.showConfirm.set(false); }
   onCancelled(): void { this.showConfirm.set(false); }
 
-  private serverNow = new Date();
-  submitted = false;
-  form!: FormGroup;
-
-  /** Level of each group (0=QF, 1=SF, 2=GF). Parallel to groupsArray. */
-  groupLevels: number[] = [0, 0];
-  /** Feeder group indices for each group. Parallel to groupsArray. Empty for level-0 groups. */
-  groupFeederIndices: number[][] = [[], []];
-
-  // ── Bracket helpers ────────────────────────────────────────────────────────
-
-  get maxLevel(): number {
-    return this.groupLevels.length ? Math.max(...this.groupLevels) : 0;
-  }
-
-  groupsAtMaxLevel(): number[] {
-    const max = this.maxLevel;
-    return this.groupLevels.map((l, i) => ({ l, i })).filter(({ l }) => l === max).map(({ i }) => i);
-  }
-
-  isFirstOfLevel(i: number): boolean {
-    return i === 0 || this.groupLevels[i] !== this.groupLevels[i - 1];
-  }
-
-  levelLabel(level: number): string {
-    if (level === 0) return 'Quarter-Finals';
-    if (level === 1) return 'Semi-Finals';
-    if (level === 2) return 'Grand Final';
-    return `Level ${level}`;
-  }
-
-  feederLabels(i: number): string {
-    const feeders = this.groupFeederIndices[i] ?? [];
-    if (!feeders.length) return '—';
-    return feeders.map(f => {
-      const lbl = this.getGroupForm(f)?.get('label')?.value?.trim();
-      return lbl || `Group ${f + 1}`;
-    }).join(' and ');
-  }
-
-  isGroupReferenced(i: number): boolean {
-    return this.groupFeederIndices.some(feeders => feeders.includes(i));
-  }
-
-  addLevel(): void {
-    const idxsAtMax = this.groupsAtMaxLevel();
-    if (idxsAtMax.length < 2) {
-      this.toast.error('Need at least 2 groups at the current level to add a higher bracket level');
-      return;
-    }
-    const newLevel = this.maxLevel + 1;
-    const newCount = Math.ceil(idxsAtMax.length / 2);
-    for (let k = 0; k < newCount; k++) {
-      const feederA = idxsAtMax[k * 2];
-      const feederB = idxsAtMax[k * 2 + 1];
-      const feeders = feederB !== undefined ? [feederA, feederB] : [feederA];
-      this.groupsArray.push(this.newBracketGroupForm());
-      this.groupLevels.push(newLevel);
-      this.groupFeederIndices.push(feeders);
-    }
-  }
-
-  removeLevel(): void {
-    const maxLvl = this.maxLevel;
-    if (maxLvl === 0) return;
-    const indices = this.groupLevels
-      .map((l, i) => ({ l, i }))
-      .filter(({ l }) => l === maxLvl)
-      .map(({ i }) => i)
-      .reverse();
-    for (const idx of indices) {
-      this.groupsArray.removeAt(idx);
-      this.groupLevels.splice(idx, 1);
-      this.groupFeederIndices.splice(idx, 1);
-    }
-  }
-
-  // ── Cross-group validators ─────────────────────────────────────────────────
-
-  private readonly atLeastOneNowValidator: ValidatorFn = (arr: AbstractControl): ValidationErrors | null => {
-    const fa = arr as FormArray;
-    const hasLevel0 = this.groupLevels.some(l => l === 0);
-    if (!hasLevel0) return null;
-    return fa.controls.some((g, i) => (this.groupLevels[i] ?? 0) === 0 && g.get('startNow')?.value)
-      ? null : { noGroupStartsNow: true };
-  };
-
-  private readonly groupsOrderedValidator: ValidatorFn = (arr: AbstractControl): ValidationErrors | null => {
-    if (this.groupLevels.some(l => l > 0)) return null; // bracket mode: skip ordering check
-    const fa  = arr as FormArray;
-    const now = this.serverNow;
-    let prev: Date | null = null;
-    for (let i = 1; i < fa.length; i++) {
-      const g    = fa.at(i);
-      const curr = g.get('startNow')?.value ? now
-        : g.get('startDate')?.value ? new Date(g.get('startDate')!.value) : null;
-      if (prev && curr && curr < prev) return { groupsOutOfOrder: { groupIndex: i } };
-      if (curr) prev = curr;
-    }
-    return null;
-  };
-
-  // ── Form init ──────────────────────────────────────────────────────────────
-
-  get groupsArray(): FormArray { return this.form.get('groups') as FormArray; }
-  getGroupForm(i: number): FormGroup { return this.groupsArray.at(i) as FormGroup; }
-
-  private initForm(isEdit: boolean): void {
-    const arrayValidators: ValidatorFn[] = isEdit
-      ? []
-      : [this.atLeastOneNowValidator, this.groupsOrderedValidator];
-    this.form = new FormGroup({
-      anime:    new FormControl(''),
-      question: new FormControl('', Validators.required),
-      groups:   new FormArray(
-        [this.newGroupForm(isEdit), this.newGroupForm(isEdit)],
-        arrayValidators
-      )
-    });
-    this.submitted = false;
-  }
-
-  private newGroupForm(isEdit: boolean): FormGroup {
-    return createGroupForm({ isEdit, showPeriod: !isEdit, serverNow: this.serverNow });
-  }
-
-  /** Bracket groups (level > 0) skip period validation — dates are optional schedule hints. */
-  private newBracketGroupForm(): FormGroup {
-    return createGroupForm({ isEdit: false, showPeriod: false, serverNow: this.serverNow });
-  }
+  serverNow = new Date();
 
   // ── Lifecycle ──────────────────────────────────────────────────────────────
 
@@ -533,9 +254,6 @@ export class MultiPollManagementComponent implements OnInit {
     this.load();
     this.api.adminGetAnimeList().subscribe({ next: l => this.animeList.set(l) });
     this.api.adminGetAllCharacters().subscribe({ next: l => this.chars.set(l) });
-    this.initForm(false);
-    this.groupLevels = [0, 0];
-    this.groupFeederIndices = [[], []];
   }
 
   load(): void {
@@ -562,17 +280,9 @@ export class MultiPollManagementComponent implements OnInit {
 
   // ── UI actions ─────────────────────────────────────────────────────────────
 
-  visForm: { visibility: Visibility; allowedUserIds: string[] } = { visibility: 'PUBLIC', allowedUserIds: [] };
-  votingByGroup = false;
-
   openNew(): void {
     this.editing.set(null);
-    this.visForm = { visibility: 'PUBLIC', allowedUserIds: [] };
-    this.votingByGroup = false;
     this.api.getServerTime().subscribe({ next: t => { this.serverNow = new Date(t.now); } });
-    this.initForm(false);
-    this.groupLevels = [0, 0];
-    this.groupFeederIndices = [[], []];
     this.error.set(null);
     this.dupError.set(null);
     this.showForm.set(true);
@@ -580,34 +290,13 @@ export class MultiPollManagementComponent implements OnInit {
 
   startEdit(mp: MultiPollAdminDto): void {
     this.editing.set(mp);
-    this.visForm = { visibility: mp.visibility ?? (mp.isPrivate ? 'PRIVATE' : 'PUBLIC'), allowedUserIds: [...(mp.allowedUserIds ?? [])] };
-    this.initForm(true);
-    const ga = this.groupsArray;
-    ga.clear();
-    this.groupLevels = [];
-    this.groupFeederIndices = [];
-    (mp.groups ?? []).forEach(g => {
-      const gf = this.newGroupForm(true);
-      gf.patchValue({ label: g.label });
-      const cArr = gf.get('candidates') as FormArray;
-      cArr.clear();
-      const ids = g.candidates.map(c => c.id);
-      while (ids.length < 2) ids.push('');
-      ids.forEach(id => cArr.push(new FormControl(id)));
-      ga.push(gf);
-      this.groupLevels.push(g.level);
-      this.groupFeederIndices.push([]); // feeder structure not editable in edit mode
-    });
-    if (ga.length < 2) { ga.push(this.newGroupForm(true)); this.groupLevels.push(0); this.groupFeederIndices.push([]); }
-    this.form.patchValue({ anime: mp.anime ?? '', question: mp.question });
     this.error.set(null);
     this.dupError.set(null);
     this.showForm.set(true);
   }
 
   onCloseRequest(): void {
-    const dirty = this.form.dirty;
-    if (dirty) {
+    if (this.wizard?.dirty) {
       this.askConfirm('Discard changes?', 'You have unsaved changes. Discard them?',
         () => this.closeForm(), false);
     } else { this.closeForm(); }
@@ -616,95 +305,21 @@ export class MultiPollManagementComponent implements OnInit {
   closeForm(): void {
     this.showForm.set(false);
     this.editing.set(null);
-    this.initForm(false);
-    this.groupLevels = [0, 0];
-    this.groupFeederIndices = [[], []];
     this.error.set(null);
     this.dupError.set(null);
   }
 
-  addGroup(): void {
-    this.groupsArray.push(this.newGroupForm(!!this.editing()));
-    this.groupLevels.push(0);
-    this.groupFeederIndices.push([]);
-  }
-
-  removeGroup(i: number): void {
-    if (this.groupsArray.length > 2 && !this.isGroupReferenced(i)) {
-      this.groupsArray.removeAt(i);
-      this.groupLevels.splice(i, 1);
-      this.groupFeederIndices.splice(i, 1);
-      // Re-index feeder references after removal
-      this.groupFeederIndices = this.groupFeederIndices.map(feeders =>
-        feeders.map(f => f > i ? f - 1 : f).filter(f => f !== i)
-      );
-    }
-  }
-
-  /** Returns char IDs already selected in other groups at the same level — passed to each group form. */
-  excludeIdsForGroup(i: number): string[] {
-    const level = this.groupLevels[i] ?? 0;
-    const excluded = new Set<string>();
-    this.groupsArray.controls.forEach((ctrl, j) => {
-      if (j === i) return;
-      if ((this.groupLevels[j] ?? 0) !== level) return;
-      const cArr = (ctrl as FormGroup).get('candidates') as FormArray;
-      cArr.controls.forEach(c => { if (c.value) excluded.add(c.value as string); });
-    });
-    return [...excluded];
-  }
-
-  // ── Submit ─────────────────────────────────────────────────────────────────
-
-  requestSave(): void {
-    this.submitted = true;
-    this.error.set(null);
-    this.dupError.set(null);
-    const isEdit = !!this.editing();
-
-    for (let i = 0; i < this.groupsArray.length; i++) {
-      const level = this.groupLevels[i] ?? 0;
-      const gf    = this.getGroupForm(i);
-      const label = gf.get('label')?.value?.trim() ?? '';
-      if (!label) { this.error.set(`Group ${i + 1} needs a label`); return; }
-
-      if (level === 0) {
-        const cArr   = gf.get('candidates') as FormArray;
-        const filled = cArr.controls.map(c => c.value as string).filter(id => id);
-        if (filled.length < 2) { this.error.set('Each group needs at least 2 fighters'); return; }
-        if (new Set(filled).size < filled.length) {
-          this.error.set(`Group "${label}" has duplicate fighters`);
-          return;
-        }
-      }
-    }
-
-    if (!isEdit && this.form.invalid) return;
-
-    const questionVal: string = this.form.get('question')?.value ?? '';
-    if (!questionVal.trim()) { this.error.set('Question is required'); return; }
-
+  onWizardSave(dto: MultiPollCreateDto): void {
     const editId = this.editing()?.id;
     this.askConfirm(
       editId ? 'Save changes?' : 'Create multi-poll?',
       editId ? 'Save the changes to this multi-poll?' : 'Create this new multi-poll?',
-      () => this.doSave(), false
+      () => this.doSave(dto), false
     );
   }
 
-  private doSave(): void {
+  private doSave(dto: MultiPollCreateDto): void {
     this.saving.set(true);
-    const isEdit = !!this.editing();
-    const groups = this.buildGroupDtos(isEdit);
-    const dto: MultiPollCreateDto = {
-      anime:    this.form.get('anime')?.value ?? '',
-      question: this.form.get('question')?.value ?? '',
-      visibility: this.visForm.visibility,
-      allowedUserIds: this.visForm.allowedUserIds,
-      votingByGroup: this.votingByGroup,
-      groups
-    };
-
     const editId = this.editing()?.id;
     const req$ = editId
       ? this.api.adminUpdateMultiPoll(editId, dto)
@@ -723,35 +338,6 @@ export class MultiPollManagementComponent implements OnInit {
         if (e?.status === 409) { this.dupError.set(this.msg(e)); }
         else { this.error.set(this.msg(e)); }
       }
-    });
-  }
-
-  private buildGroupDtos(isEdit: boolean): GroupCreateDto[] {
-    return this.groupsArray.controls.map((ctrl, i) => {
-      const g      = ctrl as FormGroup;
-      const level  = this.groupLevels[i] ?? 0;
-      const feederIndices = this.groupFeederIndices[i] ?? [];
-      const cArr   = g.get('candidates') as FormArray;
-      const characterIds = level === 0
-        ? cArr.controls.map(c => c.value as string).filter(id => id)
-        : [];
-
-      if (isEdit) {
-        return { label: g.get('label')?.value ?? '', characterIds, startNow: false, level, feederIndices };
-      }
-
-      const startNow: boolean = level === 0 && !!g.get('startNow')?.value;
-      const startDateRaw = g.get('startDate')?.value ?? '';
-      const endDateRaw   = g.get('endDate')?.value   ?? '';
-      return {
-        label: g.get('label')?.value ?? '',
-        characterIds,
-        startNow,
-        startDate: (!startNow && startDateRaw) ? this.toIso(startDateRaw) : null,
-        endDate:   endDateRaw ? this.toIso(endDateRaw) : null,
-        level,
-        feederIndices
-      };
     });
   }
 
@@ -807,6 +393,5 @@ export class MultiPollManagementComponent implements OnInit {
     return (mp.groups ?? []).reduce((s, g) => s + (g.candidates?.length ?? 0), 0);
   }
 
-  private toIso(dtLocal: string): string { return new Date(dtLocal).toISOString(); }
   private msg(e: any): string { return e?.error?.message ?? e?.message ?? 'Request failed'; }
 }

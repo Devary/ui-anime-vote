@@ -25,6 +25,9 @@
     </div>
 
     <div class="content-body">
+      @if (activeSection() === 'dashboard') {
+        <app-dashboard-management />
+      }
       @if (activeSection() === 'anime') {
         <app-anime-management />
       }
