@@ -1,9 +1,22 @@
+export type ContentStatus = 'PENDING' | 'APPROVED' | 'REJECTED';
+
+/** Who can see (and vote on) a poll or multi-poll. */
+export type Visibility = 'PUBLIC' | 'PRIVATE' | 'AUTHENTICATED' | 'RESTRICTED';
+
+export interface UserDirectoryEntryDto {
+  id: string;
+  username: string;
+}
+
 export interface CharacterDto {
   id: string;
   name: string;
   title: string;
   anime: string;
   imageUrl: string;
+  status?: ContentStatus;
+  ownerId?: string | null;
+  ownerUsername?: string | null;
 }
 
 export interface MultiPollGroupDto {
@@ -16,6 +29,8 @@ export interface MultiPollGroupDto {
   startDate?: string;
   endDate?: string;
   candidates: CharacterDto[];
+  /** winner once the group's voting period ended; null while open, on tie, or no votes */
+  winnerCharId?: string | null;
 }
 
 export interface FighterResultDto {
@@ -40,6 +55,7 @@ export interface GroupResultDto {
   feederGroupIds: string[];
   resolved: boolean;
   groupTotal: number;
+  winnerCharId?: string | null;
   candidates: {
     charId: string;
     name: string;
@@ -55,11 +71,14 @@ export interface MultiPollResultDto {
     anime: string;
     question: string;
     groups: MultiPollGroupDto[];
+    votingByGroup?: boolean;
   };
   groups: GroupResultDto[];
   overallWinnerCharId: string | null;
-  /** groupId → charId the user voted for */
+  /** groupId → charId the user voted for (vote-by-character polls) */
   myVotesByGroup: { [groupId: string]: string };
+  /** the group the user voted for (vote-by-group polls) */
+  myVotedGroupId?: string | null;
 }
 
 export interface HistoryItemDto {
@@ -69,6 +88,7 @@ export interface HistoryItemDto {
   question: string;
   myVoteCharId: string;
   myVoteCharName: string;
+  myVoteCharImageUrl: string | null;
   votedAt: string;
 }
 
@@ -78,8 +98,6 @@ export interface RegisterRequest {
   email: string;
   password: string;
   confirmPassword: string;
-  firstName: string;
-  lastName: string;
 }
 export interface LoginRequest { username: string; password: string; }
 export interface RefreshRequest { refreshToken: string; }
@@ -99,6 +117,9 @@ export interface PollCreateDto {
   anime: string;
   question: string;
   fighterIds: string[]; // 2-10 character IDs in order
+  isPrivate?: boolean;  // legacy; prefer visibility
+  visibility?: Visibility;
+  allowedUserIds?: string[]; // audience when visibility=RESTRICTED
 }
 
 export interface PollDto {
@@ -106,12 +127,27 @@ export interface PollDto {
   anime: string;
   question: string;
   fighters: CharacterDto[];
+  status?: ContentStatus;
+  isPrivate?: boolean;
+  visibility?: Visibility;
+  allowedUserIds?: string[];
+  ownerId?: string | null;
+  ownerUsername?: string | null;
+  deletePending?: boolean;
+  commentsEnabled?: boolean;
+  commentCount?: number;
+  likes?: number;
+  likedByMe?: boolean;
 }
 
 export interface MultiPollCreateDto {
   anime: string;
   question: string;
+  isPrivate?: boolean;  // legacy; prefer visibility
+  visibility?: Visibility;
+  allowedUserIds?: string[]; // audience when visibility=RESTRICTED
   groups: GroupCreateDto[];
+  votingByGroup?: boolean; // immutable after creation
 }
 
 export interface GroupCreateDto {
@@ -120,6 +156,8 @@ export interface GroupCreateDto {
   startNow: boolean;
   startDate?: string | null; // ISO-8601, absent when startNow=true
   endDate?: string | null;   // ISO-8601, required
+  level: number;             // mandatory — 0 = base level; 1+ = bracket levels
+  feederIndices?: number[];  // indices into parent groups list for level > 0
 }
 
 export interface ServerTimeDto {
@@ -131,6 +169,41 @@ export interface MultiPollAdminDto {
   anime: string;
   question: string;
   groups: MultiPollGroupDto[];
+  status?: ContentStatus;
+  isPrivate?: boolean;
+  visibility?: Visibility;
+  allowedUserIds?: string[];
+  ownerId?: string | null;
+  ownerUsername?: string | null;
+  deletePending?: boolean;
+  commentsEnabled?: boolean;
+  commentCount?: number;
+  likes?: number;
+  likedByMe?: boolean;
+  votingByGroup?: boolean;
+}
+
+// ── Approval system ───────────────────────────────────────────────────────────
+export interface ApprovalItemDto {
+  id: string;
+  type: 'POLL' | 'MULTI_POLL' | 'CHARACTER' | 'ANIME';
+  title: string;
+  anime: string;
+  ownerId: string;
+  ownerUsername: string;
+  createdAt: string;
+  isDeletion: boolean;
+}
+
+export interface ApprovalSummaryDto {
+  pendingContent: ApprovalItemDto[];
+  pendingDeletions: ApprovalItemDto[];
+}
+
+export interface DailyLimitDto {
+  charactersToday: number;
+  pollsToday: number;
+  multiPollsToday: number;
 }
 
 // ── Management CRUD ───────────────────────────────────────────────────────────
@@ -138,6 +211,8 @@ export interface AnimeDto {
   id: string;
   name: string;
   imageUrl: string | null;
+  status?: ContentStatus;
+  ownerId?: string | null;
 }
 
 export interface AnimeCreateDto {
@@ -154,4 +229,96 @@ export interface CharacterCreateDto {
 
 export interface UploadResponse {
   url: string;
+}
+
+// ── User management ───────────────────────────────────────────────────────────
+export interface RoleDto {
+  id: string;
+  name: string;
+  description: string | null;
+}
+
+export interface UserDto {
+  id: string;
+  username: string;
+  email: string;
+  profilePicture: string | null;
+  createdAt: string;
+  roles: RoleDto[];
+}
+
+export interface UserUpdateDto {
+  email?: string;
+  profilePicture?: string | null;
+}
+
+export interface AdminUserUpdateDto {
+  email?: string;
+  profilePicture?: string | null;
+  roleIds?: string[];
+}
+
+export interface RoleCreateDto {
+  id: string;
+  name: string;
+  description?: string;
+}
+
+// ── Audit trail ───────────────────────────────────────────────────────────────
+export interface AuditEventDto {
+  id: number;
+  entityType: 'ANIME' | 'CHARACTER' | 'POLL' | 'MULTI_POLL';
+  entityId: string;
+  action: 'CREATED' | 'UPDATED' | 'DELETED' | 'APPROVED' | 'REJECTED' | 'RESTORED';
+  userId: string | null;
+  username: string | null;
+  at: string;
+  snapshot: string | null;
+  restorable: boolean;
+}
+
+// ── Comments & likes ──────────────────────────────────────────────────────────
+export interface CommentDto {
+  id: string;
+  username: string;
+  text: string;
+  createdAt: string;
+  mine: boolean;
+}
+
+export interface LikeStateDto {
+  likes: number;
+  likedByMe: boolean;
+}
+
+/** REST prefix for social endpoints shared by both poll kinds */
+export type PollKind = 'polls' | 'multi-polls';
+
+// ── Dashboard analytics ────────────────────────────────────────────────────────
+export interface RankedItemDto {
+  id: string;
+  type: 'poll' | 'multi';
+  question: string;
+  value: number;
+}
+
+export interface DashboardDto {
+  totalUsers: number;
+  totalAnimes: number;
+  totalCharacters: number;
+  totalPolls: number;
+  totalMultiPolls: number;
+  totalVotes: number;
+  totalComments: number;
+  totalLikes: number;
+  pendingApprovals: number;
+  publicPolls: number;
+  privatePolls: number;
+  votingByGroupPolls: number;
+  votingByCharacterPolls: number;
+  newUsersLast7Days: number;
+  votesLast7Days: number;
+  mostLikedPolls: RankedItemDto[];
+  mostVotedPolls: RankedItemDto[];
+  mostCommentedPolls: RankedItemDto[];
 }

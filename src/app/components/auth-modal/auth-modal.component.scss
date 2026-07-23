@@ -1,7 +1,7 @@
 :host {
   position: fixed;
   inset: 0;
-  z-index: 200;
+  z-index: 700; // above the header bar
   display: flex;
   align-items: center;
   justify-content: center;
@@ -18,8 +18,10 @@
   position: relative;
   z-index: 1;
   width: min(420px, 94vw);
-  background: var(--rz-surface);
-  border: 1px solid var(--rz-glass-border);
+  // ~5% opaque glassmorphism — content colors below are fixed light for both themes
+  background: rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(26px);
+  border: 1px solid rgba(255, 255, 255, 0.15);
   border-radius: var(--rz-radius-lg);
   box-shadow: var(--rz-glass-shadow);
   padding: 2rem 1.75rem 1.75rem;
@@ -35,28 +37,30 @@
   width: 2rem;
   height: 2rem;
   border-radius: 50%;
-  border: 1px solid var(--rz-border);
+  border: 1px solid rgba(255, 255, 255, 0.2);
   background: transparent;
-  color: var(--rz-ink-muted);
+  color: rgba(255, 255, 255, 0.6);
   cursor: pointer;
   font-size: 0.85rem;
   display: grid;
   place-items: center;
-  &:hover { background: var(--rz-surface-hover); color: var(--rz-ink); }
+  &:hover { background: rgba(255, 255, 255, 0.1); color: #fff; }
 }
 
-.brand {
-  font-size: 1.25rem;
-  font-weight: 800;
-  color: var(--rz-primary);
-  text-align: center;
-  letter-spacing: -0.01em;
+.brand { text-align: center; }
+
+.brand-logo {
+  display:       inline-block;
+  width:         72px;
+  height:        72px;
+  border-radius: 1.1rem;
+  box-shadow:    0 8px 28px rgba(0, 0, 0, 0.35);
 }
 
 .tabs {
   display: flex;
   border-radius: var(--rz-radius-sm);
-  background: var(--rz-surface-hover);
+  background: rgba(255, 255, 255, 0.08);
   padding: 3px;
   gap: 3px;
 }
@@ -67,7 +71,7 @@
   border: none;
   border-radius: calc(var(--rz-radius-sm) - 2px);
   background: transparent;
-  color: var(--rz-ink-muted);
+  color: rgba(255, 255, 255, 0.6);
   font-size: 0.82rem;
   font-weight: 700;
   cursor: pointer;
@@ -77,7 +81,7 @@
     background: var(--rz-primary);
     color: #fff;
   }
-  &:not(.active):hover { background: var(--rz-surface-active); color: var(--rz-ink); }
+  &:not(.active):hover { background: rgba(255, 255, 255, 0.1); color: #fff; }
 }
 
 .form-error {
@@ -114,16 +118,16 @@
 .label {
   font-size: 0.75rem;
   font-weight: 700;
-  color: var(--rz-ink-muted);
+  color: rgba(255, 255, 255, 0.65);
   letter-spacing: 0.03em;
 }
 
 .input {
   height: 2.4rem;
-  border: 1px solid var(--rz-border);
+  border: 1px solid rgba(255, 255, 255, 0.18);
   border-radius: var(--rz-radius-sm);
-  background: var(--rz-glass-bg);
-  color: var(--rz-ink);
+  background: rgba(255, 255, 255, 0.08);
+  color: #fff;
   padding: 0 0.75rem;
   font-size: 0.88rem;
   outline: none;
@@ -151,7 +155,7 @@
 
 .switch-prompt {
   font-size: 0.78rem;
-  color: var(--rz-ink-muted);
+  color: rgba(255, 255, 255, 0.55);
   text-align: center;
   margin: 0;
 }

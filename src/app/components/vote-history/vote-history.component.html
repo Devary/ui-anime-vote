@@ -6,72 +6,64 @@
 
   <div class="drawer-header">
     <h2 class="drawer-title">Today's Votes</h2>
-    <span class="vote-count">{{ todayPolls().length }} voted</span>
+    <span class="vote-count">{{ historyItems().length }} voted</span>
     <button class="drawer-close" (click)="closeHistory.emit()" aria-label="Close">✕</button>
   </div>
 
-  <!-- Filters -->
+  <!-- Search -->
   <div class="filter-row">
     <div class="filter-field">
-      <label class="filter-label" for="char1-input">Character</label>
-      <input id="char1-input"
+      <label class="filter-label" for="search-input">Search</label>
+      <input id="search-input"
              class="filter-input"
              type="text"
-             placeholder="e.g. Luffy"
-             [ngModel]="char1Filter()"
-             (ngModelChange)="onChar1Change($event)" />
+             placeholder="Character, anime, question…"
+             [ngModel]="searchFilter()"
+             (ngModelChange)="onSearchChange($event)" />
     </div>
-
-    <span class="filter-and">and</span>
-
-    <div class="filter-field" [class.disabled]="char2Disabled()">
-      <label class="filter-label" for="char2-input">vs Character</label>
-      <input id="char2-input"
-             class="filter-input"
-             type="text"
-             placeholder="e.g. Naruto"
-             [disabled]="char2Disabled()"
-             [ngModel]="char2Filter()"
-             (ngModelChange)="char2Filter.set($event)" />
-    </div>
-
     @if (isFiltered()) {
-      <button class="clear-btn" (click)="clearFilters()" aria-label="Clear filters">✕</button>
+      <button class="clear-btn" (click)="clearFilter()" aria-label="Clear">✕</button>
     }
   </div>
 
   @if (isFiltered()) {
     <div class="filter-result">
-      <span>{{ filteredPolls().length }} match{{ filteredPolls().length !== 1 ? 'es' : '' }}</span>
+      <span>{{ filteredItems().length }} match{{ filteredItems().length !== 1 ? 'es' : '' }}</span>
     </div>
   }
 
   <div class="drawer-body">
-    @if (todayPolls().length === 0) {
+    @if (loading()) {
+      <div class="empty-state">
+        <span class="empty-icon">⏳</span>
+        <p>Loading history…</p>
+      </div>
+    } @else if (historyItems().length === 0) {
       <div class="empty-state">
         <span class="empty-icon">🗳️</span>
         <p>No votes today. Cast your first vote!</p>
       </div>
-    } @else if (filteredPolls().length === 0) {
+    } @else if (filteredItems().length === 0) {
       <div class="empty-state">
         <span class="empty-icon">🔍</span>
-        <p>No votes match this filter.</p>
-        <button class="clear-link" (click)="clearFilters()">Clear filters</button>
+        <p>No votes match this search.</p>
+        <button class="clear-link" (click)="clearFilter()">Clear search</button>
       </div>
     } @else {
       <ul class="history-list">
-        @for (poll of visiblePolls(); track poll.id) {
-          <li class="history-row is-clickable"
-              (click)="openDetail(poll)"
-              role="button"
-              tabindex="0"
-              (keydown.enter)="openDetail(poll)">
+        @for (item of visibleItems(); track item.pollId) {
+          <li class="history-row"
+              [class.is-clickable]="hasDetail(item)"
+              (click)="openDetail(item)"
+              [attr.role]="hasDetail(item) ? 'button' : null"
+              [attr.tabindex]="hasDetail(item) ? 0 : null"
+              (keydown.enter)="openDetail(item)">
 
-            <!-- Voted character -->
+            <!-- Voted character avatar -->
             <div class="voted-char">
               <img class="char-avatar voted"
-                   [src]="myVotedChar(poll).image"
-                   [alt]="myVotedChar(poll).name"
+                   [src]="avatarUrl(item)"
+                   [alt]="item.myVoteCharName"
                    onerror="this.onerror=null;this.src='https://placehold.co/48x48/1565C0/fff?text=?'" />
               <span class="voted-badge">✓</span>
             </div>
@@ -79,32 +71,29 @@
             <!-- Info -->
             <div class="row-info">
               <div class="row-names">
-                <span class="voted-name" [class.winner]="isWinner(poll)">
-                  {{ myVotedChar(poll).name }}
-                </span>
-                <span class="vs-sep">vs</span>
-                <span class="other-name">{{ opponentName(poll) }}</span>
+                <span class="voted-name">{{ item.myVoteCharName }}</span>
               </div>
               <div class="row-meta">
-                <span class="anime-pill">{{ poll.anime }}</span>
-                @if (isMulti(poll)) {
+                @if (item.anime) {
+                  <span class="anime-pill">{{ item.anime }}</span>
+                }
+                @if (item.pollType === 'multi') {
                   <span class="multi-pill">MULTI</span>
                 }
-                <span class="row-pct" [class.winning]="isWinner(poll)">{{ pct(poll) }}%</span>
-                @if (isWinner(poll)) {
-                  <span class="crown-small">👑</span>
-                }
+                <span class="row-time">{{ timeAgo(item.votedAt) }}</span>
               </div>
+              <div class="row-question">{{ item.question }}</div>
             </div>
 
-            <span class="row-arrow">›</span>
-
+            @if (hasDetail(item)) {
+              <span class="row-arrow">›</span>
+            }
           </li>
         }
       </ul>
       @if (hasMore()) {
         <button class="show-more-btn" (click)="showMore()">
-          Show more <span class="show-more-count">({{ filteredPolls().length - visibleCount() }} remaining)</span>
+          Show more <span class="show-more-count">({{ filteredItems().length - visibleCount() }} remaining)</span>
         </button>
       }
     }

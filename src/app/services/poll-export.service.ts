@@ -1,95 +1,450 @@
-import { Injectable } from '@angular/core';
-import { PollDto, MultiPollAdminDto } from './api.types';
+import { Injectable, inject } from '@angular/core';
+import { firstValueFrom } from 'rxjs';
+import { AnimeApiService } from './anime-api.service';
+import { PollDto, MultiPollAdminDto, MultiPollGroupDto, CharacterDto } from './api.types';
 
-interface TreeNode {
-  label:    string;
-  sublabel: string;
-  imageUrl?: string; // '?' = question-mark sentinel (root), real url = character
-  dataUri?:  string; // resolved async or pre-built
-  level:    number;
-  children: TreeNode[];
-  // layout
-  treeWidth: number;
-  x: number;
-  y: number;
+/** One participant circle inside a match/candidate card; char=null renders the TBD shield. */
+interface Slot {
+  name?:     string;
+  sub?:      string;
+  imageUrl?: string;
+  dataUri?:  string;
+  isWinner?: boolean;
 }
 
-const BOX_W     = 148;
-const BOX_H_IMG = 114; // node with avatar circle
-const BOX_H_TXT = 64;  // group-label nodes (no avatar)
-const AVATAR_R  = 28;
-const H_GAP     = 24;
-const V_GAP     = 76;
-const PAD       = 48;
+/** One node of the symmetric knockout tree. */
+interface KNode {
+  slots:    Slot[];
+  children: KNode[];
+  depth:    number;
+  boxH:     number;
+  h:        number; // subtree height
+  x:        number;
+  cy:       number;
+}
 
-const LEVEL_COLORS    = ['#1565c0', '#6b21a8', '#0f766e', '#374151'];
+const GOLD       = '#eab308';
+const LINE       = '#3f4c63';
+const INK_SUB    = '#94a3b8';
+const BG         = '#0b1120';
+const BOX_FILL   = '#111827cc';
+const BOX_STROKE = '#ffffff1a';
+
+const SHIELD_PATH = 'M12 2l8 3v6c0 5-3.4 9.4-8 11-4.6-1.6-8-6-8-11V5l8-3z';
+
+// knockout metrics
+const MATCH_W  = 132;
+const SLOT_H   = 82;
+const MATCH_P  = 10;
+const H_GAP    = 46;
+const V_GAP    = 20;
+
+// org-chart metrics
+const CARD_W   = 128;
+const CARD_H   = 118;
+const CARD_GAP = 22;
+
+const TITLE_H  = 74;
+const PAD      = 42;
+
 const FALLBACK_COLORS = ['#1565c0', '#c62828', '#2e7d32', '#6a1b9a', '#e65100'];
 
 @Injectable({ providedIn: 'root' })
 export class PollExportService {
 
+  private readonly api = inject(AnimeApiService);
+
+  /**
+   * Simple poll → multi-poll knockout style. Up to 4 fighters sit on one
+   * horizontal line around the gold Winner center; more than 4 fall back to
+   * the mirrored stacked layout.
+   */
   async downloadPoll(poll: PollDto): Promise<void> {
-    const root: TreeNode = {
-      label: poll.question, sublabel: poll.anime ?? '',
-      level: 0,
-      imageUrl: '?',                     // sentinel → avatar height
-      dataUri:  this.questionMarkUri(),  // pre-built, skip fetch
-      children: poll.fighters.map(f => ({
-        label: f.name, sublabel: f.title ?? '', imageUrl: f.imageUrl,
-        level: 1, children: [], treeWidth: 0, x: 0, y: 0,
+    // leader from live results (null on tie / no votes → gold shield instead)
+    let leaderId: string | null = null;
+    try {
+      const res = await firstValueFrom(this.api.getPollResult(poll.id));
+      const sorted = [...res.fighterResults].sort((a, b) => b.votes - a.votes);
+      if (sorted.length > 1 && sorted[0].votes > sorted[1].votes) leaderId = sorted[0].charId;
+    } catch { /* results unavailable → render without champion */ }
+
+    if (poll.fighters.length <= 4) {
+      const svg = await this.buildHorizontalPoll(poll, leaderId);
+      await this.downloadJpeg(svg.svg, svg.w, svg.h, poll.id);
+      return;
+    }
+
+    const pseudo: MultiPollAdminDto = {
+      id: poll.id,
+      anime: poll.anime ?? '',
+      question: poll.question,
+      groups: poll.fighters.map((f, i) => ({
+        id: `side-${i}`,
+        label: f.name,
+        groupOrder: i,
+        level: 0,
+        feederGroupIds: [],
+        resolved: true,
+        candidates: [f],
+        winnerCharId: f.id === leaderId ? f.id : null,
       })),
-      treeWidth: 0, x: 0, y: 0,
     };
-    await this.run(root, poll.id);
+    // a poll has exactly one winner → single center slot (leader avatar or one shield)
+    const leader = leaderId ? poll.fighters.find(f => f.id === leaderId) ?? null : null;
+    const center: Slot[] = [leader ? { name: leader.name, imageUrl: leader.imageUrl, isWinner: true } : {}];
+    const svg = await this.buildKnockout(pseudo, center);
+    await this.downloadJpeg(svg.svg, svg.w, svg.h, poll.id);
   }
 
+  /** Single group → org chart; several groups → symmetric knockout like the cards. */
   async downloadMultiPoll(poll: MultiPollAdminDto): Promise<void> {
-    const root: TreeNode = {
-      label: poll.question, sublabel: poll.anime ?? '',
-      level: 0,
-      imageUrl: '?',
-      dataUri:  this.questionMarkUri(),
-      children: poll.groups.map(g => ({
-        label: g.label, sublabel: '',
-        level: 1,
-        children: g.candidates.map(c => ({
-          label: c.name, sublabel: c.title ?? '', imageUrl: c.imageUrl,
-          level: 2, children: [], treeWidth: 0, x: 0, y: 0,
-        })),
-        treeWidth: 0, x: 0, y: 0,
-      })),
-      treeWidth: 0, x: 0, y: 0,
+    if ((poll.groups ?? []).length === 1) {
+      const g = poll.groups[0];
+      const winner = g.winnerCharId ? g.candidates.find(c => c.id === g.winnerCharId) ?? null : null;
+      const slots: Slot[] = g.candidates.map(c => ({
+        name: c.name, sub: c.title ?? '', imageUrl: c.imageUrl, isWinner: g.winnerCharId === c.id,
+      }));
+      const champ: Slot | null = winner ? { name: winner.name, imageUrl: winner.imageUrl } : null;
+      const svg = await this.buildOrgChart(poll.question, poll.anime ?? '', g.label, slots, champ);
+      await this.downloadJpeg(svg.svg, svg.w, svg.h, poll.id);
+      return;
+    }
+    const svg = await this.buildKnockout(poll);
+    await this.downloadJpeg(svg.svg, svg.w, svg.h, poll.id);
+  }
+
+  // ══════════════════════════════════════════════════════════════════════════
+  // ORG CHART (poll + single-group multi-poll)
+  // ══════════════════════════════════════════════════════════════════════════
+
+  private async buildOrgChart(
+    question: string, anime: string, groupLabel: string | null,
+    slots: Slot[], champion: Slot | null,
+  ): Promise<{ svg: string; w: number; h: number }> {
+    await this.resolveImages([...slots, ...(champion ? [champion] : [])]);
+
+    const rowW    = slots.length * CARD_W + (slots.length - 1) * CARD_GAP;
+    const w       = Math.max(rowW, 340) + PAD * 2;
+    const rootW   = 104;
+    const rootH   = champion ? 118 : 96;
+    const rootX   = w / 2 - rootW / 2;
+    const rootY   = TITLE_H + (groupLabel ? 22 : 0);
+    const rowY    = rootY + rootH + 56;
+    const h       = rowY + CARD_H + PAD;
+    const rowX0   = w / 2 - rowW / 2;
+
+    const defs:  string[] = [];
+    const elems: string[] = [];
+
+    // title
+    elems.push(this.txt(question, w / 2, 34, '#fff', 15, 800, w - PAD));
+    if (anime) elems.push(this.txt(anime.toUpperCase(), w / 2, 54, '#60a5fa', 10, 700, w - PAD));
+    if (groupLabel) elems.push(this.txt(groupLabel, w / 2, TITLE_H + 8, INK_SUB, 11, 700, w - PAD));
+
+    // winner root node (gold)
+    elems.push(`<rect x="${rootX}" y="${rootY}" width="${rootW}" height="${rootH}" rx="12" fill="${GOLD}24" stroke="${GOLD}" stroke-width="1.5"/>`);
+    if (champion) {
+      this.drawAvatar(elems, defs, champion, w / 2, rootY + 42, 30, GOLD);
+      elems.push(this.txt('👑', w / 2, rootY + 6, '#fff', 13, 700, rootW));
+      elems.push(this.txt(champion.name ?? '', w / 2, rootY + 88, GOLD, 10.5, 800, rootW - 8));
+    } else {
+      elems.push(this.shield(w / 2, rootY + 40, 22, GOLD + 'bb'));
+      elems.push(this.txt('Winner', w / 2, rootY + rootH - 18, GOLD, 11, 800, rootW));
+    }
+
+    // connectors + candidate cards
+    const lines: string[] = [];
+    slots.forEach((s, i) => {
+      const cx = rowX0 + i * (CARD_W + CARD_GAP) + CARD_W / 2;
+      const y1 = rootY + rootH, y2 = rowY, my = (y1 + y2) / 2;
+      lines.push(`<path d="M${w / 2},${y1} C${w / 2},${my} ${cx},${my} ${cx},${y2}" stroke="${LINE}" stroke-width="2" fill="none"/>`);
+
+      const x = rowX0 + i * (CARD_W + CARD_GAP);
+      elems.push(`<rect x="${x}" y="${rowY}" width="${CARD_W}" height="${CARD_H}" rx="12" fill="${BOX_FILL}" stroke="${s.isWinner ? GOLD : BOX_STROKE}" stroke-width="${s.isWinner ? 1.5 : 1}"/>`);
+      this.drawAvatar(elems, defs, s, cx, rowY + 38, 28, s.isWinner ? GOLD : '#ffffff33');
+      if (s.isWinner) elems.push(this.txt('🏆', x + 16, rowY + 14, '#fff', 11, 700, 20));
+      elems.push(this.txt(s.name ?? '', cx, rowY + 80, '#fff', 11.5, 700, CARD_W - 10));
+      if (s.sub) elems.push(this.txt(s.sub, cx, rowY + 96, INK_SUB, 9.5, 400, CARD_W - 10));
+    });
+
+    return { svg: this.wrapSvg(w, h, defs, [...lines, ...elems], slots), w, h };
+  }
+
+  // ══════════════════════════════════════════════════════════════════════════
+  // HORIZONTAL VERSUS (simple poll, ≤4 fighters on one line around the center)
+  // ══════════════════════════════════════════════════════════════════════════
+
+  private async buildHorizontalPoll(
+    poll: PollDto, leaderId: string | null,
+  ): Promise<{ svg: string; w: number; h: number }> {
+    const fighterSlots: Slot[] = poll.fighters.map(f => ({
+      name: f.name, imageUrl: f.imageUrl, isWinner: f.id === leaderId,
+    }));
+    const leader = leaderId ? poll.fighters.find(f => f.id === leaderId) ?? null : null;
+    const center: Slot = leader ? { name: leader.name, imageUrl: leader.imageUrl, isWinner: true } : {};
+    await this.resolveImages([...fighterSlots, center]);
+
+    const boxH    = MATCH_P * 2 + SLOT_H;
+    const n       = fighterSlots.length;
+    const w       = PAD * 2 + n * MATCH_W + (n - 1) * H_GAP;
+    const winTop  = TITLE_H + 26;          // room for the Winner label above the gold box
+    const railY   = winTop + boxH + 24;    // elbow rail between the winner and the fighters row
+    const rowTop  = railY + 24;
+    const h       = rowTop + boxH + PAD;
+    const winX    = w / 2 - MATCH_W / 2;
+
+    const defs:  string[] = [];
+    const lines: string[] = [];
+    const elems: string[] = [];
+
+    elems.push(this.txt(poll.question, w / 2, 34, '#fff', 15, 800, w - PAD));
+    if (poll.anime) elems.push(this.txt(poll.anime.toUpperCase(), w / 2, 54, '#60a5fa', 10, 700, w - PAD));
+
+    const node = (slots: Slot[], x: number, cy: number): KNode =>
+      ({ slots, children: [], depth: 0, boxH, h: boxH, x, cy });
+
+    // Winner one level above the fighters
+    this.drawMatch(elems, defs, node([center], winX, winTop + boxH / 2), true);
+    elems.push(this.txt('Winner', w / 2, winTop - 12, GOLD, 12, 800, MATCH_W + 40));
+
+    // fighters row + right-angle connectors up to the rail, rail up to the winner
+    const centers: number[] = [];
+    fighterSlots.forEach((slot, i) => {
+      const x  = PAD + i * (MATCH_W + H_GAP);
+      const cx = x + MATCH_W / 2;
+      centers.push(cx);
+      this.drawMatch(elems, defs, node([slot], x, rowTop + boxH / 2), false);
+      lines.push(`<path d="M${cx},${rowTop} V${railY}" stroke="${LINE}" stroke-width="2" fill="none"/>`);
+    });
+    lines.push(`<path d="M${Math.min(...centers)},${railY} H${Math.max(...centers)}" stroke="${LINE}" stroke-width="2" fill="none"/>`);
+    lines.push(`<path d="M${w / 2},${railY} V${winTop + boxH}" stroke="${LINE}" stroke-width="2" fill="none"/>`);
+
+    return { svg: this.wrapSvg(w, h, defs, [...lines, ...elems], fighterSlots), w, h };
+  }
+
+  // ══════════════════════════════════════════════════════════════════════════
+  // SYMMETRIC KNOCKOUT (multi-group multi-poll)
+  // ══════════════════════════════════════════════════════════════════════════
+
+  private async buildKnockout(
+    poll: MultiPollAdminDto,
+    centerSlots?: Slot[], // overrides the flat-poll center (e.g. simple polls have a single winner slot)
+  ): Promise<{ svg: string; w: number; h: number }> {
+    const groups = poll.groups ?? [];
+    const byId   = new Map(groups.map(g => [g.id, g]));
+    const maxLevel = groups.reduce((m, g) => Math.max(m, g.level ?? 0), 0);
+
+    const slotsOf = (g: MultiPollGroupDto): Slot[] => {
+      if (g.candidates.length > 0) {
+        return g.candidates.map(c => ({
+          name: c.name, imageUrl: c.imageUrl, isWinner: g.winnerCharId === c.id,
+        }));
+      }
+      return (g.feederGroupIds ?? []).map(() => ({}));
     };
-    await this.run(root, poll.id);
+
+    const build = (g: MultiPollGroupDto, depth: number): KNode => ({
+      slots: slotsOf(g),
+      children: (g.feederGroupIds ?? [])
+        .map(id => byId.get(id))
+        .filter((f): f is MultiPollGroupDto => !!f)
+        .map(f => build(f, depth + 1)),
+      depth, boxH: 0, h: 0, x: 0, cy: 0,
+    });
+
+    // root: real final for brackets, synthetic Winner node for flat multi-group polls
+    let root: KNode;
+    let centerLabel = 'Winner';
+    let champion: CharacterDto | null = null;
+    if (maxLevel > 0) {
+      const finals = groups.filter(g => g.level === maxLevel);
+      root = finals.length === 1
+        ? build(finals[0], 0)
+        : { slots: finals.map(() => ({})), children: finals.map(f => build(f, 1)), depth: 0, boxH: 0, h: 0, x: 0, cy: 0 };
+      centerLabel = 'Final';
+      const final = finals.length === 1 ? finals[0] : null;
+      champion = final?.winnerCharId ? final.candidates.find(c => c.id === final.winnerCharId) ?? null : null;
+    } else {
+      root = {
+        slots: centerSlots ?? groups.map(g => {
+          const winner = g.winnerCharId ? g.candidates.find(c => c.id === g.winnerCharId) : null;
+          return winner ? { name: winner.name, imageUrl: winner.imageUrl, isWinner: true } : {};
+        }),
+        children: groups.map(g => build(g, 1)),
+        depth: 0, boxH: 0, h: 0, x: 0, cy: 0,
+      };
+    }
+
+    // resolve images for every slot
+    const allSlots: Slot[] = [];
+    const walk = (n: KNode) => { allSlots.push(...n.slots); n.children.forEach(walk); };
+    walk(root);
+    const champSlot: Slot | null = champion ? { name: champion.name, imageUrl: champion.imageUrl } : null;
+    await this.resolveImages([...allSlots, ...(champSlot ? [champSlot] : [])]);
+
+    // split children left/right, measure
+    const half  = Math.ceil(root.children.length / 2);
+    const left  = root.children.slice(0, half);
+    const right = root.children.slice(half);
+
+    const measure = (n: KNode): void => {
+      n.boxH = MATCH_P * 2 + Math.max(n.slots.length, 1) * SLOT_H;
+      n.children.forEach(measure);
+      const kids = n.children.reduce((s, c) => s + c.h, 0) + V_GAP * Math.max(n.children.length - 1, 0);
+      n.h = Math.max(n.boxH, kids);
+    };
+    measure(root);
+    left.forEach(measure); right.forEach(measure);
+
+    const depthOf  = (ns: KNode[]): number => ns.length === 0 ? 0 : Math.max(...ns.map(n => 1 + depthOf(n.children)));
+    const leftD    = depthOf(left);
+    const rightD   = depthOf(right);
+    const sideH    = (ns: KNode[]) => ns.reduce((s, n) => s + n.h, 0) + V_GAP * Math.max(ns.length - 1, 0);
+    const boardH   = Math.max(sideH(left), sideH(right), root.boxH);
+    const w        = PAD * 2 + leftD * (MATCH_W + H_GAP) + MATCH_W + rightD * (MATCH_W + H_GAP);
+    const topY     = TITLE_H + (champion ? 66 : 30);
+    const h        = topY + boardH + PAD;
+    const centerX  = PAD + leftD * (MATCH_W + H_GAP);
+
+    // y placement
+    const assignY = (n: KNode, top: number): void => {
+      if (n.children.length === 0) { n.cy = top + n.h / 2; return; }
+      let t = top + (n.h - (n.children.reduce((s, c) => s + c.h, 0) + V_GAP * (n.children.length - 1))) / 2;
+      for (const c of n.children) { assignY(c, t); t += c.h + V_GAP; }
+      n.cy = (n.children[0].cy + n.children[n.children.length - 1].cy) / 2;
+    };
+    const placeSide = (ns: KNode[]) => {
+      let t = topY + (boardH - sideH(ns)) / 2;
+      for (const n of ns) { assignY(n, t); t += n.h + V_GAP; }
+    };
+    placeSide(left); placeSide(right);
+    root.cy = topY + boardH / 2;
+
+    // x placement (depth 1 = adjacent to center)
+    const placeX = (n: KNode, side: 'L' | 'R'): void => {
+      n.x = side === 'L'
+        ? centerX - n.depth * (MATCH_W + H_GAP)
+        : centerX + n.depth * (MATCH_W + H_GAP);
+      n.children.forEach(c => placeX(c, side));
+    };
+    left.forEach(n => placeX(n, 'L'));
+    right.forEach(n => placeX(n, 'R'));
+    root.x = centerX;
+
+    const defs:  string[] = [];
+    const lines: string[] = [];
+    const elems: string[] = [];
+
+    // title
+    elems.push(this.txt(poll.question, w / 2, 34, '#fff', 15, 800, w - PAD));
+    if (poll.anime) elems.push(this.txt(poll.anime.toUpperCase(), w / 2, 54, '#60a5fa', 10, 700, w - PAD));
+
+    // connectors (elbows through the middle of the gap)
+    const connect = (parent: KNode, child: KNode, side: 'L' | 'R') => {
+      const px = side === 'L' ? parent.x : parent.x + MATCH_W;
+      const cx = side === 'L' ? child.x + MATCH_W : child.x;
+      const rail = side === 'L' ? px - H_GAP / 2 : px + H_GAP / 2;
+      lines.push(`<path d="M${cx},${child.cy} H${rail} V${parent.cy} H${px}" stroke="${LINE}" stroke-width="2" fill="none"/>`);
+    };
+    const drawTree = (n: KNode, side: 'L' | 'R') => {
+      this.drawMatch(elems, defs, n, false);
+      for (const c of n.children) { connect(n, c, side); drawTree(c, side); }
+    };
+    left.forEach(n => { connect(root, n, 'L'); drawTree(n, 'L'); });
+    right.forEach(n => { connect(root, n, 'R'); drawTree(n, 'R'); });
+
+    // center node (gold) + label / champion
+    this.drawMatch(elems, defs, root, true);
+    const rootTop = root.cy - root.boxH / 2;
+    if (champSlot) {
+      this.drawAvatar(elems, defs, champSlot, centerX + MATCH_W / 2, rootTop - 44, 26, GOLD);
+      elems.push(this.txt('👑', centerX + MATCH_W / 2, rootTop - 78, '#fff', 12, 700, MATCH_W));
+      elems.push(this.txt(champSlot.name ?? '', centerX + MATCH_W / 2, rootTop - 8, GOLD, 10.5, 800, MATCH_W + 30));
+    } else {
+      elems.push(this.txt(centerLabel, centerX + MATCH_W / 2, rootTop - 12, GOLD, 12, 800, MATCH_W));
+    }
+
+    return { svg: this.wrapSvg(w, h, defs, [...lines, ...elems], allSlots), w, h };
   }
 
-  // ── Core pipeline ─────────────────────────────────────────────────────────
-
-  private async run(root: TreeNode, id: string): Promise<void> {
-    await this.loadAllImages(root);
-
-    this.computeWidths(root);
-    const svgW = root.treeWidth + PAD * 2;
-    const svgH = this.treeBottom(root, PAD) + PAD;
-    this.assignPositions(root, PAD, PAD);
-
-    // Collect character data-URIs for the blurred background (skip root sentinel)
-    const bgImages: string[] = [];
-    this.walk(root, n => { if (n.dataUri && n.imageUrl !== '?') bgImages.push(n.dataUri); });
-
-    const svg = this.buildSvg(root, svgW, svgH, bgImages);
-    this.triggerDownload(svg, `${id}-hierarchy.svg`);
+  private drawMatch(elems: string[], defs: string[], n: KNode, isCenter: boolean): void {
+    const top = n.cy - n.boxH / 2;
+    elems.push(`<rect x="${n.x}" y="${top}" width="${MATCH_W}" height="${n.boxH}" rx="14" ` +
+      (isCenter
+        ? `fill="${GOLD}24" stroke="${GOLD}" stroke-width="1.5"/>`
+        : `fill="${BOX_FILL}" stroke="${BOX_STROKE}" stroke-width="1"/>`));
+    n.slots.forEach((s, i) => {
+      const cy = top + MATCH_P + i * SLOT_H + 30;
+      const cx = n.x + MATCH_W / 2;
+      if (s.dataUri) {
+        this.drawAvatar(elems, defs, s, cx, cy, 24, s.isWinner ? GOLD : '#ffffff33');
+        elems.push(this.txt(s.name ?? '', cx, cy + 38, s.isWinner ? GOLD : '#fff', 10, 700, MATCH_W - 12));
+      } else {
+        elems.push(this.shield(cx, cy, 18, isCenter ? GOLD + 'bb' : '#ffffff2e'));
+        elems.push(this.txt('TBD', cx, cy + 38, INK_SUB, 9.5, 700, MATCH_W - 12));
+      }
+    });
   }
 
-  private async loadAllImages(root: TreeNode): Promise<void> {
-    const nodes: TreeNode[] = [];
-    // Skip nodes that already have a pre-built dataUri (root "?" sentinel)
-    this.walk(root, n => { if (n.imageUrl && !n.dataUri) nodes.push(n); });
+  // ── Shared drawing helpers ────────────────────────────────────────────────
+
+  private drawAvatar(elems: string[], defs: string[], s: Slot, cx: number, cy: number, r: number, ring: string): void {
+    const uid = `cl${Math.round(cx)}_${Math.round(cy)}`;
+    defs.push(`<clipPath id="${uid}"><circle cx="${cx}" cy="${cy}" r="${r}"/></clipPath>`);
+    elems.push(`<circle cx="${cx}" cy="${cy}" r="${r}" fill="#1a1a2e"/>`);
+    if (s.dataUri) {
+      elems.push(`<image href="${s.dataUri}" x="${cx - r}" y="${cy - r}" width="${r * 2}" height="${r * 2}" preserveAspectRatio="xMidYMin slice" clip-path="url(#${uid})"/>`);
+    }
+    elems.push(`<circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="${ring}" stroke-width="2"/>`);
+  }
+
+  private shield(cx: number, cy: number, size: number, fill: string): string {
+    const s = size / 12; // path is on a 24x24 grid centered at 12,12
+    return `<path d="${SHIELD_PATH}" transform="translate(${cx - 12 * s},${cy - 12 * s}) scale(${s})" fill="${fill}"/>`;
+  }
+
+  private wrapSvg(w: number, h: number, defs: string[], body: string[], slots: Slot[]): string {
+    const bgImages = slots.map(s => s.dataUri).filter((u): u is string => !!u).slice(0, 8);
+    let bgLayer = '';
+    if (bgImages.length > 0) {
+      const sliceW = Math.ceil(w / bgImages.length);
+      const imgs = bgImages.map((uri, i) =>
+        `<image href="${uri}" x="${i * sliceW}" y="0" width="${sliceW}" height="${h}" preserveAspectRatio="xMidYMid slice"/>`
+      ).join('\n  ');
+      bgLayer = `<g filter="url(#bg-blur)" opacity="0.42">\n  ${imgs}\n</g>`;
+    }
+    return `<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}">
+  <defs>
+    <filter id="bg-blur" x="-20%" y="-20%" width="140%" height="140%"><feGaussianBlur stdDeviation="20"/></filter>
+    ${defs.join('\n    ')}
+  </defs>
+  <rect width="${w}" height="${h}" fill="${BG}"/>
+  ${bgLayer}
+  <rect width="${w}" height="${h}" fill="${BG}" opacity="0.68"/>
+  ${body.join('\n  ')}
+</svg>`;
+  }
+
+  private txt(raw: string, x: number, y: number, fill: string, size: number, weight: number, maxW: number): string {
+    const max  = Math.floor(maxW / (size * 0.58));
+    const text = raw.length > max ? raw.slice(0, Math.max(max - 1, 1)) + '…' : raw;
+    return `<text x="${x}" y="${y}" text-anchor="middle" dominant-baseline="middle" fill="${fill}" font-size="${size}" font-weight="${weight}" font-family="system-ui,ui-sans-serif,sans-serif">${this.esc(text)}</text>`;
+  }
+
+  private esc(s: string): string {
+    return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  }
+
+  // ── Image resolution ──────────────────────────────────────────────────────
+
+  private async resolveImages(slots: Slot[]): Promise<void> {
+    const pending = slots.filter(s => s.imageUrl && !s.dataUri);
     await Promise.allSettled(
-      nodes.map((n, i) =>
-        this.toDataUri(n.imageUrl!)
-          .then(uri => { n.dataUri = uri; })
-          .catch(()  => { n.dataUri = this.fallbackUri(n.label, FALLBACK_COLORS[i % FALLBACK_COLORS.length]); })
+      pending.map((s, i) =>
+        this.toDataUri(s.imageUrl!)
+          .then(uri => { s.dataUri = uri; })
+          .catch(()  => { s.dataUri = this.fallbackUri(s.name ?? '?', FALLBACK_COLORS[i % FALLBACK_COLORS.length]); })
       )
     );
   }
@@ -106,155 +461,38 @@ export class PollExportService {
     });
   }
 
-  private questionMarkUri(): string {
-    const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="60" height="60"><circle cx="30" cy="30" r="30" fill="#1e3a5f" stroke="#60a5fa" stroke-width="2"/><text x="30" y="30" text-anchor="middle" dominant-baseline="middle" fill="#60a5fa" font-size="26" font-weight="700" font-family="sans-serif">?</text></svg>`;
-    return 'data:image/svg+xml;base64,' + btoa(svg);
-  }
-
   private fallbackUri(name: string, bg: string): string {
     const ini = name.split(' ').filter(Boolean).map(w => w[0]).join('').slice(0, 2).toUpperCase();
     const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="60" height="60"><circle cx="30" cy="30" r="30" fill="${bg}"/><text x="30" y="30" text-anchor="middle" dominant-baseline="middle" fill="#fff" font-size="20" font-weight="700" font-family="sans-serif">${ini}</text></svg>`;
     return 'data:image/svg+xml;base64,' + btoa(svg);
   }
 
-  // ── Layout ────────────────────────────────────────────────────────────────
+  // ── JPEG output ───────────────────────────────────────────────────────────
 
-  private bh(n: TreeNode): number { return n.imageUrl ? BOX_H_IMG : BOX_H_TXT; }
-
-  private computeWidths(n: TreeNode): void {
-    if (!n.children.length) { n.treeWidth = BOX_W; return; }
-    n.children.forEach(c => this.computeWidths(c));
-    const total = n.children.reduce((s, c) => s + c.treeWidth, 0) + H_GAP * (n.children.length - 1);
-    n.treeWidth = Math.max(BOX_W, total);
-  }
-
-  private treeBottom(n: TreeNode, y: number): number {
-    const bottom = y + this.bh(n);
-    if (!n.children.length) return bottom;
-    return Math.max(...n.children.map(c => this.treeBottom(c, bottom + V_GAP)));
-  }
-
-  private assignPositions(n: TreeNode, x: number, y: number): void {
-    n.x = x + (n.treeWidth - BOX_W) / 2;
-    n.y = y;
-    let cx = x;
-    for (const child of n.children) {
-      this.assignPositions(child, cx, y + this.bh(n) + V_GAP);
-      cx += child.treeWidth + H_GAP;
-    }
-  }
-
-  // ── SVG generation ────────────────────────────────────────────────────────
-
-  private buildSvg(root: TreeNode, w: number, h: number, bgImages: string[]): string {
-    const lines: string[] = [];
-    const defs:  string[] = [];
-    const elems: string[] = [];
-
-    this.collectLines(root, lines);
-    this.collectElems(root, elems, defs);
-
-    // Level-color gradients for boxes
-    const levelGrad = LEVEL_COLORS.map((col, i) => `
-    <linearGradient id="g${i}" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0%" stop-color="${col}ee"/>
-      <stop offset="100%" stop-color="${col}99"/>
-    </linearGradient>`).join('');
-
-    // Blur filter for background images
-    const blurFilter = `<filter id="bg-blur" x="-20%" y="-20%" width="140%" height="140%">
-      <feGaussianBlur stdDeviation="20"/>
-    </filter>`;
-
-    // Blurred background layer — slice the SVG width evenly among characters
-    let bgLayer = '';
-    if (bgImages.length > 0) {
-      const sliceW = Math.ceil(w / bgImages.length);
-      const imgs = bgImages.map((uri, i) =>
-        `<image href="${uri}" x="${i * sliceW}" y="0" width="${sliceW}" height="${h}" preserveAspectRatio="xMidYMid slice"/>`
-      ).join('\n  ');
-      bgLayer = `<g filter="url(#bg-blur)" opacity="0.42">\n  ${imgs}\n</g>`;
-    }
-
-    return `<?xml version="1.0" encoding="UTF-8"?>
-<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}">
-  <defs>
-    ${blurFilter}${levelGrad}
-    ${defs.join('\n    ')}
-  </defs>
-
-  <!-- base dark fill -->
-  <rect width="${w}" height="${h}" fill="#0b1120"/>
-
-  <!-- blurred character photos -->
-  ${bgLayer}
-
-  <!-- dark overlay to keep tree readable -->
-  <rect width="${w}" height="${h}" fill="#0b1120" opacity="0.68"/>
-
-  <!-- connector lines -->
-  ${lines.join('\n  ')}
-
-  <!-- nodes -->
-  ${elems.join('\n  ')}
-</svg>`;
-  }
-
-  private collectLines(n: TreeNode, out: string[]): void {
-    const x1 = n.x + BOX_W / 2, y1 = n.y + this.bh(n);
-    for (const c of n.children) {
-      const x2 = c.x + BOX_W / 2, y2 = c.y, my = (y1 + y2) / 2;
-      out.push(`<path d="M${x1},${y1} C${x1},${my} ${x2},${my} ${x2},${y2}" stroke="#475569" stroke-width="1.5" fill="none"/>`);
-      this.collectLines(c, out);
-    }
-  }
-
-  private collectElems(n: TreeNode, out: string[], defs: string[]): void {
-    const lvl = Math.min(n.level, LEVEL_COLORS.length - 1);
-    const { x, y } = n;
-    const bh = this.bh(n);
-
-    out.push(`<rect x="${x}" y="${y}" width="${BOX_W}" height="${bh}" rx="10" fill="url(#g${lvl})" stroke="#ffffff1a" stroke-width="1"/>`);
-
-    if (n.dataUri) {
-      // Avatar circle (character photo or "?" for root)
-      const cx  = x + BOX_W / 2;
-      const cy  = y + AVATAR_R + 10;
-      const uid = `cl${Math.round(x)}_${Math.round(y)}`;
-      defs.push(`<clipPath id="${uid}"><circle cx="${cx}" cy="${cy}" r="${AVATAR_R}"/></clipPath>`);
-      out.push(`<image href="${n.dataUri}" x="${cx - AVATAR_R}" y="${cy - AVATAR_R}" width="${AVATAR_R * 2}" height="${AVATAR_R * 2}" preserveAspectRatio="xMidYMin slice" clip-path="url(#${uid})"/>`);
-      out.push(`<circle cx="${cx}" cy="${cy}" r="${AVATAR_R}" fill="none" stroke="#ffffff33" stroke-width="1.5"/>`);
-      out.push(this.txt(n.label,    cx, cy + AVATAR_R + 14, '#fff',     11.5, 700));
-      if (n.sublabel) out.push(this.txt(n.sublabel, cx, cy + AVATAR_R + 28, '#94a3b8', 9.5, 400));
-    } else {
-      // Text-only (group-label nodes in multi-poll)
-      const mid = y + bh / 2;
-      out.push(this.txt(n.label,    x + BOX_W / 2, n.sublabel ? mid - 7 : mid, '#fff',     12, 700));
-      if (n.sublabel) out.push(this.txt(n.sublabel, x + BOX_W / 2, mid + 8, '#94a3b8', 9.5, 400));
-    }
-
-    for (const c of n.children) this.collectElems(c, out, defs);
-  }
-
-  private txt(raw: string, x: number, y: number, fill: string, size: number, weight: number): string {
-    const max  = Math.floor(BOX_W / (size * 0.6));
-    const text = raw.length > max ? raw.slice(0, max - 1) + '…' : raw;
-    return `<text x="${x}" y="${y}" text-anchor="middle" dominant-baseline="middle" fill="${fill}" font-size="${size}" font-weight="${weight}" font-family="system-ui,ui-sans-serif,sans-serif">${this.esc(text)}</text>`;
-  }
-
-  private esc(s: string): string {
-    return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
-  }
-
-  private walk(n: TreeNode, fn: (n: TreeNode) => void): void {
-    fn(n); n.children.forEach(c => this.walk(c, fn));
-  }
-
-  private triggerDownload(svg: string, filename: string): void {
+  private async downloadJpeg(svg: string, w: number, h: number, id: string): Promise<void> {
     const blob = new Blob([svg], { type: 'image/svg+xml' });
     const url  = URL.createObjectURL(blob);
-    const a    = document.createElement('a');
-    a.href = url; a.download = filename; a.click();
-    setTimeout(() => URL.revokeObjectURL(url), 1000);
+    try {
+      const img = new Image();
+      await new Promise<void>((resolve, reject) => {
+        img.onload  = () => resolve();
+        img.onerror = () => reject(new Error('Failed to rasterize export image'));
+        img.src = url;
+      });
+      const scale  = 2; // crisp on retina screens
+      const canvas = document.createElement('canvas');
+      canvas.width  = w * scale;
+      canvas.height = h * scale;
+      const ctx = canvas.getContext('2d')!;
+      ctx.fillStyle = BG;
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+      const a = document.createElement('a');
+      a.href = canvas.toDataURL('image/jpeg', 0.92);
+      a.download = `${id}.jpg`;
+      a.click();
+    } finally {
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+    }
   }
 }

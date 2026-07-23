@@ -13,8 +13,10 @@ export class VoteStore {
   private readonly toast = inject(ToastService);
 
   private readonly _votes         = signal<VoteMap>({});
+  private readonly _groupCounts   = signal<VoteMap>({}); // `${groupId}|${charId}` → votes (a char can sit in several bracket levels)
   private readonly _myVotes       = signal<MyVoteMap>({}); // pollId → charId (last/any)
   private readonly _myGroupVotes  = signal<MyVoteMap>({}); // groupId → charId
+  private readonly _myGroupChoice = signal<MyVoteMap>({}); // pollId → groupId (vote-by-group polls)
   private readonly _timestamps    = signal<TimestampMap>({});
 
   readonly votes         = this._votes.asReadonly();
@@ -48,7 +50,7 @@ export class VoteStore {
     this._timestamps.set({ ...this._timestamps(), [pollId]: Date.now() });
 
     this.api.castVote(pollId, characterId).subscribe({
-      next: res => { this.applyPollResult(res); this.toast.success('Vote cast!'); },
+      next: res => this.applyPollResult(res),
       error: err => this.toast.error(this.extractError(err, 'Failed to cast vote')),
     });
   }
@@ -61,7 +63,7 @@ export class VoteStore {
     this._myVotes.set({ ...this._myVotes(), [pollId]: newCharId });
 
     this.api.changeVote(pollId, newCharId).subscribe({
-      next: res => { this.applyPollResult(res); this.toast.info('Vote changed!'); },
+      next: res => this.applyPollResult(res),
       error: err => this.toast.error(this.extractError(err, 'Failed to change vote')),
     });
   }
@@ -83,7 +85,11 @@ export class VoteStore {
   /** Per-group vote — used by bracket multi-polls */
   voteMultiGroup(characterId: string, pollId: string, groupId: string): void {
     this._votes.set({ ...this._votes(), [characterId]: (this._votes()[characterId] ?? 0) + 1 });
-    if (groupId) this._myGroupVotes.set({ ...this._myGroupVotes(), [groupId]: characterId });
+    if (groupId) {
+      this._myGroupVotes.set({ ...this._myGroupVotes(), [groupId]: characterId });
+      const key = `${groupId}|${characterId}`;
+      this._groupCounts.set({ ...this._groupCounts(), [key]: (this._groupCounts()[key] ?? 0) + 1 });
+    }
     // Mark the poll as voted for navigation (first vote wins)
     if (!this._myVotes()[pollId]) {
       this._myVotes.set({ ...this._myVotes(), [pollId]: characterId });
@@ -91,20 +97,56 @@ export class VoteStore {
     this._timestamps.set({ ...this._timestamps(), [pollId]: Date.now() });
 
     this.api.castMultiVote(pollId, characterId).subscribe({
-      next: res => { this.applyMultiPollResult(res); this.toast.success('Vote cast!'); },
+      next: res => this.applyMultiPollResult(res),
       error: err => this.toast.error(this.extractError(err, 'Failed to cast vote')),
     });
   }
 
-  changeMultiVote(pollId: string, oldCharId: string, newCharId: string): void {
+  changeMultiVote(pollId: string, groupId: string, oldCharId: string, newCharId: string): void {
     const v = { ...this._votes() };
     v[oldCharId] = Math.max(0, (v[oldCharId] ?? 0) - 1);
     v[newCharId] = (v[newCharId] ?? 0) + 1;
     this._votes.set(v);
     this._myVotes.set({ ...this._myVotes(), [pollId]: newCharId });
+    if (groupId) {
+      const gc = { ...this._groupCounts() };
+      const oldKey = `${groupId}|${oldCharId}`, newKey = `${groupId}|${newCharId}`;
+      gc[oldKey] = Math.max(0, (gc[oldKey] ?? 0) - 1);
+      gc[newKey] = (gc[newKey] ?? 0) + 1;
+      this._groupCounts.set(gc);
+      this._myGroupVotes.set({ ...this._myGroupVotes(), [groupId]: newCharId });
+    }
 
     this.api.changeMultiVote(pollId, newCharId).subscribe({
-      next: res => { this.applyMultiPollResult(res); this.toast.info('Vote changed!'); },
+      next: res => this.applyMultiPollResult(res),
+      error: err => this.toast.error(this.extractError(err, 'Failed to change vote')),
+    });
+  }
+
+  /** Vote-by-group polls: the vote is a whole group. */
+  voteForGroup(pollId: string, groupId: string): void {
+    this._myGroupChoice.set({ ...this._myGroupChoice(), [pollId]: groupId });
+    const key = `${groupId}|@group`;
+    this._groupCounts.set({ ...this._groupCounts(), [key]: (this._groupCounts()[key] ?? 0) + 1 });
+    if (!this._myVotes()[pollId]) this._myVotes.set({ ...this._myVotes(), [pollId]: groupId });
+    this._timestamps.set({ ...this._timestamps(), [pollId]: Date.now() });
+
+    this.api.castGroupVote(pollId, groupId).subscribe({
+      next: res => this.applyMultiPollResult(res),
+      error: err => this.toast.error(this.extractError(err, 'Failed to cast vote')),
+    });
+  }
+
+  changeGroupChoice(pollId: string, oldGroupId: string, newGroupId: string): void {
+    const gc = { ...this._groupCounts() };
+    const oldKey = `${oldGroupId}|@group`, newKey = `${newGroupId}|@group`;
+    gc[oldKey] = Math.max(0, (gc[oldKey] ?? 0) - 1);
+    gc[newKey] = (gc[newKey] ?? 0) + 1;
+    this._groupCounts.set(gc);
+    this._myGroupChoice.set({ ...this._myGroupChoice(), [pollId]: newGroupId });
+
+    this.api.changeGroupVote(pollId, newGroupId).subscribe({
+      next: res => this.applyMultiPollResult(res),
       error: err => this.toast.error(this.extractError(err, 'Failed to change vote')),
     });
   }
@@ -129,8 +171,23 @@ export class VoteStore {
 
   private applyMultiPollResult(res: MultiPollResultDto): void {
     const v = { ...this._votes() };
-    for (const group of res.groups) for (const c of group.candidates) v[c.charId] = c.votes;
+    const gc = { ...this._groupCounts() };
+    for (const group of res.groups) {
+      if (res.poll.votingByGroup) gc[`${group.id}|@group`] = group.groupTotal;
+      for (const c of group.candidates) {
+        v[c.charId] = c.votes;
+        gc[`${group.id}|${c.charId}`] = c.votes;
+      }
+    }
     this._votes.set(v);
+    this._groupCounts.set(gc);
+
+    if (res.poll.votingByGroup && res.myVotedGroupId) {
+      this._myGroupChoice.set({ ...this._myGroupChoice(), [res.poll.id]: res.myVotedGroupId });
+      if (!this._myVotes()[res.poll.id]) {
+        this._myVotes.set({ ...this._myVotes(), [res.poll.id]: res.myVotedGroupId });
+      }
+    }
 
     if (res.myVotesByGroup && Object.keys(res.myVotesByGroup).length > 0) {
       this._myGroupVotes.set({ ...this._myGroupVotes(), ...res.myVotesByGroup });
@@ -150,6 +207,11 @@ export class VoteStore {
 
   getCount(characterId: string): number { return this._votes()[characterId] ?? 0; }
 
+  /** Votes for a character within one specific group — safe when the same char sits in several bracket levels. */
+  getGroupCount(groupId: string, characterId: string): number {
+    return this._groupCounts()[`${groupId}|${characterId}`] ?? 0;
+  }
+
   getPollTotal(id1: string, id2: string): number { return this.getCount(id1) + this.getCount(id2); }
 
   getPercent(characterId: string, otherId: string): number {
@@ -161,4 +223,6 @@ export class VoteStore {
 
   getMyVote(pollId: string): string | null       { return this._myVotes()[pollId]      ?? null; }
   getMyGroupVote(groupId: string): string | null  { return this._myGroupVotes()[groupId] ?? null; }
+  getMyGroupChoice(pollId: string): string | null { return this._myGroupChoice()[pollId] ?? null; }
+  getGroupChoiceVotes(groupId: string): number    { return this._groupCounts()[`${groupId}|@group`] ?? 0; }
 }

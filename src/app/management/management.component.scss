@@ -3,13 +3,13 @@
   position: fixed;
   inset: 0;
   background: rgba(0, 0, 0, 0.55);
-  z-index: 200;
+  z-index: 800; // full-screen panel above everything but toasts
 }
 
 .panel {
   position:        fixed;
   inset:           0;
-  z-index:         201;
+  z-index:         801;
   display:         flex;
   overflow:        hidden;
   border-radius:   0;

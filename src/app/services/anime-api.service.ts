@@ -5,7 +5,10 @@ import {
   PollResultDto, MultiPollResultDto, HistoryItemDto,
   RegisterRequest, LoginRequest, RefreshRequest, LoginResponse,
   PollCreateDto, PollDto, MultiPollCreateDto, MultiPollAdminDto, CharacterDto,
-  AnimeDto, AnimeCreateDto, CharacterCreateDto, UploadResponse, ServerTimeDto
+  AnimeDto, AnimeCreateDto, CharacterCreateDto, UploadResponse, ServerTimeDto,
+  UserDto, UserUpdateDto, AdminUserUpdateDto, RoleDto, RoleCreateDto,
+  ApprovalSummaryDto, DailyLimitDto, UserDirectoryEntryDto, AuditEventDto,
+  CommentDto, LikeStateDto, PollKind, DashboardDto
 } from './api.types';
 import { environment } from '../../environments/environment';
 
@@ -23,6 +26,11 @@ export class AnimeApiService {
 
   getMultiPolls(): Observable<MultiPollAdminDto[]> {
     return this.http.get<MultiPollAdminDto[]>(`${API}/multi-polls`);
+  }
+
+  /** Usernames visible to any authenticated user — audience picker for RESTRICTED polls. */
+  getUserDirectory(): Observable<UserDirectoryEntryDto[]> {
+    return this.http.get<UserDirectoryEntryDto[]>(`${API}/users/directory`);
   }
 
   // ── Voting (identity from JWT or IP on backend) ───────────────────────────
@@ -115,10 +123,28 @@ export class AnimeApiService {
     return this.http.put<MultiPollAdminDto>(`${API}/admin/multi-polls/${id}`, req);
   }
 
+  // ── User content — Anime (open to everyone, changes are moderated) ────────
+
+  getMyAnimeList(): Observable<AnimeDto[]> {
+    return this.http.get<AnimeDto[]>(`${API}/user/anime`);
+  }
+
+  createMyAnime(req: AnimeCreateDto): Observable<AnimeDto> {
+    return this.http.post<AnimeDto>(`${API}/user/anime`, req);
+  }
+
+  updateMyAnime(id: string, req: AnimeCreateDto): Observable<AnimeDto> {
+    return this.http.put<AnimeDto>(`${API}/user/anime/${id}`, req);
+  }
+
   // ── Admin CRUD — Anime ────────────────────────────────────────────────────
 
   adminGetAnimeList(): Observable<AnimeDto[]> {
     return this.http.get<AnimeDto[]>(`${API}/admin/anime`);
+  }
+
+  adminGetAnime(id: string): Observable<AnimeDto> {
+    return this.http.get<AnimeDto>(`${API}/admin/anime/${id}`);
   }
 
   adminCreateAnime(req: AnimeCreateDto): Observable<AnimeDto> {
@@ -154,20 +180,215 @@ export class AnimeApiService {
   // ── Image Upload ──────────────────────────────────────────────────────────
 
   uploadImage(file: File): Observable<UploadResponse> {
+    return this.uploadFileToPath(file, `${API}/admin/upload`);
+  }
+
+  uploadUserPicture(file: File): Observable<UploadResponse> {
+    return this.uploadFileToPath(file, `${API}/user/upload`);
+  }
+
+  private uploadFileToPath(file: File, url: string): Observable<UploadResponse> {
     return new Observable(observer => {
       const reader = new FileReader();
       reader.onload = () => {
         const dataUrl = reader.result as string;
         const commaIdx = dataUrl.indexOf(',');
         const data = dataUrl.substring(commaIdx + 1);
-        this.http.post<UploadResponse>(`${API}/admin/upload`, {
-          filename: file.name,
-          mimeType: file.type || 'image/jpeg',
-          data,
-        }).subscribe(observer);
+        this.http.post<UploadResponse>(url, { filename: file.name, mimeType: file.type || 'image/jpeg', data })
+            .subscribe(observer);
       };
       reader.onerror = () => observer.error(new Error('FileReader error'));
       reader.readAsDataURL(file);
     });
+  }
+
+  // ── User profile ──────────────────────────────────────────────────────────
+
+  getMyProfile(): Observable<UserDto> {
+    return this.http.get<UserDto>(`${API}/user/me`);
+  }
+
+  updateMyProfile(dto: UserUpdateDto): Observable<UserDto> {
+    return this.http.put<UserDto>(`${API}/user/me`, dto);
+  }
+
+  // ── Admin — Users ─────────────────────────────────────────────────────────
+
+  adminGetUsers(): Observable<UserDto[]> {
+    return this.http.get<UserDto[]>(`${API}/admin/users`);
+  }
+
+  adminUpdateUser(id: string, dto: AdminUserUpdateDto): Observable<UserDto> {
+    return this.http.put<UserDto>(`${API}/admin/users/${id}`, dto);
+  }
+
+  adminDeleteUser(id: string): Observable<void> {
+    return this.http.delete<void>(`${API}/admin/users/${id}`);
+  }
+
+  // ── Admin — Roles ─────────────────────────────────────────────────────────
+
+  adminGetRoles(): Observable<RoleDto[]> {
+    return this.http.get<RoleDto[]>(`${API}/admin/roles`);
+  }
+
+  adminCreateRole(dto: RoleCreateDto): Observable<RoleDto> {
+    return this.http.post<RoleDto>(`${API}/admin/roles`, dto);
+  }
+
+  adminDeleteRole(id: string): Observable<void> {
+    return this.http.delete<void>(`${API}/admin/roles/${id}`);
+  }
+
+  // ── User content (My Content) ─────────────────────────────────────────────
+
+  getUserLimits(): Observable<DailyLimitDto> {
+    return this.http.get<DailyLimitDto>(`${API}/user/limits`);
+  }
+
+  myCharacters(): Observable<CharacterDto[]> {
+    return this.http.get<CharacterDto[]>(`${API}/user/characters`);
+  }
+
+  createMyCharacter(req: CharacterCreateDto): Observable<CharacterDto> {
+    return this.http.post<CharacterDto>(`${API}/user/characters`, req);
+  }
+
+  updateMyCharacter(id: string, req: CharacterCreateDto): Observable<CharacterDto> {
+    return this.http.put<CharacterDto>(`${API}/user/characters/${id}`, req);
+  }
+
+  deleteMyCharacter(id: string): Observable<void> {
+    return this.http.delete<void>(`${API}/user/characters/${id}`);
+  }
+
+  myPolls(): Observable<PollDto[]> {
+    return this.http.get<PollDto[]>(`${API}/user/polls`);
+  }
+
+  createMyPoll(req: PollCreateDto): Observable<PollDto> {
+    return this.http.post<PollDto>(`${API}/user/polls`, req);
+  }
+
+  updateMyPoll(id: string, req: PollCreateDto): Observable<PollDto> {
+    return this.http.put<PollDto>(`${API}/user/polls/${id}`, req);
+  }
+
+  deleteMyPoll(id: string): Observable<void> {
+    return this.http.delete<void>(`${API}/user/polls/${id}`);
+  }
+
+  myMultiPolls(): Observable<MultiPollAdminDto[]> {
+    return this.http.get<MultiPollAdminDto[]>(`${API}/user/multi-polls`);
+  }
+
+  createMyMultiPoll(req: MultiPollCreateDto): Observable<MultiPollAdminDto> {
+    return this.http.post<MultiPollAdminDto>(`${API}/user/multi-polls`, req);
+  }
+
+  updateMyMultiPoll(id: string, req: MultiPollCreateDto): Observable<MultiPollAdminDto> {
+    return this.http.put<MultiPollAdminDto>(`${API}/user/multi-polls/${id}`, req);
+  }
+
+  deleteMyMultiPoll(id: string): Observable<void> {
+    return this.http.delete<void>(`${API}/user/multi-polls/${id}`);
+  }
+
+  // ── Admin approvals ───────────────────────────────────────────────────────
+
+  getApprovalSummary(): Observable<ApprovalSummaryDto> {
+    return this.http.get<ApprovalSummaryDto>(`${API}/admin/approvals`);
+  }
+
+  approveCharacter(id: string): Observable<void> {
+    return this.http.post<void>(`${API}/admin/approvals/characters/${id}/approve`, {});
+  }
+
+  approveAnime(id: string): Observable<void> {
+    return this.http.post<void>(`${API}/admin/approvals/anime/${id}/approve`, {});
+  }
+
+  rejectAnime(id: string): Observable<void> {
+    return this.http.post<void>(`${API}/admin/approvals/anime/${id}/reject`, {});
+  }
+
+  rejectCharacter(id: string): Observable<void> {
+    return this.http.post<void>(`${API}/admin/approvals/characters/${id}/reject`, {});
+  }
+
+  approvePoll(id: string): Observable<void> {
+    return this.http.post<void>(`${API}/admin/approvals/polls/${id}/approve`, {});
+  }
+
+  rejectPoll(id: string): Observable<void> {
+    return this.http.post<void>(`${API}/admin/approvals/polls/${id}/reject`, {});
+  }
+
+  approveMultiPoll(id: string): Observable<void> {
+    return this.http.post<void>(`${API}/admin/approvals/multi-polls/${id}/approve`, {});
+  }
+
+  rejectMultiPoll(id: string): Observable<void> {
+    return this.http.post<void>(`${API}/admin/approvals/multi-polls/${id}/reject`, {});
+  }
+
+  approvePollDeletion(id: string): Observable<void> {
+    return this.http.post<void>(`${API}/admin/approvals/delete/polls/${id}/approve`, {});
+  }
+
+  rejectPollDeletion(id: string): Observable<void> {
+    return this.http.post<void>(`${API}/admin/approvals/delete/polls/${id}/reject`, {});
+  }
+
+  approveMultiPollDeletion(id: string): Observable<void> {
+    return this.http.post<void>(`${API}/admin/approvals/delete/multi-polls/${id}/approve`, {});
+  }
+
+  rejectMultiPollDeletion(id: string): Observable<void> {
+    return this.http.post<void>(`${API}/admin/approvals/delete/multi-polls/${id}/reject`, {});
+  }
+
+  // ── Audit trail (moderators) ──────────────────────────────────────────────
+
+  getAuditRecent(limit = 50): Observable<AuditEventDto[]> {
+    return this.http.get<AuditEventDto[]>(`${API}/admin/audit?limit=${limit}`);
+  }
+
+  getAuditHistory(entityType: string, entityId: string): Observable<AuditEventDto[]> {
+    return this.http.get<AuditEventDto[]>(`${API}/admin/audit/${entityType}/${entityId}`);
+  }
+
+  restoreAuditEvent(eventId: number): Observable<AuditEventDto> {
+    return this.http.post<AuditEventDto>(`${API}/admin/audit/${eventId}/restore`, {});
+  }
+
+  // ── Comments & likes ──────────────────────────────────────────────────────
+
+  getComments(kind: PollKind, pollId: string): Observable<CommentDto[]> {
+    return this.http.get<CommentDto[]>(`${API}/${kind}/${pollId}/comments`);
+  }
+
+  addComment(kind: PollKind, pollId: string, text: string): Observable<CommentDto> {
+    return this.http.post<CommentDto>(`${API}/${kind}/${pollId}/comments`, { text });
+  }
+
+  setCommentsEnabled(kind: PollKind, pollId: string, enabled: boolean): Observable<{ enabled: boolean }> {
+    return this.http.put<{ enabled: boolean }>(`${API}/${kind}/${pollId}/comments-enabled`, { enabled });
+  }
+
+  castGroupVote(pollId: string, groupId: string): Observable<MultiPollResultDto> {
+    return this.http.post<MultiPollResultDto>(`${API}/multi-polls/${pollId}/vote`, { groupId });
+  }
+
+  changeGroupVote(pollId: string, newGroupId: string): Observable<MultiPollResultDto> {
+    return this.http.put<MultiPollResultDto>(`${API}/multi-polls/${pollId}/vote`, { newGroupId });
+  }
+
+  toggleLike(kind: PollKind, pollId: string): Observable<LikeStateDto> {
+    return this.http.post<LikeStateDto>(`${API}/${kind}/${pollId}/like`, {});
+  }
+
+  getDashboard(): Observable<DashboardDto> {
+    return this.http.get<DashboardDto>(`${API}/admin/dashboard`);
   }
 }

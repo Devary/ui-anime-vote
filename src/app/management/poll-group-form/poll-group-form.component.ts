@@ -126,7 +126,7 @@ export function createGroupForm(config: GroupFormConfig = {}): FormGroup {
             <span class="slot-num">{{ j + 1 }}</span>
             <p-select
               [formControl]="getCandidateCtrl(j)"
-              [options]="charOptions"
+              [options]="optionsForSlot(j)"
               optionLabel="displayName"
               optionValue="id"
               [filter]="true"
@@ -201,6 +201,8 @@ export function createGroupForm(config: GroupFormConfig = {}): FormGroup {
 export class PollGroupFormComponent {
   @Input({ required: true }) group!: FormGroup;
   @Input() charOptions: CharOption[] = [];
+  /** Character IDs already selected in other groups (same level) — excluded from all slots. */
+  @Input() excludeIds: string[] = [];
   @Input() showLabel = true;
   @Input() showPeriod = true;
   @Input() isEdit = false;
@@ -218,6 +220,19 @@ export class PollGroupFormComponent {
   get candidatesArray(): FormArray { return this.group.get('candidates') as FormArray; }
   getCandidateCtrl(j: number): FormControl { return this.candidatesArray.at(j) as FormControl; }
   get startNow(): boolean { return this.group.get('startNow')?.value === true; }
+
+  /** Options for slot j: excludes chars selected in other slots + parent-supplied cross-group exclusions. */
+  optionsForSlot(j: number): CharOption[] {
+    const cArr = this.candidatesArray;
+    const thisVal = cArr.at(j).value as string;
+    const usedElsewhere = new Set<string>(this.excludeIds);
+    cArr.controls.forEach((c, k) => {
+      const v = c.value as string;
+      if (k !== j && v) usedElsewhere.add(v);
+    });
+    if (thisVal) usedElsewhere.delete(thisVal);
+    return this.charOptions.filter(o => !usedElsewhere.has(o.id));
+  }
 
   get minDateTime(): string {
     const d = new Date();

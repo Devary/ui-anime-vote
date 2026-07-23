@@ -13,6 +13,13 @@ export interface Poll {
   question: string;
   fighter1: Character;
   fighter2: Character;
+  visibility?: string; // PUBLIC | PRIVATE | AUTHENTICATED | RESTRICTED
+  ownerUsername?: string | null;
+  ownerId?: string | null;
+  commentsEnabled?: boolean;
+  commentCount?: number;
+  likes?: number;
+  likedByMe?: boolean;
 }
 
 export interface MultiPollGroup {
@@ -24,6 +31,7 @@ export interface MultiPollGroup {
   candidates: Character[];
   startDate?: string;
   endDate?: string;
+  winnerCharId?: string | null; // set once the group ended (null on tie / no votes)
 }
 
 export interface MultiPoll {
@@ -32,6 +40,14 @@ export interface MultiPoll {
   anime: string;
   question: string;
   groups: MultiPollGroup[];
+  votingByGroup?: boolean; // vote for a whole group instead of one character per group
+  visibility?: string; // PUBLIC | PRIVATE | AUTHENTICATED | RESTRICTED
+  ownerUsername?: string | null;
+  ownerId?: string | null;
+  commentsEnabled?: boolean;
+  commentCount?: number;
+  likes?: number;
+  likedByMe?: boolean;
 }
 
 export type AnyPoll = Poll | MultiPoll;

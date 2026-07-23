@@ -5,6 +5,11 @@
   min-height:     0;
   overflow-y:     auto;
   position:       relative;
+
+  --bkt-gold:      #eab308;
+  --bkt-gold-soft: rgba(234, 179, 8, 0.16);
+  --bkt-line:      color-mix(in srgb, var(--rz-ink) 28%, transparent);
+  --bkt-slot-bg:   color-mix(in srgb, var(--rz-ink) 7%, transparent);
 }
 
 // ── Blurred split background ──────────────────────────────────────────────────
@@ -22,37 +27,70 @@
   background-size:     cover;
   background-position: top center;
   filter:              blur(22px) brightness(0.28) saturate(1.5);
-  transform:           scale(1.12); // push edges past clip boundary
-  transition:          background-image 0.4s ease;
+  transform:           scale(1.12);
 }
 
 .bg-overlay {
   position:   absolute;
   inset:      0;
   background: linear-gradient(
-    to right,
-    rgba(0,0,0,0.22) 0%,
-    transparent 48%,
-    transparent 52%,
-    rgba(0,0,0,0.22) 100%
+    to bottom,
+    rgba(0,0,0,0.15) 0%,
+    transparent 40%,
+    transparent 60%,
+    rgba(0,0,0,0.15) 100%
   );
 }
 
-.poll-page { position: relative; z-index: 1; }
-
+// ── Page ──────────────────────────────────────────────────────────────────────
 .poll-page {
+  position:        relative;
+  z-index:         1;
   flex:            1;
   display:         flex;
   flex-direction:  column;
   align-items:     center;
   justify-content: center;
-  padding:         1rem 4.5rem 0.75rem;
-  gap:             1rem;
+  padding:         0.75rem 3rem;
+  gap:             0.7rem;
   min-height:      0;
 }
 
-// ── Anime tag ─────────────────────────────────────────────────────────────────
-.poll-meta { text-align: center; flex-shrink: 0; }
+.poll-meta {
+  display:     flex;
+  align-items: center;
+  gap:         0.5rem;
+  flex-shrink: 0;
+}
+
+.owner-chip {
+  font-size:      0.66rem;
+  font-weight:    700;
+  color:          rgba(255, 255, 255, 0.75);
+  background:     rgba(255, 255, 255, 0.08);
+  border:         1px solid rgba(255, 255, 255, 0.12);
+  border-radius:  var(--rz-radius-full);
+  padding:        0.2rem 0.65rem;
+  white-space:    nowrap;
+}
+
+
+.share-btn {
+  display:       grid;
+  place-items:   center;
+  width:         1.9rem;
+  height:        1.9rem;
+  border:        1px solid var(--rz-border);
+  border-radius: 50%;
+  background:    var(--rz-surface);
+  color:         var(--rz-primary);
+  cursor:        pointer;
+  font-size:     0.8rem;
+  transition:    background 0.15s ease, transform 0.15s ease;
+
+  &:hover { background: var(--rz-surface-hover); transform: scale(1.08); }
+}
+
 
 .anime-tag {
   display:        inline-block;
@@ -66,326 +104,234 @@
   padding:        0.25rem 0.9rem;
 }
 
-// ══════════════════════════════════════════════════════════════════════════════
-// BEFORE VOTE — two fighters side by side
-// ══════════════════════════════════════════════════════════════════════════════
-.fighters {
-  display:         flex;
-  align-items:     center;
-  justify-content: center;
-  gap:             1.5rem;
-
-  @media (max-width: 480px) { gap: 0.75rem; }
+.badge-voted {
+  font-size:      0.58rem;
+  font-weight:    900;
+  letter-spacing: 0.1em;
+  color:          #fff;
+  background:     linear-gradient(135deg, #2e7d32, #66bb6a);
+  border-radius:  var(--rz-radius-full);
+  padding:        0.2rem 0.55rem;
 }
 
-.fighter {
-  display:        flex;
-  flex-direction: column;
-  align-items:    center;
-  gap:            0.55rem;
-}
-
-.photo-btn {
-  position:      relative;
-  background:    none;
-  border:        none;
-  padding:       0;
-  cursor:        pointer;
-  border-radius: 50%;
-  outline:       none;
-  display:       block;
-
-  &:hover  .vote-ring     { opacity: 1; }
-  &:active .fighter-photo { transform: scale(0.96); }
-
-  &:focus-visible .fighter-photo {
-    outline:        2px solid var(--rz-primary);
-    outline-offset: 4px;
-  }
-}
-
-.fighter-photo {
-  width:           clamp(110px, 22vw, 210px);
-  height:          clamp(110px, 22vw, 210px);
-  border-radius:   50%;
-  object-fit:      cover;
-  object-position: top center;
-  border:          3px solid var(--rz-glass-border);
-  display:         block;
-  transition:      transform 0.15s;
-  background:      var(--rz-surface-hover);
-}
-
-.vote-ring {
-  position:        absolute;
-  inset:           0;
-  border-radius:   50%;
-  background:      rgba(21, 101, 192, 0.82);
-  color:           #fff;
-  font-size:       1.1rem;
-  font-weight:     900;
-  letter-spacing:  0.08em;
-  display:         flex;
-  align-items:     center;
-  justify-content: center;
-  opacity:         0;
-  transition:      opacity 0.2s ease;
-  pointer-events:  none;
-}
-
-.fighter-name {
-  font-size:   clamp(0.82rem, 1.9vw, 0.98rem);
-  font-weight: 700;
-  color:       var(--rz-ink);
+.poll-question {
+  margin:      0;
+  font-size:   1.05rem;
+  font-weight: 800;
   text-align:  center;
+  color:       #fff;
+  text-shadow: 0 2px 14px rgba(0, 0, 0, 0.55);
 }
 
-.fighter-title {
-  font-size:  clamp(0.68rem, 1.4vw, 0.78rem);
-  color:      var(--rz-ink-muted);
-  font-style: italic;
-  text-align: center;
+.board-hint {
+  font-size:   0.68rem;
+  font-weight: 600;
+  color:       var(--rz-ink-muted); // inside the glass board → theme-aware is correct here
+  text-align:  center;
+  padding-top: 0.9rem;
 }
 
-// VS badge
-.vs-badge {
-  flex-shrink:     0;
-  width:           clamp(55px, 11vw, 105px);
-  height:          clamp(55px, 11vw, 105px);
-  border-radius:   50%;
-  background:      rgba(0, 0, 0, 0.35);
-  border:          2px solid rgba(255, 255, 255, 0.15);
-  color:           var(--rz-primary);
-  font-size:       clamp(22px, 4.5vw, 46px);
-  font-weight:     900;
-  letter-spacing:  0.05em;
+// ── Org-chart board ───────────────────────────────────────────────────────────
+.poll-board {
+  width:           100%;
+  max-width:       36rem;
+  background:      color-mix(in srgb, var(--rz-surface) 90%, transparent);
+  border:          1px solid var(--rz-border);
+  border-radius:   var(--rz-radius-lg);
+  padding:         1.4rem;
+  backdrop-filter: blur(var(--rz-glass-blur));
+  box-shadow:      var(--rz-glass-shadow);
   display:         flex;
+  flex-direction:  column;
   align-items:     center;
-  justify-content: center;
-  text-shadow:
-    -2px -2px 0 #000, 2px -2px 0 #000,
-    -2px  2px 0 #000, 2px  2px 0 #000,
-    -2px  0   0 #000, 2px  0   0 #000,
-     0   -2px 0 #000, 0    2px 0 #000;
 }
 
-// ══════════════════════════════════════════════════════════════════════════════
-// AFTER VOTE — PrimeNG OrganizationChart
-// ══════════════════════════════════════════════════════════════════════════════
-.org-wrap {
-  display:        flex;
-  flex-direction: column;
-  align-items:    center;
-  width:          100%;
-  gap:            0.75rem;
-  overflow-x:     auto;
-  animation:      org-fade-in 0.35s ease forwards;
-}
-
-@keyframes org-fade-in {
-  from { opacity: 0; transform: translateY(8px); }
-  to   { opacity: 1; transform: translateY(0); }
-}
-
-// ── PrimeNG OrgChart overrides ────────────────────────────────────────────────
 :host ::ng-deep {
-  .p-organizationchart {
-    background:  transparent;
-    padding:     0;
-  }
+  .p-organizationchart { background: transparent; padding: 0; }
 
-  // Horizontal connector cells (the T-fork lines)
   .p-organizationchart-connector-left.p-organizationchart-connector-top {
-    border-top:   2px solid rgba(255, 255, 255, 0.4) !important;
-    border-right: 2px solid rgba(255, 255, 255, 0.4) !important;
+    border-top:   2px solid var(--bkt-line) !important;
+    border-right: 2px solid var(--bkt-line) !important;
   }
-
   .p-organizationchart-connector-right.p-organizationchart-connector-top {
-    border-top:  2px solid rgba(255, 255, 255, 0.4) !important;
-    border-left: 2px solid rgba(255, 255, 255, 0.4) !important;
+    border-top:  2px solid var(--bkt-line) !important;
+    border-left: 2px solid var(--bkt-line) !important;
   }
-
-  // Vertical connector going down from parent
   .p-organizationchart-connector-down {
-    background: rgba(255, 255, 255, 0.4) !important;
+    background: var(--bkt-line) !important;
     width:      2px  !important;
-    height:     20px !important;
+    height:     16px !important;
     margin:     0 auto;
   }
-
-  // Strip default PrimeNG node box styling
   .p-organizationchart-node-content {
-    border:      none        !important;
-    background:  transparent !important;
-    padding:     0           !important;
-    box-shadow:  none        !important;
-    border-radius: 0         !important;
+    border: none !important; background: transparent !important;
+    padding: 0 !important; box-shadow: none !important; border-radius: 0 !important;
   }
-
-  // Hide toggle button (collapsible=false means it shouldn't show, but just in case)
   .p-organizationchart-node-toggle-button { display: none !important; }
 }
 
-// ── Winner node ───────────────────────────────────────────────────────────────
-.node-winner {
-  display:        flex;
-  flex-direction: column;
-  align-items:    center;
-  gap:            0.4rem;
-  padding-bottom: 0.25rem;
-}
-
-.winner-photo-wrap { position: relative; }
-
-.winner-img {
-  width:           clamp(100px, 20vw, 150px);
-  height:          clamp(100px, 20vw, 150px);
-  border-radius:   50%;
-  object-fit:      cover;
-  object-position: top center;
-  border:          4px solid #fbbf24;
-  box-shadow:      0 0 0 5px rgba(251,191,36,0.22), 0 6px 32px rgba(251,191,36,0.45);
-  display:         block;
-  background:      var(--rz-surface-hover);
-}
-
-.winner-crown {
-  position:    absolute;
-  top:         -22px;
-  left:        50%;
-  transform:   translateX(-50%);
-  font-size:   2rem;
-  line-height: 1;
-  filter:      drop-shadow(0 2px 5px rgba(0,0,0,0.7));
-  animation:   crown-pop 0.45s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
-}
-
-@keyframes crown-pop {
-  from { transform: translateX(-50%) scale(0) rotate(-20deg); opacity: 0; }
-  to   { transform: translateX(-50%) scale(1) rotate(0deg);   opacity: 1; }
-}
-
-.winner-label {
-  font-size:   clamp(0.82rem, 1.8vw, 0.95rem);
-  font-weight: 800;
-  color:       #fbbf24;
-  text-align:  center;
-  text-shadow: 0 1px 4px rgba(0,0,0,0.4);
-}
-
-// ── Tie node ──────────────────────────────────────────────────────────────────
-.node-tie {
-  font-size:   1.3rem;
-  font-weight: 800;
-  color:       var(--rz-ink);
-  text-align:  center;
-  padding:     0.75rem 1.5rem;
-}
-
-// ── Fighter nodes ─────────────────────────────────────────────────────────────
-.node-fighter {
+// ── Winner (root) node ────────────────────────────────────────────────────────
+.winner-node {
   display:        flex;
   flex-direction: column;
   align-items:    center;
   gap:            0.25rem;
-  padding:        0.25rem 0.75rem;
+  padding:        0.5rem 0.8rem;
+  border:         1px solid var(--bkt-gold);
+  border-radius:  0.85rem;
+  background:     var(--bkt-gold-soft);
+  box-shadow:     0 0 22px rgba(234, 179, 8, 0.18);
+}
 
-  &.is-winner .fighter-img {
-    border-color: #fbbf24;
-    box-shadow:   0 0 0 3px rgba(251,191,36,0.3);
+.bkt-shield {
+  width:       3.1rem;
+  height:      3.1rem;
+  display:     grid;
+  place-items: center;
+
+  svg {
+    width:  2rem;
+    height: 2rem;
+    fill:   color-mix(in srgb, var(--bkt-gold) 75%, transparent);
   }
 }
 
-.fighter-img {
-  width:           clamp(65px, 13vw, 95px);
-  height:          clamp(65px, 13vw, 95px);
-  border-radius:   50%;
-  object-fit:      cover;
-  object-position: top center;
-  border:          2px solid var(--rz-glass-border);
-  display:         block;
-  background:      var(--rz-surface-hover);
-  transition:      border-color 0.3s, box-shadow 0.3s;
+.final-label {
+  font-size:      0.72rem;
+  font-weight:    800;
+  letter-spacing: 0.08em;
+  color:          var(--bkt-gold);
 }
 
-.fn-name {
-  font-size:   clamp(0.65rem, 1.4vw, 0.78rem);
-  font-weight: 700;
-  color:       var(--rz-ink);
+.champ-avatar {
+  position: relative;
+  width:    4rem;
+  height:   4rem;
+
+  img {
+    width:           100%;
+    height:          100%;
+    border-radius:   50%;
+    object-fit:      cover;
+    object-position: top center;
+    border:          3px solid var(--bkt-gold);
+    box-shadow:      0 0 18px rgba(234, 179, 8, 0.5);
+  }
+}
+
+.champ-crown {
+  position:  absolute;
+  top:       -0.85rem;
+  left:      50%;
+  transform: translateX(-50%);
+  font-size: 1rem;
+}
+
+.champ-name {
+  font-size:   0.75rem;
+  font-weight: 800;
+  color:       var(--bkt-gold);
+  white-space: nowrap;
+}
+
+// ── Fighter (leaf) node ───────────────────────────────────────────────────────
+.fighter-node {
+  display:        flex;
+  flex-direction: column;
+  align-items:    center;
+  gap:            0.25rem;
+  max-width:      9rem;
+  padding:        0.35rem 0.5rem;
+  color:          var(--rz-ink);
+}
+
+.fighter-btn {
+  position:      relative;
+  width:         4.6rem;
+  height:        4.6rem;
+  padding:       0;
+  border:        none;
+  background:    transparent;
+  cursor:        pointer;
+  border-radius: 50%;
+
+  img {
+    display:         block;
+    width:           100%;
+    height:          100%;
+    border-radius:   50%;
+    object-fit:      cover;
+    object-position: top center;
+    border:          3px solid var(--rz-border);
+    background:      #1a1a2e;
+    transition:      border-color 0.15s ease, transform 0.15s ease, box-shadow 0.15s ease;
+  }
+
+  &:disabled { cursor: default; }
+
+  &:not(:disabled):hover img {
+    border-color: var(--rz-primary);
+    transform:    scale(1.06);
+    box-shadow:   0 6px 20px rgba(0, 0, 0, 0.35);
+  }
+}
+
+.fighter-node.is-my-vote .fighter-btn img { border-color: var(--rz-primary); }
+.fighter-node.is-leader  .fighter-btn img {
+  border-color: var(--bkt-gold);
+  box-shadow:   0 0 0 3px rgba(234, 179, 8, 0.4);
+}
+
+.bkt-check {
+  position:      absolute;
+  bottom:        0;
+  right:         0;
+  width:         1.2rem;
+  height:        1.2rem;
+  display:       grid;
+  place-items:   center;
+  font-size:     0.65rem;
+  font-weight:   900;
+  color:         #fff;
+  background:    var(--rz-primary);
+  border-radius: 50%;
+  box-shadow:    0 1px 4px rgba(0, 0, 0, 0.4);
+}
+
+.fighter-name {
+  font-size:   0.88rem;
+  font-weight: 800;
   text-align:  center;
-  line-height: 1.2;
 }
 
-.fn-pct {
-  font-size:            clamp(0.82rem, 1.8vw, 0.95rem);
-  font-weight:          900;
-  color:                var(--rz-primary);
-  font-variant-numeric: tabular-nums;
-}
-
-.fn-votes {
-  font-size:  0.62rem;
+.fighter-title {
+  font-size:  0.68rem;
   color:      var(--rz-ink-muted);
   text-align: center;
 }
 
-// ── % bar below the chart ─────────────────────────────────────────────────────
-.org-bar-wrap {
-  width:      100%;
-  max-width:  380px;
-  display:    flex;
-  flex-direction: column;
-  gap:        0.3rem;
+.fighter-votes {
+  font-size:   0.75rem;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
 }
 
-.results-bar {
+// ── Result bar ────────────────────────────────────────────────────────────────
+.result-bar {
   display:       flex;
-  height:        2rem;
-  border-radius: var(--rz-radius-sm);
+  width:         100%;
+  height:        0.6rem;
+  margin-top:    1rem;
+  border-radius: var(--rz-radius-full);
   overflow:      hidden;
-  background:    var(--rz-border-faint);
+  background:    var(--bkt-slot-bg);
 }
 
-.bar-left {
-  background:      var(--rz-gradient);
-  display:         flex;
-  align-items:     center;
-  justify-content: center;
-  border-radius:   var(--rz-radius-sm) 0 0 var(--rz-radius-sm);
-  transition:      width 0.55s cubic-bezier(0.4, 0, 0.2, 1);
-  min-width:       0;
-  overflow:        hidden;
-}
+.result-seg { transition: width 0.4s ease; }
 
-.bar-right {
-  background:      linear-gradient(135deg, #c62828, #ef5350);
-  display:         flex;
-  align-items:     center;
-  justify-content: center;
-  border-radius:   0 var(--rz-radius-sm) var(--rz-radius-sm) 0;
-  transition:      width 0.55s cubic-bezier(0.4, 0, 0.2, 1);
-  min-width:       0;
-  overflow:        hidden;
-}
-
-.bar-pct {
-  font-size:            0.72rem;
-  font-weight:          700;
-  color:                #fff;
-  padding:              0 0.35rem;
-  white-space:          nowrap;
-  font-variant-numeric: tabular-nums;
-}
-
-.bar-labels {
-  display:              flex;
-  justify-content:      space-between;
-  font-size:            0.68rem;
-  color:                var(--rz-ink-muted);
-  font-variant-numeric: tabular-nums;
-}
-
-.total-votes {
-  color:     var(--rz-ink-faint);
-  font-size: 0.62rem;
+// ── Responsive ────────────────────────────────────────────────────────────────
+@media (max-width: 640px) {
+  .poll-page { padding: 0.75rem 1.25rem; }
+  .poll-board { padding: 1rem 0.8rem; }
+  .fighter-btn { width: 3.6rem; height: 3.6rem; }
 }

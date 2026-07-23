@@ -2,16 +2,36 @@
 
   @if (isStandalone) {
     <header class="standalone-header">
-      <span class="app-brand">⚔ Anime Vote</span>
+      <span class="app-brand"><img class="brand-logo" src="logo.svg" alt="VoteScroll" /></span>
 
       <div class="header-actions">
         @if (isLoggedIn()) {
-          <button class="admin-btn" (click)="openManagement()" aria-label="Management">⚙ Manage</button>
+          <button class="admin-btn" (click)="openManagement()" aria-label="Management">{{ i18n.t('app.manage') }}</button>
           <span class="username-chip">{{ currentUser()?.username }}</span>
-          <button class="login-btn" (click)="logout()">Logout</button>
+          <button class="login-btn" (click)="logout()">{{ i18n.t('app.logout') }}</button>
         } @else {
-          <button class="login-btn" (click)="openAuth()">Login</button>
+          <button class="login-btn" (click)="openAuth()">{{ i18n.t('app.login') }}</button>
         }
+        <div class="lang-select" (window:click)="onWindowClick($event)">
+          <button class="lang-toggle" (click)="langMenuOpen.set(!langMenuOpen())"
+                  aria-haspopup="listbox" [attr.aria-expanded]="langMenuOpen()">
+            <span class="lang-flag">{{ currentLang().flag }}</span>
+            <span class="lang-code">{{ i18n.lang().toUpperCase() }}</span>
+            <span class="lang-caret">▾</span>
+          </button>
+          @if (langMenuOpen()) {
+            <div class="lang-menu" role="listbox">
+              @for (l of i18n.LANGS; track l.code) {
+                <button class="lang-option" role="option"
+                        [class.active]="i18n.lang() === l.code"
+                        (click)="selectLang(l.code)">
+                  <span class="lang-flag">{{ l.flag }}</span>
+                  <span class="lang-label">{{ l.label }}</span>
+                </button>
+              }
+            </div>
+          }
+        </div>
         <button class="theme-toggle"
                 (click)="toggleTheme()"
                 [attr.aria-label]="isDark() ? 'Switch to light mode' : 'Switch to dark mode'">
@@ -21,22 +41,34 @@
     </header>
   }
 
-  <main class="poll-stage">
+  <main class="poll-stage"
+        (wheel)="onWheel($event)"
+        (touchstart)="onTouchStart($event)"
+        (touchend)="onTouchEnd($event)"
+        (window:keydown)="onKeydown($event)">
 
-    <button class="side-nav side-prev" (click)="prev()" aria-label="Previous poll">&#8592;</button>
-    <button class="side-nav side-next" (click)="next()" aria-label="Next poll">&#8594;</button>
+    <button class="side-nav side-prev" (click)="goPrev()" [attr.aria-label]="i18n.t('app.prevPoll')">&#8593;</button>
+    <button class="side-nav side-next" (click)="goNext()" [attr.aria-label]="i18n.t('app.nextPoll')">&#8595;</button>
 
     @if (loading()) {
-      <div class="loading-state">Loading polls…</div>
-    } @else if (currentAsSingle(); as poll) {
-      <app-poll-card [poll]="poll" (castVote)="onVote($event)" />
-    } @else if (currentAsMulti(); as poll) {
-      <app-multi-poll-card [poll]="poll" (castVote)="onVote($event)" />
+      <div class="loading-state">{{ i18n.t('app.loading') }}</div>
+    } @else {
+      @for (poll of currentPollArr(); track poll.id) {
+        <div class="card-slide"
+             [class.slide-from-bottom]="slideDir() === 'next'"
+             [class.slide-from-top]="slideDir() === 'prev'">
+          @if (poll.type === 'single') {
+            <app-poll-card [poll]="currentAsSingle()!" (castVote)="onVote($event)" />
+          } @else {
+            <app-multi-poll-card [poll]="currentAsMulti()!" />
+          }
+        </div>
+      }
     }
 
     <button class="history-btn" (click)="openHistory()" aria-label="Vote history">
       <span class="history-icon">🗳</span>
-      <span class="history-label">History</span>
+      <span class="history-label">{{ i18n.t('app.history') }}</span>
       @if (votedCount() > 0) {
         <span class="history-badge">{{ votedCount() }}</span>
       }

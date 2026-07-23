@@ -7,223 +7,277 @@
 
 <div class="multi-page">
 
-  <!-- Anime tag -->
+  <!-- Header -->
   <div class="poll-meta">
     <span class="anime-tag">{{ poll().anime }}</span>
-    <span class="multi-badge">{{ isBracket() ? 'TOURNAMENT' : 'MULTI' }}</span>
+    <span class="owner-chip">{{ i18n.t('poll.by') }} : {{ poll().ownerUsername || 'admin' }}</span>
+    <span class="multi-badge">{{ i18n.t(isGroupVote() ? 'badge.groupVote' : rootNode().group ? 'badge.knockout' : 'badge.multi') }}</span>
   </div>
+  <h2 class="poll-question">{{ poll().question }}</h2>
 
-  <!-- ══ BRACKET TOURNAMENT VIEW ══════════════════════════════════════════════ -->
-  @if (isBracket()) {
-    <div class="bracket-container">
-      @for (levelRow of groupsByLevel(); track levelRow.level; let li = $index) {
-        <div class="bracket-level">
-          <div class="bracket-level-label">
-            @if (levelRow.level === 0) { Quarter-Finals }
-            @else if (levelRow.level === groupsByLevel()[0].level) { Grand Final }
-            @else { Semi-Finals }
-          </div>
-          <div class="bracket-groups-row">
-            @for (group of levelRow.groups; track group.id) {
-              <div class="bracket-group-card"
-                   [class.group-tbd]="groupStatuses().get(group.id) === 'tbd'"
-                   [class.group-ended]="groupStatuses().get(group.id) === 'ended'"
-                   [class.group-upcoming]="groupStatuses().get(group.id) === 'upcoming'">
+  @if (isGroupVote()) {
+    <!-- vote-by-group: each group is one selectable choice -->
+    <div class="choice-board">
+      @for (group of poll().groups; track group.id; let gi = $index) {
+        <button class="choice-card"
+                [class.is-my-choice]="myChoice() === group.id"
+                [disabled]="groupStatuses().get(group.id) !== 'open' || myChoice() === group.id"
+                (click)="onClickGroupChoice(group)"
+                [title]="(myChoice() ? i18n.t('poll.switchTo') : i18n.t('poll.voteFor')) + ' ' + group.label">
+          @if (showChoiceResults()) {
+            <span class="choice-fill"
+                  [style.background]="COLORS[gi % COLORS.length]"
+                  [style.width.%]="pctOfGroup(group)"></span>
+          }
+          <span class="choice-head">
+            <span class="choice-label">{{ group.label }}</span>
+            @if (myChoice() === group.id) { <span class="choice-check">✓</span> }
+            @if (showChoiceResults()) {
+              <span class="choice-meta">{{ groupChoiceVotes(group) | number }} · {{ pctOfGroup(group).toFixed(1) }}%</span>
+            }
+          </span>
+          <span class="choice-roster">
+            @for (c of group.candidates; track c.id) {
+              <img class="choice-avatar" [src]="c.image" [alt]="c.name" [title]="c.name"
+                   onerror="this.onerror=null;this.src='https://placehold.co/60x60/1565C0/fff?text=?'" />
+            }
+          </span>
+        </button>
+      }
+      @if (!myChoice()) {
+        <div class="board-hint in-board">{{ i18n.t('poll.tapGroup') }}</div>
+      }
+    </div>
+  } @else if (isSimple()) {
+    <!-- Single group → simple org chart -->
+    <div class="simple-board">
+      <div class="simple-header">
+        <span class="simple-label">{{ simpleGroup().label }}</span>
+        @switch (groupStatuses().get(simpleGroup().id)) {
+          @case ('ended')    { <span class="badge-ended">{{ i18n.t('badge.ended') }}</span> }
+          @case ('upcoming') { <span class="badge-upcoming">{{ i18n.t('badge.upcoming') }}</span> }
+          @case ('open') {
+            @if (simpleGroup().endDate; as end) {
+              <app-countdown [endDate]="end" [startDate]="simpleGroup().startDate" />
+            }
+          }
+        }
+      </div>
 
-                <div class="bracket-group-header">
-                  <span class="bracket-group-label">{{ group.label }}</span>
-                  @if (group.endDate && groupStatuses().get(group.id) !== 'tbd') {
-                    <app-countdown [endDate]="group.endDate" [startDate]="group.startDate" />
-                  }
-                  @if (groupStatuses().get(group.id) === 'ended') {
-                    <span class="badge-ended">Ended</span>
-                  }
-                  @if (groupStatuses().get(group.id) === 'upcoming') {
-                    <span class="badge-upcoming">Coming soon</span>
-                  }
-                  @if (groupStatuses().get(group.id) === 'tbd') {
-                    <span class="badge-tbd">Awaiting results</span>
-                  }
-                </div>
+      <p-organization-chart [value]="orgNodes()" [collapsible]="false">
 
-                @if (groupStatuses().get(group.id) === 'tbd') {
-                  <!-- Unresolved bracket group: show feeder placeholders -->
-                  <div class="tbd-slots">
-                    @for (fid of group.feederGroupIds; track fid) {
-                      <div class="tbd-slot">
-                        <div class="tbd-avatar">?</div>
-                        <span class="tbd-slot-label">TBD</span>
-                      </div>
-                    }
-                  </div>
-                } @else {
-                  <!-- Resolved: show candidates with vote buttons -->
-                  <div class="bracket-candidates">
-                    @for (c of group.candidates; track c.id; let ci = $index) {
-                      <div class="bracket-candidate"
-                           [class.is-voted]="myGroupVote(group.id) === c.id"
-                           [class.is-winner]="groupStatuses().get(group.id) === 'ended' && c.id === group.candidates[0].id">
-                        <button class="bracket-cand-btn"
-                                (click)="onClickCandidate(c.id, group)"
-                                [disabled]="groupStatuses().get(group.id) !== 'open' || hasVotedInGroup(group.id)">
-                          <img class="bracket-cand-photo"
-                               [src]="c.image" [alt]="c.name"
-                               onerror="this.onerror=null;this.src='https://placehold.co/80x80/1565C0/fff?text=?'" />
-                          @if (myGroupVote(group.id) === c.id) {
-                            <span class="voted-check">✓</span>
-                          }
-                        </button>
-                        <div class="bracket-cand-name">{{ c.name }}</div>
-                        @if (hasVotedInGroup(group.id)) {
-                          <div class="bracket-cand-votes">
-                            {{ voteStore.getCount(c.id) | number }} votes
-                          </div>
-                        }
-                      </div>
-                    }
-                  </div>
-                  @if (hasVotedInGroup(group.id)) {
-                    <div class="bracket-bar">
-                      @for (c of group.candidates; track c.id; let ci = $index) {
-                        <div class="bracket-bar-seg"
-                             [style.background]="COLORS[ci % COLORS.length]"
-                             [style.width]="(groupTotal(group) > 0 ? voteStore.getCount(c.id) / groupTotal(group) * 100 : 100 / group.candidates.length).toFixed(1) + '%'">
-                        </div>
-                      }
-                    </div>
-                  }
-                }
-
+        <!-- Winner (root) -->
+        <ng-template let-node pTemplate="winner">
+          <div class="winner-node">
+            @if (node.data) {
+              <div class="champ-avatar">
+                <img [src]="node.data.image" [alt]="node.data.name"
+                     onerror="this.onerror=null;this.src='https://placehold.co/110x110/eab308/000?text=W'" />
+                <span class="champ-crown">👑</span>
               </div>
+              <div class="champ-name">{{ node.data.name }}</div>
+            } @else {
+              <div class="bkt-shield" title="To be decided">
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="M12 2l8 3v6c0 5-3.4 9.4-8 11-4.6-1.6-8-6-8-11V5l8-3z" />
+                </svg>
+              </div>
+              <div class="final-label">{{ i18n.t('poll.winner') }}</div>
+            }
+          </div>
+        </ng-template>
+
+        <!-- Candidate (leaf) -->
+        <ng-template let-node pTemplate="candidate">
+          <div class="candidate-node"
+               [class.is-my-vote]="node.data.isMyVote"
+               [class.is-winner]="node.data.isWinner">
+            <button class="candidate-btn"
+                    (click)="onClickCandidate(node.data.id, simpleGroup())"
+                    [disabled]="groupStatuses().get(simpleGroup().id) !== 'open' || node.data.isMyVote"
+                    [title]="(hasVotedInGroup(simpleGroup().id) ? i18n.t('poll.switchTo') : i18n.t('poll.voteFor')) + ' ' + node.data.name">
+              <img [src]="node.data.image" [alt]="node.data.name"
+                   onerror="this.onerror=null;this.src='https://placehold.co/120x120/1565C0/fff?text=?'" />
+              @if (node.data.isMyVote) { <span class="bkt-check">✓</span> }
+              @if (node.data.isWinner) { <span class="candidate-crown">🏆</span> }
+            </button>
+            <div class="candidate-name">{{ node.data.name }}</div>
+            <div class="candidate-title">{{ node.data.title }}</div>
+            @if (node.data.showResults) {
+              <div class="candidate-votes" [style.color]="node.data.color">
+                {{ node.data.votes | number }} · {{ node.data.pct.toFixed(1) }}%
+              </div>
+            }
+          </div>
+        </ng-template>
+
+      </p-organization-chart>
+
+      @if (groupStatuses().get(simpleGroup().id) === 'open' && !hasVotedInGroup(simpleGroup().id)) {
+        <div class="board-hint in-board">{{ i18n.t('poll.tapCandidate') }}</div>
+      }
+    </div>
+  } @else {
+
+  <!-- Knockout board -->
+  <div class="bracket-board">
+    <div class="bkt-tree">
+
+      @if (leftChildren().length) {
+        <div class="bkt-children pane">
+          @for (child of leftChildren(); track child.group?.id ?? $index) {
+            <div class="bkt-child">
+              <ng-container *ngTemplateOutlet="nodeTpl; context: { $implicit: child, side: 'left' }" />
+            </div>
+          }
+        </div>
+      }
+
+      <div class="bkt-center"
+           [class.has-left]="leftChildren().length"
+           [class.has-right]="rightChildren().length">
+        <div class="final-wrap">
+          @if (champion(); as champ) {
+            <div class="champion">
+              <div class="champ-avatar">
+                <img [src]="champ.image" [alt]="champ.name"
+                     onerror="this.onerror=null;this.src='https://placehold.co/110x110/eab308/000?text=W'" />
+                <span class="champ-crown">👑</span>
+              </div>
+              <div class="champ-name">{{ champ.name }}</div>
+            </div>
+          } @else {
+            <div class="final-label">{{ i18n.t(centerLabel()) }}</div>
+          }
+          <div class="bkt-match final"
+               [class.clickable]="isOpenable(rootNode())"
+               (click)="openGroup(rootNode())">
+            @for (slot of slotsOf(rootNode()); track $index) {
+              <ng-container *ngTemplateOutlet="slotTpl; context: { $implicit: slot }" />
             }
           </div>
         </div>
+      </div>
 
-        @if (li < groupsByLevel().length - 1) {
-          <div class="bracket-connector-row">
-            @for (branch of bracketConnectors()[li]; track $index) {
-              <div class="bracket-connector-branch" [style.width.%]="branch.widthPct">
-                <div class="conn-stem"></div>
-                <div class="conn-fork"
-                     [style.left.%]="branch.childPct"
-                     [style.right.%]="branch.childPct"></div>
-              </div>
-            }
-          </div>
-        }
+      @if (rightChildren().length) {
+        <div class="bkt-children pane mirror">
+          @for (child of rightChildren(); track child.group?.id ?? $index) {
+            <div class="bkt-child">
+              <ng-container *ngTemplateOutlet="nodeTpl; context: { $implicit: child, side: 'right' }" />
+            </div>
+          }
+        </div>
       }
+
     </div>
+  </div>
 
-  } @else {
+  <div class="board-hint">{{ i18n.t('poll.tapMatch') }}</div>
 
-    <!-- ══ STANDARD MULTI-POLL VIEW ═══════════════════════════════════════════ -->
-    @if (!voted()) {
-      <!-- Before vote: grouped candidate buttons -->
-      <div class="groups-layout">
-        @for (group of poll().groups; track group.id; let gi = $index) {
-          @if (gi > 0) { <div class="group-divider"></div> }
-          <div class="group-section" [class.group-locked]="groupStatuses().get(group.id) !== 'open'">
-            <div class="group-label-row">
-              <span class="group-label">{{ group.label }}</span>
-              @if (group.endDate) {
-                <app-countdown [endDate]="group.endDate" [startDate]="group.startDate" />
-              }
-            </div>
-            @if (groupStatuses().get(group.id) === 'upcoming') {
-              <div class="group-status-badge upcoming">Coming soon</div>
-            } @else if (groupStatuses().get(group.id) === 'ended') {
-              <div class="group-status-badge ended">Voting closed</div>
-            }
-            <div class="candidates-row">
-              @for (candidate of group.candidates; track candidate.id) {
-                <div class="candidate-col">
-                  <button class="candidate-btn"
-                          (click)="onClickCandidate(candidate.id, group)"
-                          [disabled]="groupStatuses().get(group.id) !== 'open'"
-                          [title]="groupStatuses().get(group.id) === 'open' ? 'Vote for ' + candidate.name : (groupStatuses().get(group.id) === 'upcoming' ? 'Not open yet' : 'Voting closed')">
-                    <img class="candidate-photo"
-                         [src]="candidate.image" [alt]="candidate.name"
-                         onerror="this.onerror=null;this.src='https://placehold.co/200x200/1565C0/fff?text=?'" />
-                    <div class="vote-ring">VOTE</div>
-                  </button>
-                  <div class="candidate-name">{{ candidate.name }}</div>
-                </div>
-              }
-            </div>
-          </div>
-        }
-      </div>
+  }
 
-    } @else {
-      <!-- After vote: PrimeNG OrgChart -->
-      <div class="org-wrap">
-        <p-organization-chart [value]="orgNodes()" [collapsible]="false">
+</div>
 
-          <ng-template let-node pTemplate="overall-winner">
-            <div class="node-overall">
-              <div class="overall-photo-wrap">
-                <img class="overall-img" [src]="node.data.image" [alt]="node.data.name"
-                     onerror="this.onerror=null;this.src='https://placehold.co/130x130/fbbf24/000?text=W'" />
-                <span class="overall-crown">👑</span>
-              </div>
-              <div class="overall-label">{{ node.data.name }}</div>
-            </div>
-          </ng-template>
+<!-- ── Recursive knockout node ─────────────────────────────────────────────── -->
+<ng-template #nodeTpl let-node let-side="side">
+  <div class="bkt-node"
+       [class.mirror]="side === 'right'"
+       [class.has-children]="node.children.length > 0">
 
-          <ng-template let-node pTemplate="group-winner">
-            <div class="node-group-winner" [class.is-my-vote]="node.data.isMyVote">
-              <div class="group-winner-photo-wrap">
-                <img class="group-winner-img" [src]="node.data.image" [alt]="node.data.name"
-                     onerror="this.onerror=null;this.src='https://placehold.co/90x90/fbbf24/000?text=W'" />
-                <span class="group-crown">🏆</span>
-              </div>
-              <div class="group-winner-name">{{ node.data.name }}</div>
-              <div class="group-winner-label">{{ node.data.label }}</div>
-            </div>
-          </ng-template>
-
-          <ng-template let-node pTemplate="candidate">
-            <div class="node-candidate"
-                 [class.is-my-vote]="node.data.isMyVote"
-                 [class.is-winner]="node.data.isWinner">
-              <div class="candidate-photo-wrap">
-                <img class="candidate-result-img" [src]="node.data.image" [alt]="node.data.name"
-                     onerror="this.onerror=null;this.src='https://placehold.co/80x80/1565C0/fff?text=?'" />
-                @if (node.data.isMyVote) { <span class="my-vote-dot">✓</span> }
-              </div>
-              <div class="cn-name">{{ node.data.name }}</div>
-              <div class="cn-pct" [style.color]="node.data.color">{{ node.data.pct }}%</div>
-              <div class="cn-votes">{{ node.data.votes | number }} votes</div>
-            </div>
-          </ng-template>
-
-        </p-organization-chart>
-      </div>
-
-      <!-- Per-group % bars -->
-      <div class="bars-row">
-        @for (bar of groupBars(); track bar.label) {
-          <div class="group-bar-wrap">
-            <div class="group-bar-label">{{ bar.label }}</div>
-            <div class="group-bar">
-              @for (seg of bar.segments; track seg.name) {
-                <div class="bar-seg" [style.background]="seg.color" [style.width]="seg.pct + '%'">
-                  <span class="seg-pct">{{ seg.pct }}%</span>
-                </div>
-              }
-            </div>
-            <div class="group-bar-legend">
-              @for (seg of bar.segments; track seg.name) {
-                <span class="legend-item">
-                  <span class="legend-dot" [style.background]="seg.color"></span>{{ seg.name }}
-                </span>
-              }
-            </div>
+    @if (node.children.length) {
+      <div class="bkt-children">
+        @for (child of node.children; track child.group?.id ?? $index) {
+          <div class="bkt-child">
+            <ng-container *ngTemplateOutlet="nodeTpl; context: { $implicit: child, side: side }" />
           </div>
         }
       </div>
     }
 
-  }
+    <div class="bkt-match"
+         [class.clickable]="isOpenable(node)"
+         [class.match-open]="node.group && groupStatuses().get(node.group.id) === 'open'"
+         [class.match-tbd]="node.group && groupStatuses().get(node.group.id) === 'tbd'"
+         [title]="node.group?.label ?? ''"
+         (click)="openGroup(node)">
+      @for (slot of slotsOf(node); track $index) {
+        <ng-container *ngTemplateOutlet="slotTpl; context: { $implicit: slot }" />
+      }
+    </div>
 
-</div>
+  </div>
+</ng-template>
+
+<!-- ── One participant slot (avatar or TBD shield) ─────────────────────────── -->
+<ng-template #slotTpl let-slot>
+  @if (slot.char) {
+    <div class="bkt-avatar"
+         [class.is-winner]="slot.isWinner"
+         [class.is-my-vote]="slot.isMyVote"
+         [title]="slot.char.name">
+      <img [src]="slot.char.image" [alt]="slot.char.name"
+           onerror="this.onerror=null;this.src='https://placehold.co/80x80/1565C0/fff?text=?'" />
+      @if (slot.isMyVote) { <span class="bkt-check">✓</span> }
+    </div>
+  } @else {
+    <div class="bkt-shield" title="To be decided">
+      <svg viewBox="0 0 24 24" aria-hidden="true">
+        <path d="M12 2l8 3v6c0 5-3.4 9.4-8 11-4.6-1.6-8-6-8-11V5l8-3z" />
+      </svg>
+    </div>
+  }
+</ng-template>
+
+<!-- ── Vote sheet ──────────────────────────────────────────────────────────── -->
+@if (selectedGroup(); as g) {
+  <div class="sheet-backdrop" (click)="closeSheet()"></div>
+  <div class="vote-sheet" role="dialog" aria-modal="true">
+
+    <div class="sheet-header">
+      <span class="sheet-label">{{ g.label }}</span>
+      @switch (groupStatuses().get(g.id)) {
+        @case ('ended')    { <span class="badge-ended">{{ i18n.t('badge.ended') }}</span> }
+        @case ('upcoming') { <span class="badge-upcoming">{{ i18n.t('badge.upcoming') }}</span> }
+        @case ('open') {
+          @if (g.endDate) { <app-countdown [endDate]="g.endDate" [startDate]="g.startDate" /> }
+        }
+      }
+      <button class="sheet-close" (click)="closeSheet()" aria-label="Close">✕</button>
+    </div>
+
+    <div class="sheet-body">
+      @for (c of g.candidates; track c.id; let ci = $index) {
+        <button class="sheet-row"
+                [class.is-my-vote]="myGroupVote(g.id) === c.id"
+                [class.is-winner]="g.winnerCharId === c.id"
+                [disabled]="groupStatuses().get(g.id) !== 'open' || myGroupVote(g.id) === c.id"
+                (click)="onClickCandidate(c.id, g)">
+          @if (showResults(g)) {
+            <span class="row-fill"
+                  [style.background]="COLORS[ci % COLORS.length]"
+                  [style.width.%]="pctOf(c, g)"></span>
+          }
+          <img class="row-avatar" [src]="c.image" [alt]="c.name"
+               onerror="this.onerror=null;this.src='https://placehold.co/60x60/1565C0/fff?text=?'" />
+          <span class="row-name">{{ c.name }}</span>
+          <span class="row-meta">
+            @if (showResults(g)) {
+              {{ countOf(c, g) | number }} · {{ pctOf(c, g).toFixed(1) }}%
+            } @else if (groupStatuses().get(g.id) === 'open') {
+              {{ i18n.t(hasVotedInGroup(g.id) ? 'poll.tapToSwitch' : 'poll.tapToVote') }}
+            }
+          </span>
+          @if (g.winnerCharId === c.id) { <span class="row-crown">🏆</span> }
+          @if (myGroupVote(g.id) === c.id) { <span class="row-check">✓</span> }
+        </button>
+      }
+
+      @if (hasVotedInGroup(g.id) && groupStatuses().get(g.id) === 'open') {
+        <div class="sheet-note">{{ i18n.t('poll.votedNote') }}</div>
+      }
+    </div>
+
+  </div>
+}
+
+<app-social-actions [poll]="poll()" kind="multi-polls" />

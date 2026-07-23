@@ -342,6 +342,20 @@
 
 .crown-small { font-size: 0.8rem; }
 
+.row-time {
+  font-size:  0.65rem;
+  color:      var(--rz-ink-faint);
+  font-weight: 500;
+}
+
+.row-question {
+  font-size:  0.72rem;
+  color:      var(--rz-ink-muted);
+  white-space: nowrap;
+  overflow:   hidden;
+  text-overflow: ellipsis;
+}
+
 .row-arrow {
   color:     var(--rz-ink-faint);
   font-size: 1.2rem;

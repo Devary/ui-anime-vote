@@ -1,5 +1,6 @@
 import { Component, inject, output, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { I18nService } from '../../i18n/i18n.service';
 import { FormsModule } from '@angular/forms';
 import { AuthService } from '../../services/auth.service';
 import { ToastService } from '../../services/toast.service';
@@ -14,6 +15,7 @@ type Tab = 'login' | 'register';
   styleUrl: './auth-modal.component.scss'
 })
 export class AuthModalComponent {
+  readonly i18n = inject(I18nService);
   readonly close = output<void>();
 
   private readonly auth  = inject(AuthService);
@@ -28,12 +30,10 @@ export class AuthModalComponent {
   loginPassword = '';
 
   // Register form
-  regUsername  = '';
-  regFirstName = '';
-  regLastName  = '';
-  regEmail     = '';
-  regPassword  = '';
-  regConfirm   = '';
+  regUsername = '';
+  regEmail    = '';
+  regPassword = '';
+  regConfirm  = '';
 
   switchTab(tab: Tab): void {
     this.activeTab.set(tab);
@@ -61,7 +61,7 @@ export class AuthModalComponent {
   }
 
   submitRegister(): void {
-    if (!this.regUsername || !this.regFirstName || !this.regEmail || !this.regPassword) {
+    if (!this.regUsername || !this.regEmail || !this.regPassword) {
       this.error.set('Please fill in all required fields');
       return;
     }
@@ -75,9 +75,7 @@ export class AuthModalComponent {
     }
     this.loading.set(true);
     this.error.set(null);
-    this.auth.register(
-      this.regUsername, this.regEmail, this.regPassword, this.regConfirm, this.regFirstName, this.regLastName
-    ).subscribe({
+    this.auth.register(this.regUsername, this.regEmail, this.regPassword, this.regConfirm).subscribe({
       next: (res) => {
         this.loading.set(false);
         this.toast.success(`Account created! Welcome, ${res.username}!`);
